@@ -1,0 +1,185 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow 1200mV 85C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -6.194
+TNS   : -3597.332
+
+Type  : Slow 1200mV 85C Model Setup 'clk_system'
+Slack : -3.263
+TNS   : -104.388
+
+Type  : Slow 1200mV 85C Model Setup 'clk_dds'
+Slack : -3.232
+TNS   : -173.782
+
+Type  : Slow 1200mV 85C Model Setup 'dds_ram_wrclock'
+Slack : -2.420
+TNS   : -372.653
+
+Type  : Slow 1200mV 85C Model Setup 'dds_step_to_next_freq_sampled'
+Slack : -1.656
+TNS   : -13.466
+
+Type  : Slow 1200mV 85C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -0.283
+TNS   : -0.283
+
+Type  : Slow 1200mV 85C Model Hold 'clk_system'
+Slack : 0.448
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'dds_ram_wrclock'
+Slack : 0.464
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'dds_step_to_next_freq_sampled'
+Slack : 0.466
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'clk_dds'
+Slack : 0.624
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'dds_ram_wrclock'
+Slack : -3.201
+TNS   : -614.592
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clk_system'
+Slack : -1.487
+TNS   : -92.194
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
+Slack : -1.487
+TNS   : -17.844
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clk_dds'
+Slack : 3.642
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 15.658
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -5.034
+TNS   : -2871.416
+
+Type  : Slow 1200mV 0C Model Setup 'clk_dds'
+Slack : -2.990
+TNS   : -159.185
+
+Type  : Slow 1200mV 0C Model Setup 'clk_system'
+Slack : -2.955
+TNS   : -93.326
+
+Type  : Slow 1200mV 0C Model Setup 'dds_ram_wrclock'
+Slack : -2.280
+TNS   : -351.379
+
+Type  : Slow 1200mV 0C Model Setup 'dds_step_to_next_freq_sampled'
+Slack : -1.366
+TNS   : -11.010
+
+Type  : Slow 1200mV 0C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -0.369
+TNS   : -0.369
+
+Type  : Slow 1200mV 0C Model Hold 'clk_system'
+Slack : 0.399
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'dds_step_to_next_freq_sampled'
+Slack : 0.418
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'dds_ram_wrclock'
+Slack : 0.495
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'clk_dds'
+Slack : 0.591
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'dds_ram_wrclock'
+Slack : -3.201
+TNS   : -614.592
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clk_system'
+Slack : -1.487
+TNS   : -92.194
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
+Slack : -1.487
+TNS   : -17.844
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clk_dds'
+Slack : 3.640
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 15.631
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Setup 'clk_dds'
+Slack : -1.080
+TNS   : -48.997
+
+Type  : Fast 1200mV 0C Model Setup 'clk_system'
+Slack : -0.766
+TNS   : -13.292
+
+Type  : Fast 1200mV 0C Model Setup 'dds_ram_wrclock'
+Slack : -0.761
+TNS   : -95.651
+
+Type  : Fast 1200mV 0C Model Setup 'dds_step_to_next_freq_sampled'
+Slack : -0.167
+TNS   : -0.435
+
+Type  : Fast 1200mV 0C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -0.051
+TNS   : -0.051
+
+Type  : Fast 1200mV 0C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.015
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'clk_system'
+Slack : 0.044
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'dds_step_to_next_freq_sampled'
+Slack : 0.195
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'dds_ram_wrclock'
+Slack : 0.311
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'clk_dds'
+Slack : 0.316
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'dds_ram_wrclock'
+Slack : -1.000
+TNS   : -192.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clk_system'
+Slack : -1.000
+TNS   : -62.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
+Slack : -1.000
+TNS   : -12.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clk_dds'
+Slack : 3.211
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 15.744
+TNS   : 0.000
+
+------------------------------------------------------------

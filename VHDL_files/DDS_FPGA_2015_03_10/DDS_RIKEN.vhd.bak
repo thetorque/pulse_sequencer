@@ -1,0 +1,32 @@
+
+library ieee;
+use ieee.std_logic_1164.all;
+USE ieee.std_logic_arith.all;
+use ieee.numeric_std.all;
+USE work.all;
+
+entity dds is
+  port(
+    clk_dds : in std_logic; -- clock in from DDS divided clock
+	 clk_in0: in std_logic; --clock in from local oscillator of 25 MHz
+
+    -- LED driver ---
+	 LED_CLK: OUT STD_LOGIC;
+	 LED_SDI: OUT STD_LOGIC_VECTOR (0 DOWNTO 0);
+	 LED_LE: OUT STD_LOGIC;
+	 LED_OE: OUT STD_LOGIC;
+	 
+	 ----address set pins----
+	 dip_in: in std_logic_vector (4 downto 0);
+    );
+
+end dds;
+
+architecture behaviour of dds is
+
+
+	
+begin
+
+
+end behaviour;
