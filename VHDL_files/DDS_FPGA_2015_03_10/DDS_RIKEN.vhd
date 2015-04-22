@@ -74,8 +74,10 @@ architecture behaviour of DDS_RIKEN is
 	
 	signal main_amplitude: std_logic_vector(13 downto 0);
 	signal main_frequency: std_LOGIC_vector(63 downto 0);
+	signal main_phase:	  std_LOGIC_vector(15 downto 0);
 	signal target_frequency: std_LOGIC_vector(63 downto 0);
 	signal target_amplitude: std_LOGIC_vector(13 downto 0);
+	signal target_phase:     std_LOGIC_vector(15 downto 0);	
 	
 	--- signal for bus talking to the pulser ----
 	signal bus_in_address: std_LOGIC_vector(3 downto 0);
@@ -203,6 +205,8 @@ begin
 	dds_port(7 downto 3) 		<= "00000";
 	
 	target_amplitude <= dds_ram_data_out(31 downto 18);
+	target_phase <= dds_ram_data_out(15 downto 0);
+	main_phase <= target_phase;
 	target_frequency <= dds_ram_data_out(127 downto 64);
 	
 	---- frequency step for ramping
@@ -498,12 +502,12 @@ begin
 	
 	---- write instruction to DDS ---
 	PROCESS (clk_50, reset_fpga)
-		variable main_count: integer range 0 to 17:=0;
+		variable main_count: integer range 0 to 18:=0;
 		variable sub_count: integer range 0 to 3:=0;
 		variable main_frequency_var: std_LOGIC_VECTOR (63 downto 0);
 		variable count_delay: integer range 0 to 65535:=0;
 		variable main_amplitude_var: std_logic_vector(13 downto 0); 
-		--variable main_phase_var
+		variable main_phase_var: std_logic_vector(15 downto 0);
 	BEGIN
 		IF (reset_fpga = '1') then
 			main_count := 0;
@@ -680,9 +684,25 @@ begin
 												 main_count:=main_count+1;
 								END CASE;
 								
+				----- set phase ----
+				
+				WHEN 14 => CASE sub_count IS
+									WHEN 0 => par_wr <= "1";
+												 sub_count:=sub_count+1;
+									WHEN 1 => par_add <=x"31";
+									          par_data <=main_phase_var;---
+												 sub_count:=sub_count+1;
+									WHEN 2 => par_wr <= "0";
+									          sub_count:=sub_count+1;
+									WHEN 3 => par_wr <= "1";
+												 sub_count:=0;
+												 main_count:=main_count+1;
+								END CASE;
+				
+				
 				----- set amplitude -----
 								
-				WHEN 14 => CASE sub_count IS
+				WHEN 15 => CASE sub_count IS
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <="00110011";
@@ -699,21 +719,28 @@ begin
 												 main_count:=main_count+1;
 								END CASE;
 	
-				WHEN 15 => dds_io_update <='0';
+				WHEN 16 => dds_io_update <='0';
 							 main_count := main_count+1;				
-				WHEN 16 => dds_io_update <='1';
+				WHEN 17 => dds_io_update <='1';
 							 main_count := main_count+1;
-				WHEN 17 => 	dds_io_update <='0';
+				WHEN 18 => 	dds_io_update <='0';
 								if (main_frequency_var = main_frequency) then
-									if (main_amplitude_var = main_amplitude) then
-										null;
+									if (main_phase_var = main_phase) then
+										if (main_amplitude_var = main_amplitude) then
+											null;
+										else
+											main_amplitude_var := main_amplitude;
+											main_count:=15;
+										end if;
 									else
 										main_amplitude_var:=main_amplitude;
+										main_phase_var:=main_phase;
 										main_count:=14;
 									end if;
 								else
 									main_frequency_var:=main_frequency;
 									main_amplitude_var:=main_amplitude;
+									main_phase_var:=main_phase;
 									main_count:=10;
 								end if;
 			end case;

@@ -1,5 +1,5 @@
 Assembler report for DDS_RIKEN
-Fri Apr 10 13:40:59 2015
+Wed Apr 22 16:52:46 2015
 Quartus II 64-Bit Version 14.1.0 Build 186 12/03/2014 SJ Web Edition
 
 
@@ -10,9 +10,9 @@ Quartus II 64-Bit Version 14.1.0 Build 186 12/03/2014 SJ Web Edition
   2. Assembler Summary
   3. Assembler Settings
   4. Assembler Generated Files
-  5. Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof
-  6. Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof
-  7. Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf
+  5. Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof
+  6. Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof
+  7. Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf
   8. Assembler Messages
 
 
@@ -40,7 +40,7 @@ agreement for further details.
 +---------------------------------------------------------------+
 ; Assembler Summary                                             ;
 +-----------------------+---------------------------------------+
-; Assembler Status      ; Successful - Fri Apr 10 13:40:59 2015 ;
+; Assembler Status      ; Successful - Wed Apr 22 16:52:46 2015 ;
 ; Revision Name         ; DDS_RIKEN                             ;
 ; Top-level Entity Name ; DDS_RIKEN                             ;
 ; Family                ; Cyclone IV E                          ;
@@ -55,48 +55,48 @@ agreement for further details.
 +--------+---------+---------------+
 
 
-+------------------------------------------------------------------------------------------------+
-; Assembler Generated Files                                                                      ;
-+------------------------------------------------------------------------------------------------+
-; File Name                                                                                      ;
-+------------------------------------------------------------------------------------------------+
-; C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof ;
-; C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof ;
-; C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf ;
-+------------------------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------------------+
+; Assembler Generated Files                                                                         ;
++---------------------------------------------------------------------------------------------------+
+; File Name                                                                                         ;
++---------------------------------------------------------------------------------------------------+
+; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof ;
+; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof ;
+; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf ;
++---------------------------------------------------------------------------------------------------+
 
 
-+--------------------------------------------------------------------------------------------------------------------------+
-; Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof ;
-+----------------+---------------------------------------------------------------------------------------------------------+
-; Option         ; Setting                                                                                                 ;
-+----------------+---------------------------------------------------------------------------------------------------------+
-; Device         ; EP4CE22F17C8                                                                                            ;
-; JTAG usercode  ; 0x0027AF98                                                                                              ;
-; Checksum       ; 0x0027AF98                                                                                              ;
-+----------------+---------------------------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------------------------------+
+; Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.sof ;
++----------------+------------------------------------------------------------------------------------------------------------+
+; Option         ; Setting                                                                                                    ;
++----------------+------------------------------------------------------------------------------------------------------------+
+; Device         ; EP4CE22F17C8                                                                                               ;
+; JTAG usercode  ; 0x00289460                                                                                                 ;
+; Checksum       ; 0x00289460                                                                                                 ;
++----------------+------------------------------------------------------------------------------------------------------------+
 
 
-+--------------------------------------------------------------------------------------------------------------------------+
-; Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof ;
-+--------------------+-----------------------------------------------------------------------------------------------------+
-; Option             ; Setting                                                                                             ;
-+--------------------+-----------------------------------------------------------------------------------------------------+
-; Device             ; EPCS16                                                                                              ;
-; JTAG usercode      ; 0x00000000                                                                                          ;
-; Checksum           ; 0x1CD341B7                                                                                          ;
-; Compression Ratio  ; 3                                                                                                   ;
-+--------------------+-----------------------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------------------------------+
+; Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.pof ;
++--------------------+--------------------------------------------------------------------------------------------------------+
+; Option             ; Setting                                                                                                ;
++--------------------+--------------------------------------------------------------------------------------------------------+
+; Device             ; EPCS16                                                                                                 ;
+; JTAG usercode      ; 0x00000000                                                                                             ;
+; Checksum           ; 0x1CD413E0                                                                                             ;
+; Compression Ratio  ; 3                                                                                                      ;
++--------------------+--------------------------------------------------------------------------------------------------------+
 
 
-+--------------------------------------------------------------------------------------------------------------------------+
-; Assembler Device Options: C:/Users/Thaned/Dropbox/Hardware/RIKEN_Hardware/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf ;
-+---------------------+----------------------------------------------------------------------------------------------------+
-; Option              ; Setting                                                                                            ;
-+---------------------+----------------------------------------------------------------------------------------------------+
-; Raw Binary File     ;                                                                                                    ;
-;  Compression Ratio  ; 3                                                                                                  ;
-+---------------------+----------------------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------------------------------------------------+
+; Assembler Device Options: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2015_03_10/output_files/DDS_RIKEN.rbf ;
++---------------------+-------------------------------------------------------------------------------------------------------+
+; Option              ; Setting                                                                                               ;
++---------------------+-------------------------------------------------------------------------------------------------------+
+; Raw Binary File     ;                                                                                                       ;
+;  Compression Ratio  ; 3                                                                                                     ;
++---------------------+-------------------------------------------------------------------------------------------------------+
 
 
 +--------------------+
@@ -105,14 +105,14 @@ agreement for further details.
 Info: *******************************************************************
 Info: Running Quartus II 64-Bit Assembler
     Info: Version 14.1.0 Build 186 12/03/2014 SJ Web Edition
-    Info: Processing started: Fri Apr 10 13:40:58 2015
+    Info: Processing started: Wed Apr 22 16:52:44 2015
 Info: Command: quartus_asm --read_settings_files=off --write_settings_files=off DDS_RIKEN -c DDS_RIKEN
 Info (115031): Writing out detailed assembly data for power analysis
 Info (115030): Assembler is generating device programming files
 Info: Quartus II 64-Bit Assembler was successful. 0 errors, 0 warnings
-    Info: Peak virtual memory: 575 megabytes
-    Info: Processing ended: Fri Apr 10 13:40:59 2015
-    Info: Elapsed time: 00:00:01
+    Info: Peak virtual memory: 576 megabytes
+    Info: Processing ended: Wed Apr 22 16:52:46 2015
+    Info: Elapsed time: 00:00:02
     Info: Total CPU time (on all processors): 00:00:01
 
 
