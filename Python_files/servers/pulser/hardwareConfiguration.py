@@ -50,7 +50,7 @@ class hardwareConfiguration(object):
     collectionMode = 'Normal' #default PMT mode
     collectionTime = {'Normal':0.100,'Differential':0.100} #default counting rates
     okDeviceID = 'Pulser2'
-    okDeviceFile = 'pulser_riken_2015_03_17.bit'
+    okDeviceFile = 'photon_2015_7_13.bit'
     lineTriggerLimits = (0, 15000)#values in microseconds 
     secondPMT = False
     DAC = False
