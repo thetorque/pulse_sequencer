@@ -1,0 +1,8 @@
+INTSTYLE=ise
+INFILE=C:\Users\thanedp\Downloads\pulse_sequencer-master\pulse_sequencer-master\VHDL_files\Pulser_w_2015_03_10\photon\photon.ncd
+OUTFILE=C:\Users\thanedp\Downloads\pulse_sequencer-master\pulse_sequencer-master\VHDL_files\Pulser_w_2015_03_10\photon\photon.bit
+FAMILY=Spartan6
+PART=xc6slx45-2fgg484
+WORKINGDIR=C:\Users\thanedp\Downloads\pulse_sequencer-master\pulse_sequencer-master\VHDL_files\Pulser_w_2015_03_10\photon
+LICENSE=WebPack
+USER_INFO=206763184_0_0_822
