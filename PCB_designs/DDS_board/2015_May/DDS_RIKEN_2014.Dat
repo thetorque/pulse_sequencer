@@ -1,0 +1,50 @@
+Field=Designator~String~Designator~339|Field=Comment~String~Comment~137|Field=Footprint~String~Footprint~137|Field=LibRef~String~LibRef~97|Field=Value~String~Value~100|Field=Quantity~Integer~Quantity~100|ReportField=Currency~<none>|ReportField=ProductionQuantity~1|ReportField=ProjectFileName~DDS_RIKEN_2014.PrjPcb|ReportField=ProjectFullPath~C:\Users\thanedp\Desktop\DDS_RIKEN_2015_05\DDS_RIKEN_2014.PrjPcb|ReportField=Title~Bill of Materials For Project [DDS_RIKEN_2014.PrjPcb] (No PCB Document Selected)|ReportField=TotalQuantity~164|ReportField=ReportTime~12:19:22 PM|ReportField=ReportDate~5/25/2015|ReportField=ReportDateTime~5/25/2015 12:19:22 PM|ReportField=OutputName~Bill of Materials|ReportField=OutputType~BOM_PartType|ReportField=GeneratorName~BOM|ReportField=GeneratorDescription~Bill of Materials|ReportField=VariantName~None|ReportField=Address1~|ReportField=Address2~|ReportField=Address3~|ReportField=Address4~|ReportField=ApprovedBy~|ReportField=Author~|ReportField=CheckedBy~|ReportField=CompanyName~|ReportField=CurrentDate~5/25/2015|ReportField=CurrentTime~12:13:25 PM|ReportField=Date~|ReportField=DocumentFullPathAndName~C:\Users\thanedp\Desktop\DDS_RIKEN_2015_05\DDS_RIKEN_main.SchDoc|ReportField=DocumentName~DDS_RIKEN_main.SchDoc|ReportField=DocumentNumber~|ReportField=DrawnBy~|ReportField=Engineer~|ReportField=ImagePath~|ReportField=ModifiedDate~5/25/2015|ReportField=Organization~|ReportField=ProjectName~DDS_RIKEN_2014.PrjPcb|ReportField=Revision~|ReportField=Rule~|ReportField=SheetNumber~|ReportField=SheetTotal~|ReportField=Time~|ReportField=Title~|ReportField=DataSourceFileName~DDS_RIKEN_2014.PrjPcb|ReportField=DataSourceFullPath~C:\Users\thanedp\Desktop\DDS_RIKEN_2015_05\DDS_RIKEN_2014.PrjPcb
+C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C15, C16, C17, C18, C19, C20, C21, C24, C25, C26, C27, C28, C29, C30, C31, C32, C33, C34, C35, C36, C37, C40, C41, C44, C45, C48, C49, C52, C53, C58, C59, C60, C61, C65, C66, C67, C68, C69, C70, C71, C72, C73, C75, C82|Cap Semi|CAPC2012L|Cap Semi|100nF|54
+C11, C12, C13, C14|Cap Semi|CAPC2012L|Cap Semi|10pF|4
+C22|Cap Semi|CAPC2012L|Cap Semi|560pF|1
+C23|Cap Semi|CAPC2012L|Cap Semi|470nF|1
+C38, C39, C42, C43, C46, C47, C50, C51, C54, C55, C56, C57, C63, C64|Cap Pol1|B|Cap Pol1|10uF|14
+C62|Cap|CAPC2012L|Cap2|100nF|1
+C74, C83, C84, C88|Cap|c0805|Cap|100nF|4
+C76, C87|Cap|c0805|Cap|100pF|2
+C77, C78|Cap|c0805|Cap|10nF|2
+C79, C80, C81|Cap Semi|CAPC2012L|Cap Semi|33nF|3
+C85, C86|Cap|c0805|Cap|47nF|2
+C89, C90, C91, C92, C93|Cap Semi|CAPC2012L|Cap Semi|330pF|5
+D1, D2, D3, D4|1PS76SB17|SOD323|Diode||4
+D5, D6, D7, D8, D9, D10, D11, D12|LED3|DSO-C2/D5.6|LED3||8
+J1|440119-2|440119|440119-2||1
+J2|AGND|PIN1|Socket||1
+P1|JTAG|HDR2X5|Header 5X2||1
+P2|ASCONFIG|HDR2X5|Header 5X2||1
+P3|PCI3V32BIT|PCI3V32BIT|PCI3V32BIT||1
+P4|DDS ADDRESS|HDR2X4|Header 4X2||1
+P5|EMI sheild|BMIS-207|BMIS-207||1
+P6|RF_IN|SMA_Edgecon_31milthick|SMB||1
+P7|RF_OUT|SMA_Edgecon_31milthick|SMB||1
+P8|Header 3|HDR1X3|Header 3||1
+R1, R2, R3, R4, R5, R6, R7, R10, R14, R16, R17, R18, R19, R21||RESC3216L|Res3|10k|14
+R8||RESC3216L|Res3|3.3k|1
+R9||RESC3216L|Res3|4k|1
+R11||RESC3216L|Res3|4k7|1
+R12, R15||RESC3216L|Res3|75|2
+R13||RESC3216L|Res3|2k4|1
+R20||RESC3216L|Res3|50|1
+R22||RESC3216L|Res3|3k9|1
+T3|TC1-1TX+|TC1-1T+|Trans CT||1
+U1|EP4CE22F17C8|FBGA256|EP4CE22F17C8||1
+U2|EPCS16SI8N|SOIC8_L|EPCS4SI8N||1
+U3|AD9915BCPZ|CP_88_5|AD9915BCPZ|Value|1
+U4, U5, U6, U8, U9, U10, U12, U20|MAX3094|TSSOP16|MAX3094||8
+U7, U11|MAX3030|TSSOP16|MAX3030||2
+U13|LM1086IS-5.0|TS3B_N|LM1086IS-5.0||1
+U14, U17|LM1086IS-3.3|TS3B_N|LM1086IS-3.3||2
+U15, U19|LM1086IS-1.8|TS3B_N|LM1086IS-1.8||2
+U16|LM1086CS-2.5|TS3B_N|LM1086IS-3.3||1
+U18|LP2983AIM5-1.2|MF05A_N|LP2983AIM5-1.2||1
+U21|AD9744|TSOP65P640-28AM|AD9744||1
+U22|ADL5330|QFN50P400X400-24VAN|ADL5330||1
+U23|TLC5917|D016_N|TLC5917||1
+U24|IC_FT245RL|DB028|IC_FT245RL||1
+U25|CSX750F_25|CSX750F|CSX750F||1
+U26|SALF-325|SALF-325|SALF-325||1

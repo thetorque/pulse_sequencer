@@ -1,0 +1,4 @@
+Record=SheetSymbol|SourceDocument=DDS_RIKEN_main.SchDoc|Designator=FPGA|SchDesignator=FPGA|FileName=cyclone4.SchDoc|SymbolType=Normal|RawFileName=cyclone4.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol
+Record=SheetSymbol|SourceDocument=DDS_RIKEN_main.SchDoc|Designator=Power|SchDesignator=Power|FileName=Power_supply.SchDoc|SymbolType=Normal|RawFileName=Power_supply.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol
+Record=SheetSymbol|SourceDocument=DDS_RIKEN_main.SchDoc|Designator=USB1|SchDesignator=USB1|FileName=USB_INTERFACE.SchDoc|SymbolType=Normal|RawFileName=USB_INTERFACE.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol
+Record=TopLevelDocument|FileName=DDS_RIKEN_main.SchDoc
