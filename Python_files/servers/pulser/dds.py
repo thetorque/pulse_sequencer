@@ -93,7 +93,7 @@ class DDS(LabradServer):
             ramp_rate = ramp_rate['MHz']
             amp_ramp_rate = amp_ramp_rate['dB']
             freq_off, ampl_off = channel.off_parameters
-            if freq == 0 or ampl == 0: #off state
+            if freq == 0: ## or ampl == 0: #off state ampl = 0 manes 0 dBm and should be allowed.
                 freq, ampl = freq_off,ampl_off
             else:
                 self._checkRange('frequency', channel, freq)
