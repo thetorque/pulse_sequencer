@@ -1,0 +1,102 @@
+EDA Netlist Writer report for DDS_RIKEN
+Wed Feb 03 16:25:48 2016
+Quartus II 64-Bit Version 15.0.0 Build 145 04/22/2015 SJ Web Edition
+
+
+---------------------
+; Table of Contents ;
+---------------------
+  1. Legal Notice
+  2. EDA Netlist Writer Summary
+  3. Board-Level Settings
+  4. Board-Level Generated Files
+  5. EDA Netlist Writer Messages
+
+
+
+----------------
+; Legal Notice ;
+----------------
+Copyright (C) 1991-2015 Altera Corporation. All rights reserved.
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, the Altera Quartus II License Agreement,
+the Altera MegaCore Function License Agreement, or other 
+applicable license agreement, including, without limitation, 
+that your use is for the sole purpose of programming logic 
+devices manufactured by Altera and sold by Altera or its 
+authorized distributors.  Please refer to the applicable 
+agreement for further details.
+
+
+
++----------------------------------------------------------------------------+
+; EDA Netlist Writer Summary                                                 ;
++------------------------------------+---------------------------------------+
+; EDA Netlist Writer Status          ; Successful - Wed Feb 03 16:25:47 2016 ;
+; Revision Name                      ; DDS_RIKEN                             ;
+; Top-level Entity Name              ; DDS_RIKEN                             ;
+; Family                             ; Cyclone IV E                          ;
+; Board Boundary Scan Files Creation ; Successful                            ;
++------------------------------------+---------------------------------------+
+
+
++--------------------------------------+
+; Board-Level Settings                 ;
++----------------------------+---------+
+; Option                     ; Setting ;
++----------------------------+---------+
+; Board Boundary Scan Format ; BSDL    ;
++----------------------------+---------+
+
+
++--------------------------------------------------------------------------------------------------------+
+; Board-Level Generated Files                                                                            ;
++--------------------------------------------------------------------------------------------------------+
+; Generated Files                                                                                        ;
++--------------------------------------------------------------------------------------------------------+
+; Board Boundary Scan                                                                                    ;
+;     C:/Users/katori/Desktop/Hardware/riken_hardware/DDS_FPGA_2015_03_10/board/bsd/EP4CE22F17C8_pre.bsd ;
++--------------------------------------------------------------------------------------------------------+
+
+
++-----------------------------+
+; EDA Netlist Writer Messages ;
++-----------------------------+
+Info: *******************************************************************
+Info: Running Quartus II 64-Bit EDA Netlist Writer
+    Info: Version 15.0.0 Build 145 04/22/2015 SJ Web Edition
+    Info: Processing started: Wed Feb 03 16:25:47 2016
+Info: Command: quartus_eda --read_settings_files=off --write_settings_files=off DDS_RIKEN -c DDS_RIKEN
+Info: TOTAL BSCAN REGISTERS IS 244
+Info: TOTAL IO PAD COUNT IS 236
+Warning: New Pin Type UDCLK
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Warning: New Pin Type Dedicated Clock
+Info: EP4CE22F17 has 244 JTAG SEQUENCE AVAILABLE
+Info (199065): Generated Boundary-Scan Description Language output file C:/Users/katori/Desktop/Hardware/riken_hardware/DDS_FPGA_2015_03_10/board/bsd/EP4CE22F17C8_pre.bsd for board-level analysis
+Info: Quartus II 64-Bit EDA Netlist Writer was successful. 0 errors, 17 warnings
+    Info: Peak virtual memory: 593 megabytes
+    Info: Processing ended: Wed Feb 03 16:25:48 2016
+    Info: Elapsed time: 00:00:01
+    Info: Total CPU time (on all processors): 00:00:01
+
+

@@ -23,9 +23,9 @@ class ddsConfiguration(object):
         self.boardfreqrange = args.get('boardfreqrange', (0.0, 2000.0))
         self.boardramprange = args.get('boardramprange', (0.000113687, 7.4505806))
         self.board_amp_ramp_range = args.get('board_amp_ramp_range', (0.00174623, 22.8896))
-        self.boardamplrange = args.get('boardamplrange', (-48.0, 6.0))
+        self.boardamplrange = args.get('boardamplrange', (-37.0, 17.0))
         self.boardphaserange = args.get('boardphaserange', (0.0, 360.0))
-        self.off_parameters = args.get('off_parameters', (0.0, -48.0))
+        self.off_parameters = args.get('off_parameters', (0.0, -37.0))
         self.phase_coherent_model = args.get('phase_coherent_model', True)        
         self.remote = args.get('remote', False)
         self.name = None #will get assigned automatically
@@ -58,7 +58,7 @@ class hardwareConfiguration(object):
     
     #name: (channelNumber, ismanual, manualstate,  manualinversion, autoinversion)
     channelDict = {
-                   'CAMERA':channelConfiguration(0, False, False, False, False), ## camera
+                   'ttl_0':channelConfiguration(0, False, False, False, False), ## camera
                    'sMOT_PROBE':channelConfiguration(1, False, False, False, False),
                    'sMOT_PROBE_SPIN':channelConfiguration(2, False, False, False, False),
                    'BIG_MOT_SH':channelConfiguration(3, False, False, True, True),
@@ -82,14 +82,23 @@ class hardwareConfiguration(object):
                 }
     #address, allowedfreqrange, allowedamplrange, frequency, amplitude, **args):
     ddsDict =   {
-                 'DDS_0':ddsConfiguration(    0,  (0.0,800.0),   (-48.0,6.0),  70.0,   -48.0),
-                'BIG_MOT':ddsConfiguration(    1,  (145.0,155.0),   (-48.0,-5.0),  150.0,   -6.0),
-                'Clock':ddsConfiguration(    2,  (180.0,220.0),   (-48.0,-3.0),  198.0,   -5.0),
-                'SMALL_MOT':ddsConfiguration(    3,  (145.0,155.0),   (-48.0,-8.0),  150.0,   -48.0),
-                'Clock_SB':ddsConfiguration(    4,  (140.0,200.0),   (-48.0,-5.0),  156.2634,   -48.0), ##-7.0
-#                 'DDS_5':ddsConfiguration(    5,  (0.0,800.0),   (-63.0,-3.0),  95.0,   -63.0),
-#                 'DDS_6':ddsConfiguration(    6,  (0.0,800.0),   (-63.0,-3.0), 100.0,   -63.0),
-#                 'DDS_7':ddsConfiguration(    7,  (0.0,800.0),   (-63.0,-3.0), 105.0,   -63.0),
+                'DDS_0':ddsConfiguration(    0,  (0.1,300.0),   (-37.0,17.0),  40.0,   0.0),
+                 'DDS_1':ddsConfiguration(    1,  (0.1,300.0),   (-37.0,17.0),  40.0,   0.0),
+                 'DDS_2':ddsConfiguration(    2,  (0.1,300.0),   (-37.0,17.0),  41.0,   0.0),
+#                  'DDS_3':ddsConfiguration(    3,  (0.1,300.0),   (-37.0,17.0),  44.0,   -37.0),
+#                  'DDS_4':ddsConfiguration(    4,  (40.0,300.0),   (-37.0,17.0),  46.0,   -37.0),
+#                  'DDS_5':ddsConfiguration(    5,  (40.0,300.0),   (-37.0,17.0),  48.0,   -37.0),
+#                 'DDS_6':ddsConfiguration(    6,  (40.0,300.0),   (-37.0,17.0),  56.0,   -36.0),
+#                 'DDS_7':ddsConfiguration(    7,  (40.0,300.0),   (-37.0,17.0),  57.0,   -36.0),
+#                 'DDS_8':ddsConfiguration(    8,  (40.0,300.0),   (-37.0,17.0),  58.0,   -36.0),
+#                 'DDS_9':ddsConfiguration(    9,  (40.0,300.0),   (-37.0,17.0),  59.0,   -36.0),
+#                'DDS_10':ddsConfiguration(    10,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+#                'DDS_11':ddsConfiguration(    11,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+#                'DDS_12':ddsConfiguration(    12,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+#                'DDS_13':ddsConfiguration(    13,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+#                'DDS_14':ddsConfiguration(    14,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+#                'DDS_15':ddsConfiguration(    15,  (0.0,200.0),   (-37.0,0),  120.0,   -37.0),
+
                 }
     remoteChannels = {
                     }
