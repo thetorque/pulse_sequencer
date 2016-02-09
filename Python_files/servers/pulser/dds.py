@@ -21,7 +21,11 @@ class DDS(LabradServer):
             freq,ampl = (channel.frequency, channel.amplitude)
             self._checkRange('amplitude', channel, ampl)
             self._checkRange('frequency', channel, freq)
-            yield self.inCommunication.run(self._setParameters, channel, freq, ampl)
+            if name == "Moving Lattice":
+                print "Moving Lattice channel found"
+                yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
+            else:
+                yield self.inCommunication.run(self._setParameters, channel, freq, ampl)
     
     @setting(41, "Get DDS Channels", returns = '*s')
     def getDDSChannels(self, c):
@@ -93,7 +97,8 @@ class DDS(LabradServer):
             ramp_rate = ramp_rate['MHz']
             amp_ramp_rate = amp_ramp_rate['dB']
             freq_off, ampl_off = channel.off_parameters
-            if freq == 0: ## or ampl == 0: #off state ampl = 0 manes 0 dBm and should be allowed.
+            ###if freq == 0 or ampl == 0: #off state;;; why is amp = 0 not allowed????
+            if freq == 0:
                 freq, ampl = freq_off,ampl_off
             else:
                 self._checkRange('frequency', channel, freq)
@@ -142,6 +147,26 @@ class DDS(LabradServer):
     @setting(49, 'Clear DDS Lock')
     def clear_dds_lock(self, c):
         self.ddsLock = False
+        
+    @setting(50, "Movinglattice", parameter = ['*i'], returns = ['*i'])
+    def movinglattice(self, c, parameter = None, returns = None):
+        """set parameters for moving lattice"""
+        #get the hardware channel
+        if self.ddsLock and parameter is not None: 
+            raise dds_access_locked()
+        channel = self._getChannel(c, 'Moving Lattice')
+        if parameter is not None:
+
+            #self._checkRange('frequency', channel, frequency)
+            if channel.state:
+                #only send to hardware if the channel is on
+                yield self._setMovingLatticeParameter(channel, parameter)
+            channel.lattice_parameter = parameter
+            #channel.t2 = parameter
+            self.notifyOtherListeners(c, ('Moving Lattice', 'parameter', channel.lattice_parameter), self.on_dds_param)
+        param = channel.lattice_parameter
+        print "param is", param
+        returnValue(param)
     
     def _checkRange(self, t, channel, val):
         if t == 'amplitude':
@@ -166,15 +191,27 @@ class DDS(LabradServer):
     def _setFrequency(self, channel, freq):
         ampl = channel.amplitude
         yield self.inCommunication.run(self._setParameters, channel, freq, ampl)
+        
+    @inlineCallbacks
+    def _setMovingLatticeParameter(self, channel, parameter):
+        ampl = channel.amplitude
+        freq = channel.frequency
+        yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, parameter)
     
     @inlineCallbacks
     def _setOutput(self, channel, state):
-        if state and not channel.state: #if turning on, and is currently off
-            yield self.inCommunication.run(self._setParameters, channel, channel.frequency, channel.amplitude)
-        elif (channel.state and not state): #if turning off and is currenly on
-            freq,ampl = channel.off_parameters
-            yield self.inCommunication.run(self._setParameters, channel, freq, ampl)
-    
+        if channel.name == 'Moving Lattice':
+            if state and not channel.state: #if turning on, and is currently off
+                yield self.inCommunication.run(self._setLatticeParameters, channel, channel.frequency, channel.amplitude, channel.lattice_parameter)
+            elif (channel.state and not state): #if turning off and is currenly on
+                freq,off_ampl = channel.off_parameters
+                yield self.inCommunication.run(self._setLatticeParameters, channel, channel.frequency, off_ampl, channel.lattice_parameter)
+        else:
+            if state and not channel.state: #if turning on, and is currently off
+                yield self.inCommunication.run(self._setParameters, channel, channel.frequency, channel.amplitude)
+            elif (channel.state and not state): #if turning off and is currenly on
+                freq,off_ampl = channel.off_parameters
+                yield self.inCommunication.run(self._setParameters, channel, channel.frequency, off_ampl)            
     @inlineCallbacks
     def _programDDSSequence(self, dds):
         '''takes the parsed dds sequence and programs the board with it'''
@@ -187,6 +224,43 @@ class DDS(LabradServer):
     def _setParameters(self, channel, freq, ampl):
         buf = self.settings_to_buf(channel, freq, ampl)
         yield self.program_dds_chanel(channel, buf)
+    
+    ########    
+    @inlineCallbacks
+    def _setLatticeParameters(self, channel, freq, ampl, parameter):
+        #### calculate here
+        print "parameter is", parameter
+        
+        t1 = parameter[0]
+        t2 = parameter[1]
+        time_step = parameter[2]
+        
+        
+        ###t1
+        min1, max1 = channel.boardramprange
+        resolution = (max1 - min1) / float(2**16 - 1)
+        ramp_rate = t1*resolution + min1
+        
+        print "t1 in ramp rate is ", ramp_rate
+        
+        ###t2
+        min2, max2 = channel.board_amp_ramp_range
+        
+        minim_slope = 1/max2
+        maxim_slope = 1/min2
+        resolution2 = (maxim_slope - minim_slope) / float(2**16 - 1)
+        
+        amp_ramp_rate = 1/(t2*resolution2 + minim_slope)
+        
+        print minim_slope
+        
+        print "t2 in amp ramp rate is ", amp_ramp_rate
+
+        ### calculate here
+        num = self.settings_to_num(channel, freq, ampl, 0.0, ramp_rate, amp_ramp_rate)
+        buf = self._intToBuf_coherent(num)
+        yield self.program_dds_chanel(channel, buf)
+    #######################################################
     
     def settings_to_buf(self, channel, freq, ampl):
         num = self.settings_to_num(channel, freq, ampl)
@@ -275,6 +349,8 @@ class DDS(LabradServer):
             seq = 2**16-1
         else:
             seq = int((ramp_rate-minim)/resolution)  
+            
+        print "t1 in ramp rate integer is, ", seq
         
         ans += 2**96*seq 
         
@@ -291,6 +367,8 @@ class DDS(LabradServer):
         else:
             slope = 1/amp_ramp_rate
             seq_amp_ramp = int(np.ceil((slope - minim_slope)/resolution))  # return ceiling of the number
+        
+        print "t2 in amp ramp rate integer is, ", seq_amp_ramp
             
         ans += 2**112*seq_amp_ramp
         
@@ -315,14 +393,18 @@ class DDS(LabradServer):
             b[i]=(freq_num//(2**(i*8)))%256
             #print i, "=", (freq_num//(2**(i*8)))%256
          
-        #phase_ampl_num = (num // 2**32)%(2**16)
-        phase_ampl_num = (num // 2**64)%(2**16)
-        #print phase_ampl_num
+        #phase
+        phase_num = (num // 2**80)%(2**16)
+        phase = bytearray(2)
+        phase[0] = phase_num%256
+        phase[1] = (phase_num//256)%256
+        
         
         ### amplitude
+        ampl_num = (num // 2**64)%(2**16)
         amp = bytearray(2)
-        amp[0] = phase_ampl_num%256
-        amp[1] = (phase_ampl_num//256)%256
+        amp[0] = ampl_num%256
+        amp[1] = (ampl_num//256)%256
         
         ### ramp rate. 16 bit tunability from roughly 116 Hz/ms to 7.5 MHz/ms 
         ramp_rate = (num // 2**96)%(2**16)
@@ -338,7 +420,7 @@ class DDS(LabradServer):
         amp_ramp[1] = (amp_ramp_rate//256)%256
         
         ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
-        a = bytearray.fromhex(u'0000') + amp + amp_ramp + ramp
+        a = phase + amp + amp_ramp + ramp
         
         ans = a + b
         return ans

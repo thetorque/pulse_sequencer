@@ -1,4 +1,5 @@
 from qtui.QCustomFreqPower import QCustomFreqPower
+from qtui.QCustomMovingLattice import QCustomMovingLattice
 from twisted.internet.defer import inlineCallbacks, returnValue
 from connection import connection
 from PyQt4 import QtGui
@@ -92,6 +93,151 @@ class DDS_CHAN(QCustomFreqPower):
 
     def closeEvent(self, x):
         self.reactor.stop()
+        
+### GUI for moving lattice
+
+class DDS_MOVING_LATTICE_CHAN(QCustomMovingLattice):
+    def __init__(self, chan, reactor, cxn, context, parent=None):
+        super(DDS_MOVING_LATTICE_CHAN, self).__init__('DDS: {}'.format(chan), True, parent)
+        self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
+        self.reactor = reactor
+        self.context = context
+        self.chan = chan
+        self.cxn = cxn
+        self.import_labrad()
+        
+    def import_labrad(self):
+        from labrad import types as T
+        from labrad.types import Error
+        self.Error = Error
+        self.T = T
+        self.setupWidget()
+
+    @inlineCallbacks
+    def setupWidget(self, connect = True):
+        #get ranges
+        self.server = yield self.cxn.get_server('Pulser')
+        MinPower,MaxPower = yield self.server.get_dds_amplitude_range(self.chan, context = self.context)
+        MinFreq,MaxFreq = yield self.server.get_dds_frequency_range(self.chan, context = self.context)
+        self.setPowerRange((MinPower,MaxPower))
+        self.setFreqRange((MinFreq,MaxFreq))
+        #get initial values
+        initpower = yield self.server.amplitude(self.chan, context = self.context)
+        initfreq = yield self.server.frequency(self.chan, context = self.context)
+        initstate = yield self.server.output(self.chan, context = self.context)
+        self.setStateNoSignal(initstate)
+        self.setPowerNoSignal(initpower)
+        self.setFreqNoSignal(initfreq)
+        
+        init_lat = yield self.server.movinglattice(context = self.context)
+        print init_lat
+        self.sett1NoSignal(init_lat[0])
+        self.sett2NoSignal(init_lat[1])
+        self.settime_stepNoSignal(init_lat[2])
+        
+        #connect functions
+        if connect:
+            self.spinPower.valueChanged.connect(self.powerChanged)
+            self.spinFreq.valueChanged.connect(self.freqChanged) 
+            self.buttonSwitch.toggled.connect(self.switchChanged)
+            self.spint1.valueChanged.connect(self.t1Changed)
+            self.spint2.valueChanged.connect(self.t2Changed)
+            self.spintime_step.valueChanged.connect(self.time_stepChanged)
+    
+    def setParamNoSignal(self, param, value):
+        if param == 'amplitude':
+            self.setPowerNoSignal(value)
+        elif param == 'frequency':
+            self.setFreqNoSignal(value)
+        elif param == 'state':
+            self.setStateNoSignal(value)
+        
+    @inlineCallbacks
+    def powerChanged(self, pwr):
+        val = self.T.Value(pwr, 'dBm')
+        old_lattice = yield self.server.movinglattice(context = self.context)
+        print old_lattice
+        try:
+            yield self.server.amplitude(self.chan, val, context = self.context)
+            yield self.server.movinglattice(old_lattice, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.amplitude(self.chan, context = self.context)
+            self.setPowerNoSignal(old_value)
+            self.displayError(e.msg)
+            
+    @inlineCallbacks
+    def freqChanged(self, freq):
+        val = self.T.Value(freq, 'MHz')
+        old_lattice = yield self.server.movinglattice(context = self.context)
+        print old_lattice
+        try:
+            yield self.server.frequency(self.chan, val, context = self.context)
+            yield self.server.movinglattice(old_lattice, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.frequency(self.chan, context = self.context)
+            self.setFreqNoSignal(old_value)
+            self.displayError(e.msg)
+            
+    @inlineCallbacks
+    def t1Changed(self, t1):
+        old_value = yield self.server.movinglattice(context = self.context)
+        val = [t1, old_value[1], old_value[2]]
+        #print val
+        try:
+            yield self.server.movinglattice(val, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.movinglattice(context = self.context)
+            self.sett1NoSignal(old_value)
+            self.displayError(e.msg)
+            
+    @inlineCallbacks
+    def t2Changed(self, t2):
+        old_value = yield self.server.movinglattice(context = self.context)
+        val = [old_value[0],t2,old_value[2]]
+        #print val
+        try:
+            yield self.server.movinglattice(val, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.movinglattice(context = self.context)
+            self.sett1NoSignal(old_value)
+            self.displayError(e.msg)
+            
+    @inlineCallbacks
+    def time_stepChanged(self, time_step):
+        old_value = yield self.server.movinglattice(context = self.context)
+        val = [old_value[0],old_value[1],time_step]
+        #print val
+        try:
+            yield self.server.movinglattice(val, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.movinglattice(context = self.context)
+            self.sett1NoSignal(old_value)
+            self.displayError(e.msg)
+            
+    
+    @inlineCallbacks
+    def switchChanged(self, pressed):
+        try:
+            yield self.server.output(self.chan,pressed, context = self.context)
+        except self.Error as e:
+            old_value =  yield self.server.frequency(self.chan, context = self.context)
+            self.setStateNoSignal(old_value)
+            self.displayError(e.msg)
+    
+    def displayError(self, text):
+        #runs the message box in a non-blocking method
+        message = QtGui.QMessageBox(self)
+        message.setText(text)
+        message.open()
+        message.show()
+        message.raise_()
+
+    def closeEvent(self, x):
+        self.reactor.stop()        
+
+
+
+
 
 class DDS_CONTROL(QtGui.QFrame):
     
@@ -195,10 +341,16 @@ class DDS_CONTROL(QtGui.QFrame):
         layout = QtGui.QGridLayout()
         item = 0
         for chan in self.display_channels:
-            widget = DDS_CHAN(chan, self.reactor, self.cxn, self.context)
-            self.widgets[chan] = widget
-            layout.addWidget(widget, item // self.widgets_per_row, item % self.widgets_per_row)
-            item += 1
+            if chan == "Moving Lattice":
+                widget = DDS_MOVING_LATTICE_CHAN(chan, self.reactor, self.cxn, self.context)
+                self.widgets[chan] = widget
+                layout.addWidget(widget, item // self.widgets_per_row, item % self.widgets_per_row)
+                item += 1
+            else:
+                widget = DDS_CHAN(chan, self.reactor, self.cxn, self.context)
+                self.widgets[chan] = widget
+                layout.addWidget(widget, item // self.widgets_per_row, item % self.widgets_per_row)
+                item += 1 
         self.setLayout(layout)
         
     @inlineCallbacks

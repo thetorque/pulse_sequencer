@@ -19,6 +19,10 @@ class ddsConfiguration(object):
         self.allowedamplrange = allowedamplrange
         self.frequency = frequency
         self.amplitude = amplitude
+        self.t1 = 4000
+        self.t2 = 4000
+        self.time_step = 4
+        self.lattice_parameter = [4000,4000,4]
         self.state = True
         self.boardfreqrange = args.get('boardfreqrange', (0.0, 2000.0))
         self.boardramprange = args.get('boardramprange', (0.000113687, 7.4505806))
@@ -82,9 +86,9 @@ class hardwareConfiguration(object):
                 }
     #address, allowedfreqrange, allowedamplrange, frequency, amplitude, **args):
     ddsDict =   {
-                'DDS_0':ddsConfiguration(    0,  (0.1,300.0),   (-37.0,17.0),  40.0,   0.0),
-                 'DDS_1':ddsConfiguration(    1,  (0.1,300.0),   (-37.0,17.0),  40.0,   0.0),
-                 'DDS_2':ddsConfiguration(    2,  (0.1,300.0),   (-37.0,17.0),  41.0,   0.0),
+                'Moving Lattice':ddsConfiguration(    0,  (0.1,300.0),   (-37.0,17.0),  40.0,   7.0),
+                 'DDS_1':ddsConfiguration(    1,  (0.1,300.0),   (-37.0,17.0),  40.0,   7.0),
+                 'DDS_2':ddsConfiguration(    2,  (0.1,300.0),   (-37.0,17.0),  41.0,   7.0),
 #                  'DDS_3':ddsConfiguration(    3,  (0.1,300.0),   (-37.0,17.0),  44.0,   -37.0),
 #                  'DDS_4':ddsConfiguration(    4,  (40.0,300.0),   (-37.0,17.0),  46.0,   -37.0),
 #                  'DDS_5':ddsConfiguration(    5,  (40.0,300.0),   (-37.0,17.0),  48.0,   -37.0),
