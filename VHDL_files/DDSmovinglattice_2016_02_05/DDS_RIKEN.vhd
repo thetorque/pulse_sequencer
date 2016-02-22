@@ -63,8 +63,10 @@ architecture behaviour of DDS_RIKEN is
 	constant CRF1_disable_amp_scale: std_LOGIC_vector(15 downto 0) := "0000000000001000";
 	
 	
-	constant t1_time : integer :=4000;
-	constant t2_time : integer :=4000;
+	signal t1_time : integer range 0 to 65535 :=4000;
+	signal t1_vector : std_logic_vector (15 downto 0) := "0000111110100000";
+	signal t2_time : integer range 0 to 65535 :=4000;
+	signal t2_vector : std_logic_vector (15 downto 0) := "0000111110100000";
 	constant clk_divider : integer :=4;
 
 	signal led_value: STD_LOGIC_VECTOR (7 downto 0);
@@ -186,7 +188,7 @@ begin
 	
 	process(rom_clk, lattice_trigger)
 		variable  sub_counter: integer range 0 to 4095:=0;
-		variable  main_counter: integer range 0 to 65535:=0;
+		variable  main_counter: integer range 0 to 262143:=0;
 		variable  rom_step_count: integer range 0 to 4095:=0;
 		variable  add_flag_var : std_logic := '0';
 	begin
@@ -228,6 +230,8 @@ begin
 		end if;
 		rom_address<=std_LOGIC_vector(to_unsigned(rom_step_count,12));
 		add_flag <= add_flag_var;
+		t1_time <= to_integer(UNSIGNED(t1_vector));
+		t2_time <= to_integer(UNSIGNED(t2_vector)); 
 	
 	end process;
 	
@@ -315,6 +319,14 @@ begin
 	amp_ramp_rate 			<= dds_ram_data_out(47 downto 32);	
 	--amp_ramp_rate <= x"4000";
 	amp_ramp_enable 		<= '0' WHEN amp_ramp_rate = x"0000" ELSE '1';
+	
+	
+	----
+	--led_value (7 downto 4) <= adder_step_buffer (30 downto 27);
+	--led_value (3 downto 0) <= amp_ramp_rate (3 downto 0);
+	t1_vector <= dds_ram_data_out (63 downto 48);
+	t2_vector <= amp_ramp_rate;
+	----
 	
 	comparer_14bit_1: dds_14bit_compare port map (dataa=>amp_comparer_dataa1, datab=>amp_comparer_datab1, agb=>amp_agb1);
 	adder_14bit: 		dds_14bit_adder 	port map (add_sub=>amp_adder_direction, dataa=>amp_adder_input, result=>amp_adder_output);
