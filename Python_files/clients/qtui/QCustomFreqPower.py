@@ -71,11 +71,13 @@ class QCustomFreqPower(QtGui.QFrame):
         
     def setPowerNoSignal(self, power):
         self.spinPower.blockSignals(True)
+        power = power['dBm']
         self.spinPower.setValue(power)
         self.spinPower.blockSignals(False)
         
     def setFreqNoSignal(self, freq):
         self.spinFreq.blockSignals(True)
+        freq = freq['MHz']
         self.spinFreq.setValue(freq)
         self.spinFreq.blockSignals(False)
     
