@@ -1,0 +1,101 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow 1200mV 85C Model Setup 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.372
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Setup 'okUH[0]'
+Slack : 1.180
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.325
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Hold 'okUH[0]'
+Slack : 3.835
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Recovery 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 6.116
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Removal 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 1.498
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 4.637
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'okUH[0]'
+Slack : 4.762
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Setup 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.587
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Setup 'okUH[0]'
+Slack : 1.629
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.315
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Hold 'okUH[0]'
+Slack : 3.506
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Recovery 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 6.456
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Removal 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 1.363
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 4.647
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'okUH[0]'
+Slack : 4.765
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Setup 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 1.068
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Setup 'okUH[0]'
+Slack : 4.674
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.101
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Hold 'okUH[0]'
+Slack : 1.490
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Recovery 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 8.130
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Removal 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 0.639
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'okHI|ok_altpll0|altpll_component|auto_generated|pll1|clk[0]'
+Slack : 4.713
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'okUH[0]'
+Slack : 4.901
+TNS   : 0.000
+
+------------------------------------------------------------

@@ -1,0 +1,16 @@
+Fitter Status : Successful - Tue Mar 10 11:04:47 2015
+Quartus II 64-Bit Version : 14.1.0 Build 186 12/03/2014 SJ Web Edition
+Revision Name : Pulser
+Top-level Entity Name : Pulser
+Family : Cyclone IV E
+Device : EP4CE55F23C8
+Timing Models : Final
+Total logic elements : 2,896 / 55,856 ( 5 % )
+    Total combinational functions : 2,396 / 55,856 ( 4 % )
+    Dedicated logic registers : 1,649 / 55,856 ( 3 % )
+Total registers : 1685
+Total pins : 150 / 325 ( 46 % )
+Total virtual pins : 0
+Total memory bits : 222,720 / 2,396,160 ( 9 % )
+Embedded Multiplier 9-bit elements : 0 / 308 ( 0 % )
+Total PLLs : 2 / 4 ( 50 % )
