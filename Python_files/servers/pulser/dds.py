@@ -229,7 +229,7 @@ class DDS(LabradServer):
     @inlineCallbacks
     def _setLatticeParameters(self, channel, freq, ampl, parameter):
         #### calculate here
-        print "parameter is", parameter
+        #print "parameter is", parameter
         
         t1 = parameter[0]
         t2 = parameter[1]
@@ -241,7 +241,7 @@ class DDS(LabradServer):
         resolution = (max1 - min1) / float(2**16 - 1)
         ramp_rate = t1*resolution + min1
         
-        print "t1 in ramp rate is ", ramp_rate
+        #print "t1 in ramp rate is ", ramp_rate
         
         ###t2
         min2, max2 = channel.board_amp_ramp_range
@@ -254,7 +254,7 @@ class DDS(LabradServer):
         
         print minim_slope
         
-        print "t2 in amp ramp rate is ", amp_ramp_rate
+        #print "t2 in amp ramp rate is ", amp_ramp_rate
 
         ### calculate here
         num = self.settings_to_num(channel, freq, ampl, 0.0, ramp_rate, amp_ramp_rate)
@@ -350,7 +350,7 @@ class DDS(LabradServer):
         else:
             seq = int((ramp_rate-minim)/resolution)  
             
-        print "t1 in ramp rate integer is, ", seq
+        #print "t1 in ramp rate integer is, ", seq
         
         ans += 2**96*seq 
         
@@ -368,7 +368,7 @@ class DDS(LabradServer):
             slope = 1/amp_ramp_rate
             seq_amp_ramp = int(np.ceil((slope - minim_slope)/resolution))  # return ceiling of the number
         
-        print "t2 in amp ramp rate integer is, ", seq_amp_ramp
+        #print "t2 in amp ramp rate integer is, ", seq_amp_ramp
             
         ans += 2**112*seq_amp_ramp
         
