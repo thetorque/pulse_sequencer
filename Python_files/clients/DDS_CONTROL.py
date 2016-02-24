@@ -9,7 +9,7 @@ The DDS Control GUI lets the user control the DDS channels of the Pulser
 '''
 class DDS_CHAN(QCustomFreqPower):
     def __init__(self, chan, reactor, cxn, context, parent=None):
-        super(DDS_CHAN, self).__init__('DDS: {}'.format(chan), True, parent)
+        super(DDS_CHAN, self).__init__('{}'.format(chan), True, parent)
         self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
         self.reactor = reactor
         self.context = context
@@ -98,7 +98,7 @@ class DDS_CHAN(QCustomFreqPower):
 
 class DDS_MOVING_LATTICE_CHAN(QCustomMovingLattice):
     def __init__(self, chan, reactor, cxn, context, parent=None):
-        super(DDS_MOVING_LATTICE_CHAN, self).__init__('DDS: {}'.format(chan), True, parent)
+        super(DDS_MOVING_LATTICE_CHAN, self).__init__('{}'.format(chan), True, parent)
         self.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
         self.reactor = reactor
         self.context = context
