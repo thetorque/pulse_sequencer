@@ -2,16 +2,6 @@ import sys
 from PyQt4 import QtGui, QtCore
 import numpy as np
 
-
-# class customSpinBox(QtGui.QDoubleSpinBox):
-#     def __init__(self, *args, **kwargs):
-#         super(customSpinBox, self).__init__(*args, **kwargs)
-#         
-#     def textFromValue(self, value):
-#         ## implement value into MHZ with leading zeros ##
-#         str_show = "%013.9f" % value
-#         return str_show
-
 class customStepBox(QtGui.QDoubleSpinBox):
     def __init__(self, *args, **kwargs):
         super(customStepBox, self).__init__(*args, **kwargs)
