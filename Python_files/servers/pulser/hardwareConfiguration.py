@@ -89,7 +89,7 @@ class hardwareConfiguration(object):
                 'Moving Lattice':ddsConfiguration(    0,  (0.1,300.0),   (-37.0,17.0),  40.0,   7.0),
                  'DDS_1':ddsConfiguration(    1,  (0.1,300.0),   (-37.0,17.0),  40.0,   7.0),
                  'DDS_2':ddsConfiguration(    2,  (0.1,300.0),   (-37.0,17.0),  41.0,   7.0),
-#                  'DDS_3':ddsConfiguration(    3,  (0.1,300.0),   (-37.0,17.0),  44.0,   -37.0),
+                 'DDS_3':ddsConfiguration(    3,  (0.1,300.0),   (-37.0,17.0),  44.0,   -37.0),
 #                  'DDS_4':ddsConfiguration(    4,  (40.0,300.0),   (-37.0,17.0),  46.0,   -37.0),
 #                  'DDS_5':ddsConfiguration(    5,  (40.0,300.0),   (-37.0,17.0),  48.0,   -37.0),
 #                 'DDS_6':ddsConfiguration(    6,  (40.0,300.0),   (-37.0,17.0),  56.0,   -36.0),
