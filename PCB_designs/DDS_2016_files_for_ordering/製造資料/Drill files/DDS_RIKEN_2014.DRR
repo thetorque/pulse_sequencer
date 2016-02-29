@@ -1,0 +1,23 @@
+---------------------------------------------------------------------------
+NCDrill File Report For: DDS_RIKEN_2014.PcbDoc   2/29/2016  1:26:44 PM
+---------------------------------------------------------------------------
+
+Layer Pair : TopLayer to BottomLayer
+ASCII RoundHoles File : DDS_RIKEN_2014.TXT
+EIA File   : DDS_RIKEN_2014.DRL
+
+Tool         Hole Size           Hole Type     Hole Count Plated       Tool Travel
+---------------------------------------------------------------------------
+T1        10mil (0.254mm)          Round          354              59.98 Inch (1523.61 mm)
+T2        13mil (0.3302mm)         Round          4                0.14 Inch (3.60 mm)
+T3        20mil (0.508mm)          Round          1                0.00 Inch (0.00 mm)
+T4        28mil (0.7112mm)         Round          68               23.94 Inch (608.11 mm)
+T5        35mil (0.889mm)          Round          32               7.42 Inch (188.50 mm)
+T6        36mil (0.9144mm)         Round          4                0.26 Inch (6.50 mm)
+T7        79mil (2.0066mm)         Round          4                0.69 Inch (17.50 mm)
+T8        91mil (2.3114mm)         Round          2                0.47 Inch (12.04 mm)
+T9        125mil (3.175mm)         Round          2                3.44 Inch (87.48 mm)
+---------------------------------------------------------------------------
+Totals                                            471              96.35 Inch (2447.34 mm)
+
+Total Processing Time (hh:mm:ss) : 00:00:01
