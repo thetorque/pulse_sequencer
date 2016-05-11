@@ -24,7 +24,7 @@ from twisted.internet.threads import deferToThread
 import time
 from hardwareConfiguration import hardwareConfiguration
 from sequence import Sequence
-from dds import DDS
+from dds_2016_25_04_freqModulation import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
@@ -108,6 +108,8 @@ class Pulser(LabradServer, DDS, LineTrigger):
         if dds is not None: yield self._programDDSSequence(dds)
         self.inCommunication.release()
         self.isProgrammed = True
+        #self.api.resetAllDDS()
+        #print "done programming"
     
     @setting(2, "Start Infinite", returns = '')
     def startInfinite(self,c):
