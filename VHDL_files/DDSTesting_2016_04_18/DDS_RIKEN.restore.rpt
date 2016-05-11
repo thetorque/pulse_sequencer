@@ -1,0 +1,92 @@
+Restore Archived Project report for DDS_RIKEN
+Mon Apr 18 17:15:06 2016
+Quartus Prime Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
+
+
+---------------------
+; Table of Contents ;
+---------------------
+  1. Legal Notice
+  2. Restore Archived Project Summary
+  3. Restore Archived Project Messages
+  4. Files Restored
+  5. Files Not Restored
+
+
+
+----------------
+; Legal Notice ;
+----------------
+Copyright (C) 1991-2015 Altera Corporation. All rights reserved.
+Your use of Altera Corporation's design tools, logic functions 
+and other software and tools, and its AMPP partner logic 
+functions, and any output files from any of the foregoing 
+(including device programming or simulation files), and any 
+associated documentation or information are expressly subject 
+to the terms and conditions of the Altera Program License 
+Subscription Agreement, the Altera Quartus Prime License Agreement,
+the Altera MegaCore Function License Agreement, or other 
+applicable license agreement, including, without limitation, 
+that your use is for the sole purpose of programming logic 
+devices manufactured by Altera and sold by Altera or its 
+authorized distributors.  Please refer to the applicable 
+agreement for further details.
+
+
+
++-------------------------------------------------------------------------+
+; Restore Archived Project Summary                                        ;
++---------------------------------+---------------------------------------+
+; Restore Archived Project Status ; Successful - Mon Apr 18 17:15:06 2016 ;
+; Revision Name                   ; DDS_RIKEN                             ;
+; Top-level Entity Name           ; DDS_RIKEN                             ;
+; Family                          ; Cyclone IV E                          ;
++---------------------------------+---------------------------------------+
+
+
++-----------------------------------+
+; Restore Archived Project Messages ;
++-----------------------------------+
+Info: Successfully restored 'C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2015_03_10/DDS_RIKEN_tmp_archive.qar' into the 'C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDSTesting_2016_04_18' directory
+Info: Generated report 'DDS_RIKEN.restore.rpt'
+
+
++-----------------------------------+
+; Files Restored                    ;
++-----------------------------------+
+; File Name                         ;
++-----------------------------------+
+; qar_info.json                     ;
+; DDS_RIKEN.qpf                     ;
+; DDS_RIKEN.qsf                     ;
+; DDS_RIKEN.vhd                     ;
+; DDS_RIKEN_assignment_defaults.qdf ;
+; dds_14bit_adder.cmp               ;
+; dds_14bit_adder.qip               ;
+; dds_14bit_adder.vhd               ;
+; dds_14bit_compare.cmp             ;
+; dds_14bit_compare.qip             ;
+; dds_14bit_compare.vhd             ;
+; dds_add_subtract.cmp              ;
+; dds_add_subtract.qip              ;
+; dds_add_subtract.vhd              ;
+; dds_compare.cmp                   ;
+; dds_compare.qip                   ;
+; dds_compare.vhd                   ;
+; dds_pll.cmp                       ;
+; dds_pll.ppf                       ;
+; dds_pll.qip                       ;
+; dds_pll.vhd                       ;
+; dds_ram.cmp                       ;
+; dds_ram.qip                       ;
+; dds_ram.vhd                       ;
++-----------------------------------+
+
+
++--------------------+
+; Files Not Restored ;
++--------------------+
+; File Name          ;
++--------------------+
+
+
