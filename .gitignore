@@ -36,3 +36,9 @@ VHDL_files/DDS_FPGA_2015_03_10/output_files/
 VHDL_files/DDS_FPGA_2015_03_10/incremental_db/
 VHDL_files/DDS_FPGA_2015_03_10/db/
 VHDL_files/DDSmovinglattice_2016_02_05/db/
+Python_files/servers/pulser/hardwareConfiguration.py
+Python_files/servers/pulser/test/TestPulseSequence.py
+Python_files/servers/pulser/test/plottingtests.py
+Python_files/servers/pulser/test/timescript.py
+Python_files/servers/pulser/test/timingstest.py
+Python_files/servers/pulser/test/timingstest2.py
