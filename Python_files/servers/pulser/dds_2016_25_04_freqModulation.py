@@ -70,19 +70,51 @@ class DDS(LabradServer):
         frequency = WithUnit(channel.frequency, 'MHz')
         returnValue(frequency)
     
-    @setting(45, 'Add DDS Pulses',  values = ['*(sv[s]v[s]v[MHz]v[dBm]v[deg]v[MHz]v[MHz]i)'])
-    def addDDSPulses(self, c, values):
+    @setting(45, 'Add DDS Freq Mod Pulses',  values = ['*(sv[s]v[s]v[MHz]v[dBm]v[deg]v[MHz]v[MHz]i)'])
+    def addDDSFreqModPulses(self, c, values):
         '''
-        input in the form of a list [(name, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate,mode)]
+        input in the form of a list [(name, start, duration, frequency, amplitude, phase, freq_deviation, mod_freq,mode)]
         '''
+        
         sequence = c.get('sequence')
         if not sequence: raise Exception ("Please create new sequence first")
         for value in values:
+            mode = value[-1]
+            if mode != 1:
+                raise Exception('Wrong mode pulse detected')
             try:
                 name,start,dur,freq,ampl = value
                 phase  = 0.0
-                ramp_rate = 0.0
-                mode = 0
+            except ValueError:
+                name,start,dur,freq,ampl,phase, freq_deviation, mod_freq, mode = value
+            try:
+                channel = self.ddsDict[name]
+            except KeyError:
+                raise Exception("Unknown DDS channel {}".format(name))
+            start = start['s']
+            dur = dur['s']
+            freq = freq['MHz']
+            ampl = ampl['dBm']
+            phase = phase['deg']
+            freq_deviation = freq_deviation['MHz']
+            mod_freq = mod_freq['MHz']
+            self.addDDSPulse(c,[name,start,dur,freq,ampl,phase,freq_deviation,mod_freq,mode])
+    
+    @setting(46, 'Add DDS Standard Pulses',  values = ['*(sv[s]v[s]v[MHz]v[dBm]v[deg]v[MHz]v[dBm]i)'])
+    def addDDSStandardPulses(self, c, values):
+        '''
+        input in the form of a list [(name, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate,mode)]
+        '''
+
+        sequence = c.get('sequence')
+        if not sequence: raise Exception ("Please create new sequence first")
+        for value in values:
+            mode = value[-1]
+            if mode != 0:
+                raise Exception('Wrong mode pulse detected')
+            try:
+                name,start,dur,freq,ampl = value
+                phase  = 0.0
             except ValueError:
                 name,start,dur,freq,ampl,phase, ramp_rate, amp_ramp_rate, mode = value
             try:
@@ -95,42 +127,52 @@ class DDS(LabradServer):
             ampl = ampl['dBm']
             phase = phase['deg']
             ramp_rate = ramp_rate['MHz']
-            amp_ramp_rate = amp_ramp_rate['MHz']
-            freq_off, ampl_off = channel.off_parameters
-            ###if freq == 0 or ampl == 0: #off state;;; why is amp = 0 not allowed????
-            if freq == 0:
-                freq, ampl = freq_off,ampl_off
-            else:
-                self._checkRange('frequency', channel, freq)
-                self._checkRange('amplitude', channel, ampl)
-            num = self.settings_to_num(channel, freq, ampl, phase, ramp_rate, amp_ramp_rate,mode)
-            if not channel.phase_coherent_model:
-                num_off = self.settings_to_num(channel, freq_off, ampl_off)
-            else:
-                #note that keeping the frequency the same when switching off to preserve phase coherence
-                num_off = self.settings_to_num(channel, freq, ampl_off, phase, ramp_rate, amp_ramp_rate,mode) 
-            #note < sign, because start can not be 0. 
-            #this would overwrite the 0 position of the ram, and cause the dds to change before pulse sequence is launched
-            if not self.sequenceTimeRange[0] < start <= self.sequenceTimeRange[1]: 
-                raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start))
-            if not self.sequenceTimeRange[0] < start + dur <= self.sequenceTimeRange[1]: 
-                raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start + dur))
-            if not dur == 0:#0 length pulses are ignored
-                sequence.addDDS(name, start, num, 'start')
-                sequence.addDDS(name, start + dur, num_off, 'stop')
-            #print "name is", name
+            amp_ramp_rate = amp_ramp_rate['dBm']
+            self.addDDSPulse(c,(name,start,dur,freq,ampl,phase,ramp_rate,amp_ramp_rate,mode))
+    
+    def addDDSPulse(self, c, values):
+        sequence = c.get('sequence')
+        name,start,dur,freq,ampl,phase,ramp_rate_or_freq_deviation,amp_ramp_rate_or_mod_freq,mode = values
+        try:
+            channel = self.ddsDict[name]
+        except KeyError:
+            raise Exception("Unknown DDS channel {}".format(name))
+            
+        freq_off, ampl_off = channel.off_parameters
         
-    @setting(46, 'Get DDS Amplitude Range', name = 's', returns = '(vv)')
+        if freq == 0:
+            freq, ampl = freq_off,ampl_off
+        else:
+            self._checkRange('frequency', channel, freq)
+            self._checkRange('amplitude', channel, ampl)
+        num = self.settings_to_num(channel, freq, ampl, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq,mode)
+        if not channel.phase_coherent_model:
+            num_off = self.settings_to_num(channel, freq_off, ampl_off)
+        else:
+            #note that keeping the frequency the same when switching off to preserve phase coherence
+            num_off = self.settings_to_num(channel, freq, ampl_off, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq,mode)
+            
+        #note < sign, because start can not be 0. 
+        #this would overwrite the 0 position of the ram, and cause the dds to change before pulse sequence is launched
+        if not self.sequenceTimeRange[0] < start <= self.sequenceTimeRange[1]: 
+            raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start))
+        if not self.sequenceTimeRange[0] < start + dur <= self.sequenceTimeRange[1]: 
+            raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start + dur))
+        if not dur == 0:#0 length pulses are ignored
+            sequence.addDDS(name, start, num, 'start')
+            sequence.addDDS(name, start + dur, num_off, 'stop')
+        
+    @setting(47, 'Get DDS Amplitude Range', name = 's', returns = '(vv)')
     def getDDSAmplRange(self, c, name = None):
         channel = self._getChannel(c, name)
         return channel.allowedamplrange
         
-    @setting(47, 'Get DDS Frequency Range', name = 's', returns = '(vv)')
+    @setting(48, 'Get DDS Frequency Range', name = 's', returns = '(vv)')
     def getDDSFreqRange(self, c, name = None):
         channel = self._getChannel(c, name)
         return channel.allowedfreqrange
     
-    @setting(48, 'Output', name= 's', state = 'b', returns =' b')
+    @setting(49, 'Output', name= 's', state = 'b', returns =' b')
     def output(self, c, name = None, state = None):
         """To turn off and on the dds. Turning off the DDS sets the frequency and amplitude 
         to the off_parameters provided in the configuration.
@@ -144,11 +186,11 @@ class DDS(LabradServer):
             self.notifyOtherListeners(c, (name, 'state', channel.state), self.on_dds_param)
         returnValue(channel.state)
     
-    @setting(49, 'Clear DDS Lock')
+    @setting(50, 'Clear DDS Lock')
     def clear_dds_lock(self, c):
         self.ddsLock = False
         
-    @setting(50, "Movinglattice", parameter = ['*i'], returns = ['*i'])
+    @setting(51, "Movinglattice", parameter = ['*i'], returns = ['*i'])
     def movinglattice(self, c, parameter = None, returns = None):
         """set parameters for moving lattice"""
         #get the hardware channel
@@ -273,12 +315,11 @@ class DDS(LabradServer):
         #print buf
         return buf
     
-    def settings_to_num(self, channel, freq, ampl, phase = 0.0, ramp_rate = 0.0, amp_ramp_rate = 0.0, mode = 0):
-        print 'here',mode,channel.name
+    def settings_to_num(self, channel, freq, ampl, phase = 0.0, ramp_rate_or_freq_deviation = 0.0, amp_ramp_rate_or_mod_freq = 0.0, mode = 0):
         if not channel.phase_coherent_model:
             num = self._valToInt(channel, freq, ampl)
         else:
-            num = self._valToInt_coherent(channel, freq, ampl, phase, ramp_rate, amp_ramp_rate, mode)
+            num = self._valToInt_coherent(channel, freq, ampl, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq, mode)
         return num
     
     @inlineCallbacks
@@ -324,7 +365,7 @@ class DDS(LabradServer):
         num = self.settings_to_num(channel, freq, ampl)
         return num
     
-    def _valToInt_coherent(self, channel, freq, ampl, phase = 0, ramp_rate = 0, amp_ramp_rate = 0, mode=0): ### add ramp for ramping functionality
+    def _valToInt_coherent(self, channel, freq, ampl, phase = 0, ramp_rate_or_freq_deviation = 0, amp_ramp_rate_or_mod_freq = 0, mode=0): ### add ramp for ramping functionality
         '''
         takes the frequency and amplitude values for the specific channel and returns integer representation of the dds setting
         freq is in MHz
@@ -333,12 +374,12 @@ class DDS(LabradServer):
         ans = 0
         ## changed the precision from 32 to 64 to handle super fine frequency tuning
         if mode in [0,2]: #0 = Normal operation mode, 2 = External trigger mode (TBD)
+            ramp_rate = ramp_rate_or_freq_deviation
+            amp_ramp_rate = amp_ramp_rate_or_mod_freq
             for val, r, m, precision, extrabits in [(freq,channel.boardfreqrange, 1, 64, False), (ampl,channel.boardamplrange, 2 ** 64,  16, True), (phase,channel.boardphaserange, 2**80, 16, False)]:
                 minim, maxim = r
-                #print r
                 resolution = (maxim - minim) / float(2**precision - 1)
                 seq = int((val - minim)/resolution) #sequential representation
-                #print seq
                 if extrabits:
                     seq = 4*( seq/4)  # Bitshifting 2 right, then 2 left the DAC is only 14 bits, so we mask the two LSB and use them to encode the operating mode.
                     seq += mode
@@ -353,8 +394,7 @@ class DDS(LabradServer):
                 seq = 2**16-1
             else:
                 seq = int((ramp_rate-minim)/resolution)  
-                
-            #print "t1 in ramp rate integer is, ", seq
+
             
             ans += 2**96*seq 
             
@@ -371,8 +411,7 @@ class DDS(LabradServer):
             else:
                 slope = 1/amp_ramp_rate
                 seq_amp_ramp = int(np.ceil((slope - minim_slope)/resolution))  # return ceiling of the number
-            
-            #print "t2 in amp ramp rate integer is, ", seq_amp_ramp
+
                 
             ans += 2**112*seq_amp_ramp
             
@@ -380,13 +419,13 @@ class DDS(LabradServer):
             centerfrequency = freq
             ampl = ampl
             phase = phase
-            modulationfrequency = ramp_rate
-            frequencyexcursion = amp_ramp_rate
+            modulationfrequency = amp_ramp_rate_or_mod_freq
+            frequencyexcursion = ramp_rate_or_freq_deviation
             
             high_ramp_limit = centerfrequency + frequencyexcursion
             low_ramp_limit  = centerfrequency - frequencyexcursion
+            ramping_interval = (10*24.)/2000  # hardcoded in fpga code, 120 ns between each frequency step
             freq_change_rate  = 4 * frequencyexcursion * modulationfrequency # frequency change per second required
-            ramping_interval = 120e-9 # hardcoded in fpga code, 120 ns between each frequency step
             freq_step_size = freq_change_rate * ramping_interval
             
             for val, r, m, precision, extrabits in [(low_ramp_limit,channel.boardfreqrange, 1, 32, False), 
@@ -397,6 +436,7 @@ class DDS(LabradServer):
                 minim, maxim = r
                 resolution = (maxim - minim) / float(2**precision - 1)
                 seq = int((val - minim)/resolution) #sequential representation
+                print hex(seq)
                 if extrabits:
                     seq = seq & int('1'*14 + '00',2) # the DAC is only 14 bits, so we mask the two LSB and use them to encode the operating mode.
                     seq += mode
@@ -404,13 +444,6 @@ class DDS(LabradServer):
                 
         return ans
     
-#         ans = 0
-#         for val,r,m, precision in [(freq,channel.boardfreqrange, 1, 32), (ampl,channel.boardamplrange, 2 ** 32,  16), (phase,channel.boardphaserange, 2 ** 48,  16)]:
-#             minim, maxim = r
-#             resolution = (maxim - minim) / float(2**precision - 1)
-#             seq = int((val - minim)/resolution) #sequential representation
-#             ans += m*seq
-#         return ans
 
     def _intToBuf_coherent(self, num):
         '''
@@ -453,4 +486,5 @@ class DDS(LabradServer):
         a = phase + amp + amp_ramp + ramp
         
         ans = a + b
+        print anscnx
         return ans

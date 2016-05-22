@@ -196,12 +196,8 @@ begin
 	
 	dds_address 					<= add_in;
 	
-	operating_mode             <= "01";--dds_ram_data_out(17 downto 16);
-	low_ramp_limit            <= dds_ram_data_out(127 downto 96);
-	high_ramp_limit             <= dds_ram_data_out(95 downto 64);
-	freq_step_size             <= dds_ram_data_out(63 downto 48) & dds_ram_data_out(47 downto 32);
-	led_VALUE (1 downto 0) 		<= operating_mode;
-	--led_VALUE (5 downto 3) 		<= bus_in_address(2 downto 0);
+
+	
 	--led_VALUE (6) 					<= bus_in_fifo_empty;
 	--led_value(7) 					<= ramping_flag or amp_ramping_flag;
 	
@@ -220,6 +216,14 @@ begin
 	dds_port(2 downto 2) 		<= par_wr;
 	dds_port(7 downto 3) 		<= "00000";
 	
+	operating_mode             <= dds_ram_data_out(17 downto 16);
+	
+	---- Frequency modulation mode
+	low_ramp_limit            <= dds_ram_data_out(127 downto 96);
+	high_ramp_limit             <= dds_ram_data_out(95 downto 64);
+	freq_step_size             <= dds_ram_data_out(63 downto 32);
+	led_VALUE (7 downto 0) 		<= freq_step_size(7 downto 0);
+	---- Normal mode
 	target_amplitude <= dds_ram_data_out(31 downto 18);
 	target_phase <= dds_ram_data_out(15 downto 0);
 	main_phase <= target_phase;
@@ -230,13 +234,15 @@ begin
 	adder_step_buffer (63 downto 43) <= "000000000000000000000";
 	adder_step_buffer (26 downto 0)  <= "000000000000000000000000000";
 	
-	ramp_enable <= '0' WHEN dds_ram_data_out(63 downto 48) = x"0000" ELSE '1';
+	ramp_enable <= '0' WHEN operating_mode = "01" OR dds_ram_data_out(63 downto 48) = x"0000" ELSE '1';
 	
 	--------- amplitude sweeper ------
 	-- main amplitude is 14 bit --
 	amp_ramp_rate 			<= dds_ram_data_out(47 downto 32);	
 	--amp_ramp_rate <= x"4000";
-	amp_ramp_enable 		<= '0' WHEN amp_ramp_rate = x"0000" ELSE '1';
+	
+	amp_ramp_enable <= '0' WHEN operating_mode = "01" OR amp_ramp_rate = x"0000" ELSE '1';
+
 	
 	comparer_14bit_1: dds_14bit_compare port map (dataa=>amp_comparer_dataa1, datab=>amp_comparer_datab1, agb=>amp_agb1);
 	adder_14bit: 		dds_14bit_adder 	port map (add_sub=>amp_adder_direction, dataa=>amp_adder_input, result=>amp_adder_output);
@@ -536,7 +542,6 @@ begin
 		variable previous_operating_mode: integer range 0 to 3 := 0;
 		variable current_operating_mode: integer range 0 to 3 := to_integer(unsigned(operating_mode));			
 	BEGIN
-		led_Value ( 7 downto 2) <= std_logic_vector(to_unsigned(main_count,6));
 		current_operating_mode := to_integer(unsigned(operating_mode));
 		if (current_operating_mode /= previous_operating_mode) then
 				previous_operating_mode := current_operating_mode;
@@ -833,7 +838,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"21";
-									          par_data <= x"8000";--"0000000100001010";   --- set positive ramp rate to 10 (240/2Ghz)
+									          par_data <= x"000A";   --- set positive ramp rate to 1 (24/2Ghz)
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -845,7 +850,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"23";
-									          par_data <= x"8000";--"0000000100001010";   --- set negative ramp rate to 10 (240/2Ghz)
+									          par_data <= x"000A"; --- set negative ramp rate to 1 (24/2Ghz)
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -859,7 +864,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"15";
-									          par_data <= x"6666";--high_ramp_limit_var(15 downto 0); 
+									          par_data <= high_ramp_limit_var(15 downto 0); --x"147a";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -871,7 +876,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"17";
-									          par_data <= x"2666";--high_ramp_limit_var(31 downto 16); 
+									          par_data <= high_ramp_limit_var(31 downto 16); --x"07AE";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -884,7 +889,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"11";
-									          par_data <= x"6666";--low_ramp_limit_var(15 downto 0); 
+									          par_data <= low_ramp_limit_var(15 downto 0); --x"B851";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -896,7 +901,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"13";
-									          par_data <= x"6666";--low_ramp_limit_var(31 downto 16); 
+									          par_data <= low_ramp_limit_var(31 downto 16); --x"051E";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -909,7 +914,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"19";
-									          par_data <= x"1000";--freq_step_size_var(15 downto 0); 
+									          par_data <= freq_step_size_var(15 downto 0); 
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -921,7 +926,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"1B";
-									          par_data <= x"0000";--freq_step_size_var(31 downto 16); 
+									          par_data <= freq_step_size_var(31 downto 16); 
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -934,7 +939,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"1D";
-									          par_data <= x"1000";--freq_step_size_var(15 downto 0); 
+									          par_data <= freq_step_size_var(15 downto 0);  --x"0005";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -946,7 +951,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <= x"1F";
-									          par_data <= x"0000";--freq_step_size_var(31 downto 16); 
+									          par_data <= freq_step_size_var(31 downto 16); --x"0000";
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -976,7 +981,7 @@ begin
 									WHEN 0 => par_wr <= "1";
 												 sub_count:=sub_count+1;
 									WHEN 1 => par_add <=x"31";
-									          par_data <=x"0000";--main_phase_var;---
+									          par_data <=main_phase_var;
 												 sub_count:=sub_count+1;
 									WHEN 2 => par_wr <= "0";
 									          sub_count:=sub_count+1;
@@ -992,7 +997,12 @@ begin
 								if (high_ramp_limit_var = high_ramp_limit) then
 									if (low_ramp_limit_var = low_ramp_limit) then
 										if (freq_step_size_var = freq_step_size) then
-											null;
+											if (main_amplitude_var = main_amplitude) then
+												null;
+											else
+												main_amplitude_var := main_amplitude;
+												main_count := 32;
+											end if;
 										else
 											freq_step_size_var := freq_step_size;
 											main_count:=28;
@@ -1021,7 +1031,7 @@ begin
 	BEGIN
 		IF (clk_50'event and clk_50='0') then
 			CASE main_count IS
-				WHEN 0 => dac_out <= "00000001111111";--main_amplitude_var; -----set DAC amplitude
+				WHEN 0 => dac_out <= main_amplitude_var; -----set DAC amplitude
 							 dac_wr_pin <= '0';
 							 main_count:=1;
 				WHEN 1 => dac_wr_pin <= '1'; -------------write to dac for amplitude
