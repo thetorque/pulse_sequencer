@@ -53,7 +53,7 @@ class pulse_sequence(object):
 				raise Exception('{0} {1} value not provided for the {2} Pulse Sequence'.format(collection, parameter_name, self.__class__.__name__))
 		return new_dict
 	
-	def addDDS(self, channel, start, duration, frequency, amplitude, phase = WithUnit(0, 'deg'), ramp_rate = WithUnit(0,'MHz'), amp_ramp_rate = WithUnit(0,'dB')):
+	def addDDS(self, channel, start, duration, frequency, amplitude, phase = WithUnit(0, 'deg'), ramp_rate = WithUnit(0,'MHz'), amp_ramp_rate = WithUnit(0,'dB'), mode = 0):
 		"""
 		add a dds pulse to the pulse sequence
 		"""
@@ -66,7 +66,7 @@ class pulse_sequence(object):
 			phase = dds_channel.phase_conversion(phase)
 			ramp_rate = dds_channel.ramprate_conversion(ramp_rate)
 			amp_ramp_rate = dds_channel.amp_ramp_rate_conversion(amp_ramp_rate)
-		self._dds_pulses.append((channel, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate))
+		self._dds_pulses.append((channel, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate,mode))
 	
 	def addTTL(self, channel, start, duration):
 		"""

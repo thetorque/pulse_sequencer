@@ -222,7 +222,7 @@ begin
 	low_ramp_limit            <= dds_ram_data_out(127 downto 96);
 	high_ramp_limit             <= dds_ram_data_out(95 downto 64);
 	freq_step_size             <= dds_ram_data_out(63 downto 32);
-	led_VALUE (7 downto 0) 		<= freq_step_size(7 downto 0);
+	--led_VALUE (7 downto 0) 		<= freq_step_size(14 downto 8);
 	---- Normal mode
 	target_amplitude <= dds_ram_data_out(31 downto 18);
 	target_phase <= dds_ram_data_out(15 downto 0);

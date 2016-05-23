@@ -24,12 +24,12 @@ from twisted.internet.threads import deferToThread
 import time
 from hardwareConfiguration import hardwareConfiguration
 from sequence import Sequence
-from dds_2016_25_04_freqModulation import DDS
+from dds20162504freqModulation import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
 
-class Pulser(LabradServer, DDS, LineTrigger):
+class Pulser(DDS, LineTrigger):
     
     name = 'Pulser'
     onSwitch = Signal(611051, 'signal: switch toggled', '(ss)')

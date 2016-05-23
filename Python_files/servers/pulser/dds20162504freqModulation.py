@@ -18,14 +18,14 @@ class DDS(LabradServer):
         self.api.initializeDDS()
         for name,channel in self.ddsDict.iteritems():
             channel.name = name
-            freq,ampl = (channel.frequency, channel.amplitude)
+            freq,ampl,mode = (channel.frequency, channel.amplitude,channel.mode)
             self._checkRange('amplitude', channel, ampl)
             self._checkRange('frequency', channel, freq)
             if name == "Moving Lattice":
                 print "Moving Lattice channel found"
                 yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
             else:
-                yield self.inCommunication.run(self._setParameters, channel, freq, ampl)
+                yield self.inCommunication.run(self._setParameters, channel, freq, ampl, mode)
     
     @setting(41, "Get DDS Channels", returns = '*s')
     def getDDSChannels(self, c):
@@ -115,6 +115,7 @@ class DDS(LabradServer):
             try:
                 name,start,dur,freq,ampl = value
                 phase  = 0.0
+                ramprate = 0.0
             except ValueError:
                 name,start,dur,freq,ampl,phase, ramp_rate, amp_ramp_rate, mode = value
             try:
@@ -160,8 +161,8 @@ class DDS(LabradServer):
         if not self.sequenceTimeRange[0] < start + dur <= self.sequenceTimeRange[1]: 
             raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start + dur))
         if not dur == 0:#0 length pulses are ignored
-            sequence.addDDS(name, start, num, 'start')
-            sequence.addDDS(name, start + dur, num_off, 'stop')
+            sequence.addDDS(name, start, num, 'start',mode)
+            sequence.addDDS(name, start + dur, num_off, 'stop',mode)
         
     @setting(48, 'Get DDS Amplitude Range', name = 's', returns = '(vv)')
     def getDDSAmplRange(self, c, name = None):
@@ -264,7 +265,7 @@ class DDS(LabradServer):
             yield self.program_dds_chanel(channel, buf)
     
     @inlineCallbacks
-    def _setParameters(self, channel, freq, ampl):
+    def _setParameters(self, channel, freq, ampl, mode = 0):
         buf = self.settings_to_buf(channel, freq, ampl)
         yield self.program_dds_chanel(channel, buf)
     
@@ -446,16 +447,11 @@ class DDS(LabradServer):
         return ans
     
 
-    def _intToBuf_coherent(self, num):
+    def _intToBuf_coherent(self, num, mode = 0):
         '''
         takes the integer representing the setting and returns the buffer string for dds programming
         '''
-        
-        freq_num = (num % 2**64)  # change according to the new DDS which supports 64 bit tuning of the frequency. Used to be #freq_num = (num % 2**32)*2**32
-        b = bytearray(8)          # initialize the byte array to sent to the pusler later
-        for i in range(8):
-            b[i]=(freq_num//(2**(i*8)))%256
-            #print i, "=", (freq_num//(2**(i*8)))%256
+        ans = 0
          
         #phase
         phase_num = (num // 2**80)%(2**16)
@@ -470,22 +466,43 @@ class DDS(LabradServer):
         amp[0] = ampl_num%256
         amp[1] = (ampl_num//256)%256
         
-        ### ramp rate. 16 bit tunability from roughly 116 Hz/ms to 7.5 MHz/ms 
-        ramp_rate = (num // 2**96)%(2**16)
-        ramp = bytearray(2)
-        ramp[0] = ramp_rate%256
-        ramp[1] = (ramp_rate//256)%256
-        
-        ##  amplitude ramp rate
-        amp_ramp_rate = (num // 2**112)%(2**16)
-        #print "amp_ramp is" , amp_ramp_rate
-        amp_ramp = bytearray(2)
-        amp_ramp[0] = amp_ramp_rate%256
-        amp_ramp[1] = (amp_ramp_rate//256)%256
-        
-        ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
-        a = phase + amp + amp_ramp + ramp
-        
-        ans = a + b
-        print ans
+        if mode in [0,2]:
+            freq_num = (num % 2**64)  # change according to the new DDS which supports 64 bit tuning of the frequency. Used to be #freq_num = (num % 2**32)*2**32
+            b = bytearray(8)          # initialize the byte array to sent to the pusler later
+            for i in range(8):
+                b[i]=(freq_num//(2**(i*8)))%256
+            
+           
+            ### ramp rate. 16 bit tunability from roughly 116 Hz/ms to 7.5 MHz/ms 
+            ramp_rate = (num // 2**96)%(2**16)
+            ramp = bytearray(2)
+            ramp[0] = ramp_rate%256
+            ramp[1] = (ramp_rate//256)%256
+            
+            ##  amplitude ramp rate
+            amp_ramp_rate = (num // 2**112)%(2**16)
+            #print "amp_ramp is" , amp_ramp_rate
+            amp_ramp = bytearray(2)
+            amp_ramp[0] = amp_ramp_rate%256
+            amp_ramp[1] = (amp_ramp_rate//256)%256
+            
+            ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
+            ans = phase + amp + amp_ramp + ramp + b
+            
+        elif mode == 1: #frequency modulation mode
+            low_ramp = (num%(2**32))
+            low = bytearray(4)
+            for i in range(4):
+                low[i]=(low_ramp//(2**(i*8)))%256
+            
+            high_ramp = (num // 2**32) % (2 **32)
+            high = bytearray(4)
+            for i in range(4):
+                high[i]=(high_ramp//(2**(i*8)))%256
+            
+            freq_step = (num // 2**96)%(2**32)
+            freq_s = bytearray(4)
+            for i in range(4):
+                freq_s[i]=(freq_step//(2**(i*8)))%256
+            ans = phase + amp + freq_s + high + low  
         return ans

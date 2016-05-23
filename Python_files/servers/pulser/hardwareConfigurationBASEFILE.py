@@ -68,6 +68,7 @@ class hardwareConfiguration(object):
     #name: (channelNumber, ismanual, manualstate,  manualinversion, autoinversion)
     channelDict = {
                    'ttl_0':channelConfiguration(0, False, False, False, False), ## camera
+                   'AdvanceDDS':channelConfiguration(18, False, False, False, False),
                    'ResetDDS':channelConfiguration(19, False, False, False, False),
                    'AO1':channelConfiguration(20, False, False, False, False), ### triggering for analog board
                    'AO2':channelConfiguration(21, False, False, False, False), ### triggering for analog board
