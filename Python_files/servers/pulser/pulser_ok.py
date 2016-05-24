@@ -24,7 +24,7 @@ from twisted.internet.threads import deferToThread
 import time
 from hardwareConfiguration import hardwareConfiguration
 from sequence import Sequence
-from dds20162504freqModulation import DDS
+from dds import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
