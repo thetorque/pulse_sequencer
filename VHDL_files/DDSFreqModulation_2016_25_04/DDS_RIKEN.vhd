@@ -218,11 +218,16 @@ begin
 	
 	operating_mode             <= dds_ram_data_out(17 downto 16);
 	
+	led_VALUE (2 downto 0) 		<= dds_ram_rdaddress(2 downto 0);
+	led_VALUE (5 downto 3) 		<= bus_in_address(2 downto 0);
+	led_VALUE (6) 					<= bus_in_fifo_empty;
+	
+	
 	---- Frequency modulation mode
 	low_ramp_limit            <= dds_ram_data_out(127 downto 96);
 	high_ramp_limit             <= dds_ram_data_out(95 downto 64);
 	freq_step_size             <= dds_ram_data_out(63 downto 32);
-	--led_VALUE (7 downto 0) 		<= freq_step_size(14 downto 8);
+
 	---- Normal mode
 	target_amplitude <= dds_ram_data_out(31 downto 18);
 	target_phase <= dds_ram_data_out(15 downto 0);
