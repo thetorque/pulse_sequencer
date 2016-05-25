@@ -22,9 +22,9 @@ class Sequence():
         self.advanceDDS = hardwareConfiguration.channelDict['AdvanceDDS'].channelnumber
         self.resetDDS = hardwareConfiguration.channelDict['ResetDDS'].channelnumber
     
-    def addDDS(self, name, start, num, typ,mode):
+    def addDDS(self, name, start, num, typ):
         timeStep = self.secToStep(start)
-        self.ddsSettingList.append((name, timeStep, num, typ,mode))
+        self.ddsSettingList.append((name, timeStep, num, typ))
             
     def addPulse(self, channel, start, duration):
         """adding TTL pulse, times are in seconds"""
@@ -91,11 +91,11 @@ class Sequence():
         possibleError = (0,'')
         while True:
             try:
-                name,start,num,typ,mode = entries.pop(0)
+                name,start,num,typ = entries.pop(0)
             except IndexError:
                 if start  == lastTime:
                     #still have unprogrammed entries
-                    self.addToProgram(dds_program, state, mode)
+                    self.addToProgram(dds_program, state)
                     self._addNewSwitch(lastTime,self.advanceDDS,1)
                     self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
                 #add termination
@@ -110,7 +110,7 @@ class Sequence():
             if start > lastTime:
                 #the time has advanced, so need to program the previous state
                 if possibleError[0] == lastTime and len(possibleError[1]): raise Exception(possibleError[1]) #if error exists and belongs to that time
-                self.addToProgram(dds_program, state, mode)
+                self.addToProgram(dds_program, state)
                 if not lastTime == 0:
                     self._addNewSwitch(lastTime,self.advanceDDS,1)
                     self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
@@ -131,12 +131,12 @@ class Sequence():
                 state[name] = num
                 pulses_end[name] = (start, typ)
 
-    def addToProgram(self, prog, state, mode):
+    def addToProgram(self, prog, state):
         for name,num in state.iteritems():
             if not hardwareConfiguration.ddsDict[name].phase_coherent_model:
                 buf = self.parent._intToBuf(num)
             else:  
-                buf = self.parent._intToBuf_coherent(num,mode)
+                buf = self.parent._intToBuf_coherent(num)
             prog[name] += buf
         
     def parseTTL(self):

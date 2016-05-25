@@ -24,7 +24,7 @@ from twisted.internet.threads import deferToThread
 import time
 from hardwareConfiguration import hardwareConfiguration
 from sequence import Sequence
-from dds import DDS
+from dds20162504freqModulation import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
@@ -34,7 +34,7 @@ class Pulser(DDS, LineTrigger):
     name = 'Pulser'
     onSwitch = Signal(611051, 'signal: switch toggled', '(ss)')
     
-    @inlineCallbacks
+    #@inlineCallbacks
     def initServer(self):
         self.api  = api()
         self.channelDict = hardwareConfiguration.channelDict
@@ -52,11 +52,11 @@ class Pulser(DDS, LineTrigger):
         self.haveDAC = hardwareConfiguration.DAC
         self.inCommunication = DeferredLock()
         self.clear_next_pmt_counts = 0
-        LineTrigger.initialize(self)
-        self.initializeBoard()
-        yield self.initializeRemote()
-        self.initializeSettings()
-        yield self.initializeDDS()
+        #LineTrigger.initialize(self)
+        #self.initializeBoard()
+        #yield self.initializeRemote()
+        #self.initializeSettings()
+        #yield self.initializeDDS()
         self.listeners = set()
 
     def initializeBoard(self):
