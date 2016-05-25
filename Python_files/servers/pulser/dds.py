@@ -147,12 +147,12 @@ class DDS(LabradServer):
         else:
             self._checkRange('frequency', channel, freq)
             self._checkRange('amplitude', channel, ampl)
-        num = self.settings_to_num(channel, freq, ampl, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq,mode)
+        num = self.settings_to_num(channel, freq, ampl, mode, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq)
         if not channel.phase_coherent_model:
-            num_off = self.settings_to_num(channel, freq_off, ampl_off)
+            num_off = self.settings_to_num(channel, freq_off, ampl_off, mode)
         else:
             #note that keeping the frequency the same when switching off to preserve phase coherence
-            num_off = self.settings_to_num(channel, freq, ampl_off, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq,mode)
+            num_off = self.settings_to_num(channel, freq, ampl_off, mode,phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq)
             
         #note < sign, because start can not be 0. 
         #this would overwrite the 0 position of the ram, and cause the dds to change before pulse sequence is launched
@@ -303,7 +303,7 @@ class DDS(LabradServer):
         #print "t2 in amp ramp rate is ", amp_ramp_rate
 
         ### calculate here
-        num = self.settings_to_num(channel, freq, ampl, 0.0, ramp_rate, amp_ramp_rate)
+        num = self.settings_to_num(channel, freq, ampl, 0, ramp_rate, amp_ramp_rate)
         buf = self._intToBuf_coherent(num)
         yield self.program_dds_chanel(channel, buf)
     #######################################################
@@ -361,15 +361,15 @@ class DDS(LabradServer):
         '''returns the current state of the channel in the num represenation'''
         if channel.state:
             #if on, use current values. else, use off values
-            freq,ampl = (channel.frequency, channel.amplitude)
+            freq,ampl,mode = (channel.frequency, channel.amplitude,channel.mode)
             self._checkRange('amplitude', channel, ampl)
             self._checkRange('frequency', channel, freq)
         else:
             freq,ampl = channel.off_parameters
-        num = self.settings_to_num(channel, freq, ampl)
+        num = self.settings_to_num(channel, freq, ampl,mode)
         return num
     
-    def _valToInt_coherent(self, channel, freq, ampl, phase = 0, ramp_rate_or_freq_deviation = 0, amp_ramp_rate_or_mod_freq = 0, mode=0): ### add ramp for ramping functionality
+    def _valToInt_coherent(self, channel, freq, ampl,phase = 0, ramp_rate_or_freq_deviation = 0, amp_ramp_rate_or_mod_freq = 0, mode=0): ### add ramp for ramping functionality
         '''
         takes the frequency and amplitude values for the specific channel and returns integer representation of the dds setting
         freq is in MHz
@@ -440,7 +440,7 @@ class DDS(LabradServer):
                 minim, maxim = r
                 resolution = (maxim - minim) / float(2**precision - 1)
                 seq = int((val - minim)/resolution) #sequential representation
-                print hex(seq)
+                
                 if extrabits:
                     seq = seq & int('1'*14 + '00',2) # the DAC is only 14 bits, so we mask the two LSB and use them to encode the operating mode.
                     seq += mode
@@ -454,7 +454,8 @@ class DDS(LabradServer):
         takes the integer representing the setting and returns the buffer string for dds programming
         '''
         ans = 0
-        mode = num // 2**64 %2  
+        mode = num // 2**64 %2
+        
         #phase
         phase_num = (num // 2**80)%(2**16)
         phase = bytearray(2)
