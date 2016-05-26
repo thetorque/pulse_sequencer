@@ -42,3 +42,6 @@ Python_files/servers/pulser/test/plottingtests.py
 Python_files/servers/pulser/test/timescript.py
 Python_files/servers/pulser/test/timingstest.py
 Python_files/servers/pulser/test/timingstest2.py
+GUITesting/
+Python_files/servers/pulser/test/
+*.qpf
