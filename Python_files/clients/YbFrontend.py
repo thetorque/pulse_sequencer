@@ -4,6 +4,9 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from graphingwidget import graphingwidget
 from writingwidget import writingwidget
+from SWITCH_CONTROL import switchWidget
+from DDS_CONTROL import DDS_CONTROL
+from LINETRIGGER_CONTROL import linetriggerWidget
 
 
 class mainwindow(QtGui.QMainWindow):
@@ -21,21 +24,59 @@ class mainwindow(QtGui.QMainWindow):
         self.create_layout()
 
     def create_layout(self):
-        centralwidget = QtGui.QWidget()
-        layout = QtGui.QHBoxLayout(self)
+        controlwidget = self.makeControlWidget()
+        sequencewidget = self.makeSequenceWidget()
 
-        graphing = graphingwidget(self.reactor,self.connection)
-        writing = writingwidget(self.reactor)
-        writing.parsed_trigger.connect(graphing.draw_sequence)
-        writing.parsed_trigger.connect(self.program_sequence)
+        centralwidget = QtGui.QWidget()
+        tabwidget = QtGui.QTabWidget()
+
+        tabwidget.addTab(controlwidget,'Controls')
+        tabwidget.addTab(sequencewidget,'Sequence')
+
+
+
+        layout = QtGui.QHBoxLayout(self)
+        layout.addWidget(tabwidget)
+        centralwidget.setLayout(layout)
 
         self.setWindowTitle('Frontend')
         self.create_menubar()
         self.statusBar().showMessage('Ready')
+
+
+        self.setCentralWidget(centralwidget)
+
+    def makeControlWidget(self):
+        widget = QtGui.QWidget()
+        from SWITCH_CONTROL import switchWidget
+        from DDS_CONTROL import DDS_CONTROL
+        from LINETRIGGER_CONTROL import linetriggerWidget
+
+        layout = QtGui.QVBoxLayout()
+        #layout.addWidget(switchWidget(self.reactor,self.connection))
+        #layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
+        widget.setLayout(layout)
+        return widget
+
+    @inlineCallbacks
+    def makeSequenceWidget(self):
+        widget = QtGui.QWidget()
+        from graphingwidget import graphingwidget
+        from writingwidget import writingwidget
+
+        server = yield self.connection.get_server('ParameterVault')
+
+
+        layout = QtGui.QHBoxLayout()
+        graphing = graphingwidget(self.reactor,self.connection)
+        writing = writingwidget(self.reactor,self.connection)
+        writing.parsed_trigger.connect(graphing.draw_sequence)
+        writing.parsed_trigger.connect(self.program_sequence)
+
         layout.addWidget(writing)
         layout.addWidget(graphing)
-        centralwidget.setLayout(layout)
-        self.setCentralWidget(centralwidget)
+        widget.setLayout(layout)
+        return widget
 
     def create_menubar(self):
         menubar = self.menuBar()
@@ -50,7 +91,8 @@ class mainwindow(QtGui.QMainWindow):
     @inlineCallbacks
     def program_sequence(self,sequence):
         server = yield self.connection.get_server('Pulser')
-        yield server.add_dds_pulses(sequence)
+        yield server.new_sequence()
+        yield server.add_dds_standard_pulses(sequence)
         yield server.program_sequence()
 
     def closeEvent(self,event):
