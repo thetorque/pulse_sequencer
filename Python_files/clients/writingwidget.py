@@ -2,6 +2,7 @@ from twisted.internet.defer import inlineCallbacks
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal
 import re
+import numpy as np
 
 SIGNALID = 489136
 
@@ -29,16 +30,16 @@ class writingwidget(QtGui.QWidget):
         string +="var T_start = 10\n"
         string +="#enddef\n"
         string +="\n"
-        string +="#repeat 10\n"
+        string +="#repeat i=0,i+1,i<3\n"
         string +="\n"
-        string +="Channel U_Fo12ria do 30  MHz with var A0 dBm for 300 ms at 20 ms in mode Normal\n"
+        string +="Channel Raman_ax do 30  MHz with  10 dBm for 2 ms at (100+4*i) ms in mode Normal\n"
         string +="\n"
         string +="#endrepeat\n\n\n"
-        string +="#repeat 15\n"
-        string +="\n"
-        string +="Channel Raman_ax do 40  MHz with 20 dBm for var T_start ms at 20 ms in mode Normal\n"
-        string +="\n"
-        string +="#endrepeat\n"
+        #string +="#repeat i=0,i+1,i<4\n"
+        #string +="\n"
+        #string +="Channel DDS_1 do (40+i)  MHz with 20 dBm for 5 ms at (100+4*i) ms in mode Normal\n"
+        #string +="\n"
+        #string +="#endrepeat\n"
         string +="Channel Raman_rad do 300  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
         string +="Channel Raman_ax do 200  MHz with 2 dBm for var T_start ms at 40 ms in mode Normal\n"
         string +="Channel DDS_1 do 100  MHz with -20 dBm for var T_start ms at 60 ms in mode Normal\n"
@@ -67,17 +68,14 @@ class writingwidget(QtGui.QWidget):
         defs,text = self.findAndReplace(self.defpattern,text,re.DOTALL)
         self.parseDefine(defs)
         loops,text = self.findAndReplace(self.looppattern,text,re.DOTALL)
-        for line in text.strip().split('\n'):
-            name,line = self.findAndReplace(self.channelpattern,line)
-            mode,line = self.findAndReplace(self.modepattern,line)
-            pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
-            if mode[0] == 'Normal':
-                self.makeNormalPulse(name,0,pulseparameters)
+        self.parseLoop(loops)
+
+        self.parsePulses(text)
         self.parsed_trigger.emit(self.sequence)
 
     def findAndReplace(self,pattern,string,flags=0):
         listofmatches = re.findall(pattern,string,flags)
-        newstring = re.sub(pattern,'',string,flags)
+        newstring = re.sub(pattern,'',string,re.DOTALL)
         return listofmatches,newstring
 
     @inlineCallbacks
@@ -90,7 +88,7 @@ class writingwidget(QtGui.QWidget):
     def defineRegexPatterns(self):
         self.channelpattern = r'Channel\s+([aA0-zZ9]+)\s'
         self.pulsepattern   = r'([a-z]*)\s+([+-]?[0-9]+|var\s+[aA0-zZ9]+)\s+([aA-zZ]+)'
-        self.looppattern    = r'#repeat\s+([0-9]+)\s+(.+?\s)\s*#endrepeat'
+        self.looppattern    = r'#repeat\s+(.+?)\s+(.+?)\s*#endrepeat'
         self.defpattern     = r'#def\s+(.+?)\s*#enddef'
         self.modepattern    = r'in\s+mode\s+([aA-zZ]+)'
 
@@ -103,6 +101,35 @@ class writingwidget(QtGui.QWidget):
                 else:
                     line = line.split()[1].strip() # remove the var part of var A0
                     exec('self.'+line+' = 0.0')
+
+    def parseLoop(self,listofstrings):
+        for loopparams, lines in listofstrings:
+            begin,it,end = loopparams.split(',')
+            lines = lines.strip()
+            itervar = begin.split('=')[0]
+            begin=int(begin.split('=')[1])
+            it = int(it.split('+')[1])
+            end = int(end.split('<')[1])
+            newlines = ''
+            for i in np.arange(begin,end,it):
+                for aline in lines.split('\n'):
+                    for amatch in re.findall(r'(\(.+?\))',aline):
+                        if 'var' in amatch:
+                            newsubstr = str(eval(amatch.replace('var ','self.')))
+                            aline.replace(amatch,newsubstr)
+                        elif itervar in amatch:
+                            newsubstr = str(eval(amatch.replace(itervar,str(i))))
+                            aline = aline.replace(amatch,newsubstr)
+                    newlines += aline + '\n'
+            self.parsePulses(newlines)
+
+    def parsePulses(self,blockoftext):
+        for line in blockoftext.strip().split('\n'):
+            name,line = self.findAndReplace(self.channelpattern,line)
+            mode,line = self.findAndReplace(self.modepattern,line)
+            pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
+            if mode[0] == 'Normal':
+                self.makeNormalPulse(name,0,pulseparameters)
 
     def makeNormalPulse(self,name,mode,parameters):
         from labrad.units import WithUnit

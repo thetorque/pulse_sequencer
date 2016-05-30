@@ -61,16 +61,16 @@ class graphingwidget(QtGui.QWidget):
         self.channel_ax_list = axlist
 
     def draw_sequence(self,sequence):
-        sequence.sort(key= lambda name: name[0])
         lastend = 0
         for achannelname, achannelax in self.channel_ax_list.iteritems():
             channelpulses = [i for i in sequence if i[0] == achannelname]
-            sequence.sort(key= lambda name: name[1]['ms'])
+            channelpulses.sort(key= lambda name: name[1]['ms'])
             starttimes = []
             endtimes = []
             frequencies = []
             amplitudes = []
             for apulse in channelpulses:
+                print apulse
                 starttimes.append(apulse[1]['ms'])
                 endtimes.append((apulse[1]+ apulse[2])['ms'])
                 frequencies.append(apulse[3]['MHz'])
@@ -82,14 +82,25 @@ class graphingwidget(QtGui.QWidget):
 
             xdata = [0]
             ydata = [0]
-            xdata = xdata + [val for val in starttimes+endtimes for n in (0,1)]
-            for i in range(1,len(xdata),2):
+            for i in range(len(starttimes)):
+                xdata.append(starttimes[i])
+                xdata.append(starttimes[i])
+                xdata.append(endtimes[i])
+                xdata.append(endtimes[i])
+                
                 if ydata[-1] == 0:
                     ydata.append(0)
                     ydata.append(1)
+                    ydata.append(1)
+                    ydata.append(0)
                 else:
                     ydata.append(1)
                     ydata.append(0)
+                    ydata.append(0)
+                    ydata.append(1)
+
+            print xdata
+            print ydata
             achannelax.clear()
             achannelax.plot(xdata,ydata)
         for achannelax in self.channel_ax_list.values():
