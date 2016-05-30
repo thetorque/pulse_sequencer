@@ -58,14 +58,10 @@ class mainwindow(QtGui.QMainWindow):
         widget.setLayout(layout)
         return widget
 
-    @inlineCallbacks
     def makeSequenceWidget(self):
         widget = QtGui.QWidget()
         from graphingwidget import graphingwidget
         from writingwidget import writingwidget
-
-        server = yield self.connection.get_server('ParameterVault')
-
 
         layout = QtGui.QHBoxLayout()
         graphing = graphingwidget(self.reactor,self.connection)
