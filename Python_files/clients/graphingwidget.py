@@ -2,7 +2,9 @@ from PyQt4 import QtGui
 from twisted.internet.defer import inlineCallbacks
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 import numpy as np
+import time
 
 class graphingwidget(QtGui.QWidget):
 
@@ -61,6 +63,7 @@ class graphingwidget(QtGui.QWidget):
         self.channel_ax_list = axlist
 
     def draw_sequence(self,sequence):
+        print "starting drawing"
         lastend = 0
         for achannelname, achannelax in self.channel_ax_list.iteritems():
             channelpulses = [i for i in sequence if i[0] == achannelname]
@@ -70,46 +73,43 @@ class graphingwidget(QtGui.QWidget):
             frequencies = []
             amplitudes = []
             for apulse in channelpulses:
-                print apulse
                 starttimes.append(apulse[1]['ms'])
                 endtimes.append((apulse[1]+ apulse[2])['ms'])
                 frequencies.append(apulse[3]['MHz'])
                 amplitudes.append(apulse[4]['dBm'])
-            try:
-                lastend = endtimes[-1] if endtimes[-1]>lastend else lastend
-            except IndexError as e:
-                pass
 
             xdata = [0]
             ydata = [0]
             for i in range(len(starttimes)):
-                xdata.append(starttimes[i])
-                xdata.append(starttimes[i])
-                xdata.append(endtimes[i])
-                xdata.append(endtimes[i])
-                
+                xdata += [starttimes[i]]*2 + [endtimes[i]]*2
+                               
                 if ydata[-1] == 0:
-                    ydata.append(0)
-                    ydata.append(1)
-                    ydata.append(1)
-                    ydata.append(0)
+                    ydata += [0,1,1,0]
                 else:
-                    ydata.append(1)
-                    ydata.append(0)
-                    ydata.append(0)
-                    ydata.append(1)
+                    ydata += [1,0,0,1]
 
-            print xdata
-            print ydata
+            lastend = int(xdata[-1]) if lastend<xdata[-1] else lastend
+
             achannelax.clear()
             achannelax.plot(xdata,ydata)
-        for achannelax in self.channel_ax_list.values():
-            achannelax.axes.get_xaxis().set_ticks([])
-            achannelax.get_yaxis().set_ticks([])
+
+
+        self.make_nicer(lastend,frequencies,amplitudes)
+        self.canvas.draw()
+
+    def make_nicer(self,lastend,freq,amp):
+        minorLocator = AutoMinorLocator()
+
+        for i in range(len(self.channel_ax_list)):
+            achannelax = self.channel_ax_list.values()[i]
             achannelax.set_ylim(0,1.5)
             achannelax.set_xlim(0,lastend)
-        achannelax.get_xaxis().set_ticks(np.arange(0,lastend,1000))
-        self.canvas.draw()
+            achannelax.get_yaxis().set_ticks([])
+            achannelax.get_xaxis().set_minor_locator(minorLocator)
+            achannelax.get_xaxis().grid(True,which='both')
+            if i < (len(self.channel_ax_list)-1):
+                achannelax.get_xaxis().set_ticklabels([])
+    
 
     def update_tooltip(self,event):
         if event.inaxes:
@@ -122,6 +122,7 @@ if __name__== '__main__':
     qt4reactor.install()
     from twisted.internet import reactor
     widget = graphingwidget(reactor)
+
     widget.show()
     
     reactor.run()

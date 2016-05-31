@@ -3,11 +3,11 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal
 import re
 import numpy as np
-
-SIGNALID = 489136
+import timeit
 
 class writingwidget(QtGui.QWidget):
     parsed_trigger = pyqtSignal(list)
+    SIGNALID = 489136
 
     def __init__(self,reactor, connection =None, parent= None):
         super(writingwidget,self).__init__()
@@ -15,6 +15,7 @@ class writingwidget(QtGui.QWidget):
         self.connection = connection
         self.defineRegexPatterns()
         self.setupLayout()
+        self.setupListeners()
 
     def setupLayout(self):
         layout=QtGui.QVBoxLayout(self)
@@ -30,7 +31,7 @@ class writingwidget(QtGui.QWidget):
         string +="var T_start = 10\n"
         string +="#enddef\n"
         string +="\n"
-        string +="#repeat i=0,i+1,i<3\n"
+        string +="#repeat i=0,i+1,i<1\n"
         string +="\n"
         string +="Channel Raman_ax do 30  MHz with  10 dBm for 2 ms at (100+4*i) ms in mode Normal\n"
         string +="\n"
@@ -41,24 +42,23 @@ class writingwidget(QtGui.QWidget):
         #string +="\n"
         #string +="#endrepeat\n"
         string +="Channel Raman_rad do 300  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
-        string +="Channel Raman_ax do 200  MHz with 2 dBm for var T_start ms at 40 ms in mode Normal\n"
-        string +="Channel DDS_1 do 100  MHz with -20 dBm for var T_start ms at 60 ms in mode Normal\n"
-
+     
         self.textedit.setPlainText(string)
-       
-        self.parse = QtGui.QPushButton('Parse')
-        self.parse.pressed.connect(self.on_parse)
 
-
-        layout.addWidget(self.parse)
         layout.addWidget(self.textedit)
         self.setLayout(layout)
 
     @inlineCallbacks
     def setupListeners(self):
+        print self.SIGNALID
         server = yield self.connection.get_server('ParameterVault')
-        yield server.signal__paramter_change(SIGNALID)
-        yield server.addListener(listener = self.on_parameterchange, source = None, ID = SignalID)
+        yield server.signal__parameter_change(self.SIGNALID)
+        yield server.addListener(listener = self.on_parameterchange, source = None, ID = self.SIGNALID)
+
+
+    def on_parameterchange(self,cnxt,signal):
+        print signal
+
 
     def on_parse(self):
         
@@ -77,13 +77,6 @@ class writingwidget(QtGui.QWidget):
         listofmatches = re.findall(pattern,string,flags)
         newstring = re.sub(pattern,'',string,re.DOTALL)
         return listofmatches,newstring
-
-    @inlineCallbacks
-    def on_parameterchange(self,name):
-        pv = yield self.connection.get_server('ParameterVault')
-        if name == ('Raman'):
-            rm = yield pv.get_parameter(name)
-        self.appendPlainText(str(rm['MHz']))
 
     def defineRegexPatterns(self):
         self.channelpattern = r'Channel\s+([aA0-zZ9]+)\s'

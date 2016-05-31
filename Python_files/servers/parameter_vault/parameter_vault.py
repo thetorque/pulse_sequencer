@@ -133,6 +133,7 @@ class ParameterVault(LabradServer):
             self.parameters[key] = self._save_full(key, value)
         notified = self.getOtherListeners(c)
         self.onParameterChange((key[0], key[1]), notified)
+        print "parameter changed"
 
     @setting(1, "Get Parameter", collection = 's', parameter_name = 's', checked = 'b', returns = ['?'])
     def getParameter(self, c, collection, parameter_name, checked = True):
@@ -141,8 +142,6 @@ class ParameterVault(LabradServer):
         if key not in self.parameters.keys():
             raise Exception ("Parameter Not Found")
         result = self.parameters[key]
-        if checked:
-            result = self.check_parameter(key, result)
         return result
 
     @setting(2, "Get Parameter Names", collection = 's', returns = '*s')
@@ -172,6 +171,11 @@ class ParameterVault(LabradServer):
         """Discards current parameters and reloads them from registry"""
         yield self.load_parameters()
     
+    @setting(7, "Add Parameter", returns = '')
+    def add_parameter(self,collection,parameter_name,value):
+        self.parameters[tuple(collection,parameter_name)] = value
+
+
     @inlineCallbacks
     def stopServer(self):
         try:
