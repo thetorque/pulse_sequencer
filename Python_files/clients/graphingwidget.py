@@ -1,41 +1,29 @@
 from PyQt4 import QtGui
+from PyQt4.QtCore import QThread, pyqtSignal
 from twisted.internet.defer import inlineCallbacks
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 import numpy as np
 import time
+from PyQt4.QtCore import QThread, pyqtSignal
+from connection import connection
+from plottingworker import PlottingWorker
 
 class graphingwidget(QtGui.QWidget):
 
     SIGNALID = 104692
-
-    def __init__(self,reactor, cnx = None, parent=None):
+    update_signal = pyqtSignal(list)
+    def __init__(self,reactor, cnx):
         super(graphingwidget,self).__init__()
         self.reactor = reactor
-        self.cnx = cnx
-        self.connect_labrad()
-#        self.plot_test()
+        self.connection = cnx
+        self.initialize()
 
-    @inlineCallbacks
-    def connect_labrad(self):
-        from labrad import types as T
-        self.T = T
-        if self.cnx is None:
-            from connection import connection
-            self.cnx = connection()
-            yield self.cnx.connect()
-        try:
-            from labrad.types import Error
-            self.Error = Error
-            yield self.initialize()
-        except Exception, e:
-            print e
-            print 'Pulser not available'
 
     @inlineCallbacks
     def initialize(self):
-        server = yield self.cnx.get_server('Pulser')
+        server = yield self.connection.get_server('Pulser')
         channellist = yield server.get_dds_channels()
 
         self.do_layout(channellist)
@@ -62,54 +50,14 @@ class graphingwidget(QtGui.QWidget):
             anax.set_ylim(0,1.5)
         self.channel_ax_list = axlist
 
-    def draw_sequence(self,sequence):
-        print "starting drawing"
-        lastend = 0
-        for achannelname, achannelax in self.channel_ax_list.iteritems():
-            channelpulses = [i for i in sequence if i[0] == achannelname]
-            channelpulses.sort(key= lambda name: name[1]['ms'])
-            starttimes = []
-            endtimes = []
-            frequencies = []
-            amplitudes = []
-            for apulse in channelpulses:
-                starttimes.append(apulse[1]['ms'])
-                endtimes.append((apulse[1]+ apulse[2])['ms'])
-                frequencies.append(apulse[3]['MHz'])
-                amplitudes.append(apulse[4]['dBm'])
+        self.plottingthread = QThread()
+        self.plottingworker = PlottingWorker((self.channel_ax_list))
+        self.plottingworker.plotted_trigger.connect(self.update)
+        self.plottingworker.moveToThread(self.plottingthread)
+        self.plottingthread.start()
 
-            xdata = [0]
-            ydata = [0]
-            for i in range(len(starttimes)):
-                xdata += [starttimes[i]]*2 + [endtimes[i]]*2
-                               
-                if ydata[-1] == 0:
-                    ydata += [0,1,1,0]
-                else:
-                    ydata += [1,0,0,1]
-
-            lastend = int(xdata[-1]) if lastend<xdata[-1] else lastend
-
-            achannelax.clear()
-            achannelax.plot(xdata,ydata)
-
-
-        self.make_nicer(lastend,frequencies,amplitudes)
+    def update(self):
         self.canvas.draw()
-
-    def make_nicer(self,lastend,freq,amp):
-        minorLocator = AutoMinorLocator()
-
-        for i in range(len(self.channel_ax_list)):
-            achannelax = self.channel_ax_list.values()[i]
-            achannelax.set_ylim(0,1.5)
-            achannelax.set_xlim(0,lastend)
-            achannelax.get_yaxis().set_ticks([])
-            achannelax.get_xaxis().set_minor_locator(minorLocator)
-            achannelax.get_xaxis().grid(True,which='both')
-            if i < (len(self.channel_ax_list)-1):
-                achannelax.get_xaxis().set_ticklabels([])
-    
 
     def update_tooltip(self,event):
         if event.inaxes:

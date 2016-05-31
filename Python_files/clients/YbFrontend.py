@@ -11,15 +11,20 @@ from DDS_CONTROL import DDS_CONTROL
 from LINETRIGGER_CONTROL import linetriggerWidget
 from LEDindicator import LEDindicator
 import timeit
+from PyQt4.QtCore import QThread
+from parsingworker import ParsingWorker
 
 class mainwindow(QtGui.QMainWindow):
     start_signal = pyqtSignal()
     stop_signal = pyqtSignal()
     SIGNALID = 115687
+
     def __init__(self,reactor, parent=None):
         super(mainwindow,self).__init__()
         self.reactor = reactor
         self.connect_labrad()
+        
+
         self.RUNNING = False
 
     @inlineCallbacks
@@ -29,20 +34,18 @@ class mainwindow(QtGui.QMainWindow):
         yield cxn.connect()
         self.connection = cxn
         self.create_layout()
-        self.populateParameters()
-        self.setupListeners()
+
 
     def create_layout(self):
         controlwidget = self.makeControlWidget()
         sequencewidget = self.makeSequenceWidget()
-        self.parameditorwidget = self.makeParameterEditorWidget()
-
+        parameditorwidget = self.makeParameterEditorWidget()
         centralwidget = QtGui.QWidget()
         tabwidget = QtGui.QTabWidget()
 
         tabwidget.addTab(sequencewidget,'Sequence')
         tabwidget.addTab(controlwidget,'Controls')
-        tabwidget.addTab(self.parameditorwidget,'Parameters')
+        tabwidget.addTab(parameditorwidget,'Parameters')
 
         layout = QtGui.QHBoxLayout(self)
         layout.addWidget(tabwidget)
@@ -73,14 +76,16 @@ class mainwindow(QtGui.QMainWindow):
 
     def makeSequenceWidget(self):
         widget = QtGui.QWidget()
+        string = "#def\n"+"var A0\n"+"#enddef\n"+"\n"+"#def\n"+"var T_start = 10\n"+"#enddef\n"
+        string +="\n"+"#repeat i=0,i+1,i<1\n"+"\n"+"Channel DDS_2 do 0.1  MHz with  10 dBm for 2 ms at (100+4*i) ms in mode Normal\n"
+        string +="\n"+"#endrepeat\n\n\n"+"Channel DDS_2 do 0.1  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
+     
         from graphingwidget import graphingwidget
-        from writingwidget import writingwidget
+        self.graphingwidget = graphingwidget(self.reactor,self.connection)
+        self.writingwidget = QtGui.QTextEdit('Writingbox')
+        self.writingwidget.setPlainText(string)
 
-        graphing = graphingwidget(self.reactor,self.connection)
-        writing = writingwidget(self.reactor,self.connection)
-        writing.parsed_trigger.connect(graphing.draw_sequence) #So we make the program_sequence be called first
-        writing.parsed_trigger.connect(self.program_sequence) #The order here determines which is called first
-        
+
         '''
         import __builtin__
         __builtin__.__dict__.update(locals())
@@ -90,13 +95,12 @@ class mainwindow(QtGui.QMainWindow):
         print np.mean(t.repeat(10,10))/.10
         '''
         
-        self.start_signal.connect(writing.on_parse) 
         buttonpanel = self.makeButtonPanel()
         layout = QtGui.QGridLayout()
 
         layout.addWidget(buttonpanel,0,0)
-        layout.addWidget(writing, 1,0,4,1)
-        layout.addWidget(graphing, 0,1,5,1)
+        layout.addWidget(self.writingwidget, 1,0,4,1)
+        layout.addWidget(self.graphingwidget, 0,1,5,1)
         widget.setLayout(layout)
         
         return widget
@@ -129,8 +133,14 @@ class mainwindow(QtGui.QMainWindow):
         return panel
 
     def on_Start(self):
-        self.RUNNING = True
-        self.start_signal.emit()
+        self.my_thread = QThread()
+        self.parsingworker = ParsingWorker(self.reactor,
+                                           self.connection,
+                                           str(self.writingwidget.toPlainText()))
+        self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
+        self.parsingworker.moveToThread(self.my_thread)
+        self.my_thread.start()
+        self.parsingworker.start.emit()
 
     def on_Stop(self):
         self.RUNNING = False
