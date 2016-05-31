@@ -45,3 +45,4 @@ Python_files/servers/pulser/test/timingstest2.py
 GUITesting/
 Python_files/servers/pulser/test/
 *.qpf
+Python_files/LabRAD.ini
