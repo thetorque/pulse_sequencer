@@ -40,8 +40,8 @@ class mainwindow(QtGui.QMainWindow):
         centralwidget = QtGui.QWidget()
         tabwidget = QtGui.QTabWidget()
 
-        tabwidget.addTab(controlwidget,'Controls')
         tabwidget.addTab(sequencewidget,'Sequence')
+        tabwidget.addTab(controlwidget,'Controls')
         tabwidget.addTab(self.parameditorwidget,'Parameters')
 
         layout = QtGui.QHBoxLayout(self)
@@ -67,7 +67,7 @@ class mainwindow(QtGui.QMainWindow):
         #    layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
         #    layout.addWidget(linetriggerWidget(self.reactor,self.connection))
         #except AttributeError, e:
-        #    pass
+        #    print e
         widget.setLayout(layout)
         return widget
 
@@ -100,11 +100,17 @@ class mainwindow(QtGui.QMainWindow):
         widget.setLayout(layout)
         
         return widget
-
+        
     def makeButtonPanel(self):
         panel = QtGui.QWidget()
         Startbutton = QtGui.QPushButton('RUN')
         Stopbutton = QtGui.QPushButton('STOP')
+        LineTrigbutton = QtGui.QPushButton('linetrig')
+        LineTrigbutton.setCheckable(True)
+        state = False
+        LineTrigbutton.setChecked(state)
+        LineTrigbutton.pressed.connect(self.toggle_linetrig)
+        
         self.ledrunning = LEDindicator('Running')
         self.ledprogramming = LEDindicator('Prog.')
         self.ledlinetrigger = LEDindicator('Ext trig')
@@ -117,6 +123,7 @@ class mainwindow(QtGui.QMainWindow):
         layout.addWidget(self.ledrunning,0,3,2,1)
         layout.addWidget(self.ledprogramming,0,4,2,1)
         layout.addWidget(self.ledlinetrigger,0,5,2,1)
+        layout.addWidget(LineTrigbutton,2,5,1,1)
         layout.addWidget(Spacetaker,0,6,4,5)
         panel.setLayout(layout)
         return panel
@@ -128,6 +135,12 @@ class mainwindow(QtGui.QMainWindow):
     def on_Stop(self):
         self.RUNNING = False
         self.stop_signal.emit()
+        
+    @inlineCallbacks
+    def toggle_linetrig(self):
+        state = self.sender().isChecked()
+        server = yield self.connection.get_server('Pulser')
+        yield server.line_trigger_state(state)
 
     def makeParameterEditorWidget(self):
         widget = QtGui.QWidget()
@@ -161,13 +174,15 @@ class mainwindow(QtGui.QMainWindow):
 
     @inlineCallbacks
     def program_sequence(self,sequence):
+        print 'programming'
         self.ledprogramming.setOn()
         server = yield self.connection.get_server('Pulser')
         yield server.new_sequence()
         yield server.add_dds_standard_pulses(sequence)
         yield server.program_sequence()
         self.ledprogramming.setOff()
-        #self.run_sequence()
+        print 'done programming'
+        self.run_sequence()
 
     def closeEvent(self,event):
         #reply = QtGui.QMessageBox.question(self, 'Message',
@@ -184,9 +199,9 @@ class mainwindow(QtGui.QMainWindow):
         self.ledrunning.setOn()
         p = yield self.connection.get_server('Pulser')
         while self.RUNNING:
-            p.start_number(1)
-            p.wait_sequence_done()
-        p.stop_sequence()
+            yield p.start_number(1)
+            yield p.wait_sequence_done()
+        yield p.stop_sequence()
         self.ledrunning.setOff()
 
     @inlineCallbacks

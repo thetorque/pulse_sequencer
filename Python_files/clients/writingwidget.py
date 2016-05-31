@@ -33,7 +33,7 @@ class writingwidget(QtGui.QWidget):
         string +="\n"
         string +="#repeat i=0,i+1,i<1\n"
         string +="\n"
-        string +="Channel Raman_ax do 30  MHz with  10 dBm for 2 ms at (100+4*i) ms in mode Normal\n"
+        string +="Channel DDS_2 do 0.1  MHz with  10 dBm for 2 ms at (100+4*i) ms in mode Normal\n"
         string +="\n"
         string +="#endrepeat\n\n\n"
         #string +="#repeat i=0,i+1,i<4\n"
@@ -41,7 +41,7 @@ class writingwidget(QtGui.QWidget):
         #string +="Channel DDS_1 do (40+i)  MHz with 20 dBm for 5 ms at (100+4*i) ms in mode Normal\n"
         #string +="\n"
         #string +="#endrepeat\n"
-        string +="Channel Raman_rad do 300  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
+        string +="Channel DDS_2 do 0.1  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
      
         self.textedit.setPlainText(string)
 
@@ -80,7 +80,7 @@ class writingwidget(QtGui.QWidget):
 
     def defineRegexPatterns(self):
         self.channelpattern = r'Channel\s+([aA0-zZ9]+)\s'
-        self.pulsepattern   = r'([a-z]*)\s+([+-]?[0-9]+|var\s+[aA0-zZ9]+)\s+([aA-zZ]+)'
+        self.pulsepattern   = r'([a-z]*)\s+([+-]?[0-9]+|[+-]?[0-9]+\.[0-9]+|var\s+[aA0-zZ9]+)\s+([aA-zZ]+)'
         self.looppattern    = r'#repeat\s+(.+?)\s+(.+?)\s*#endrepeat'
         self.defpattern     = r'#def\s+(.+?)\s*#enddef'
         self.modepattern    = r'in\s+mode\s+([aA-zZ]+)'
