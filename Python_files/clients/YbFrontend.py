@@ -4,8 +4,6 @@ from PyQt4.QtCore import pyqtSignal
 from twisted.internet.defer import inlineCallbacks
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvasQTAgg
 import matplotlib.pyplot as plt
-from graphingwidget import graphingwidget
-from writingwidget import writingwidget
 from SWITCH_CONTROL import switchWidget
 from DDS_CONTROL import DDS_CONTROL
 from LINETRIGGER_CONTROL import linetriggerWidget
