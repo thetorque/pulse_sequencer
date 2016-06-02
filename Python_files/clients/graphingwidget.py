@@ -15,11 +15,6 @@ class graphingwidget(QtGui.QWidget):
         super(graphingwidget,self).__init__()
         self.reactor = reactor
         self.connection = cnx
-        self.plottingthread = QThread()
-        self.plottingworker = PlottingWorker()
-        self.plottingworker.plotted_trigger.connect(self.update)
-        self.plottingworker.moveToThread(self.plottingthread)
-        self.plottingthread.start()
         self.initialize()
 
 
@@ -27,13 +22,16 @@ class graphingwidget(QtGui.QWidget):
     def initialize(self):
         server = yield self.connection.get_server('Pulser')
         channellist = yield server.get_dds_channels()
-
+        self.plottingthread = QThread()
+        self.plottingworker = PlottingWorker()
+        self.plottingworker.plotted_trigger.connect(self.update)
+        self.plottingworker.moveToThread(self.plottingthread)
+        self.plottingthread.start()
+        
         self.do_layout(channellist)
 
 
     def do_layout(self,channellist):
-        self.setGeometry(100,100,850,550)
-        self.setWindowTitle('Graphical representation')
         self.figure = plt.figure(0,(5,5))
         self.canvas = FigureCanvas(self.figure)
         self.canvas.mpl_connect('motion_notify_event',self.update_tooltip)
@@ -43,13 +41,18 @@ class graphingwidget(QtGui.QWidget):
 
 
         axlist = {}
+
         for i in range(len(channellist)):
             axlist[channellist[i]] = self.figure.add_subplot(16,1,i+1)
 
-        for anax in axlist.values():
+        for name,anax in axlist.iteritems():
             anax.axes.get_xaxis().set_ticks([])
             anax.get_yaxis().set_ticks([])
             anax.set_ylim(0,1.5)
+            anax.text(-0.01, 0.5,name, horizontalalignment='right',
+                                                 verticalalignment='center',
+                                              transform=anax.transAxes)
+        self.figure.subplots_adjust(left=0.2,right=0.995,top=0.99,bottom=0.01)
         self.channel_ax_list = axlist
         self.plottingworker.setup_axes(axlist)
         
@@ -61,17 +64,6 @@ class graphingwidget(QtGui.QWidget):
         if event.inaxes:
             x = event.xdata
             self.canvas.setToolTip(str(int(x)))
-
-if __name__== '__main__':
-    app = QtGui.QApplication( [])
-    import qt4reactor
-    qt4reactor.install()
-    from twisted.internet import reactor
-    widget = graphingwidget(reactor)
-
-    widget.show()
-    
-    reactor.run()
 
 class PlottingWorker(QObject):
     plotted_trigger= pyqtSignal()
@@ -119,11 +111,15 @@ class PlottingWorker(QObject):
 
         for i in range(len(self.thread_channel_ax_list)):
             achannelax = self.thread_channel_ax_list.values()[i]
+            name = self.thread_channel_ax_list.keys()[i]
             achannelax.set_ylim(0,1.5)
             achannelax.set_xlim(0,lastend)
             achannelax.get_yaxis().set_ticks([])
             achannelax.get_xaxis().set_minor_locator(minorLocator)
             achannelax.get_xaxis().grid(True,which='both')
+            achannelax.text(-0.01, 0.5,name, horizontalalignment='right',
+                                                 verticalalignment='center',
+                                              transform=achannelax.transAxes)
             if i < (len(self.thread_channel_ax_list)-1):
                 achannelax.get_xaxis().set_ticklabels([])
     

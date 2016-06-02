@@ -133,22 +133,26 @@ class mainwindow(QtGui.QMainWindow):
     def makeSequenceWidget(self):
         from graphingwidget import graphingwidget
         self.filename = None
-        widget = QtGui.QWidget()
+        splitterwidget = QtGui.QSplitter()
         string = "#def\n"+"test = PumpFreq from ParameterVault\n"+"#enddef\n"+"\n"+"#def\n"+"T_start = 10\n"+"#enddef\n"
         string +="\n"+"#repeat i=0,i<1,i+1\n"+"\n"+"Channel DDS_2 do 0.1  MHz with  10 dBm for PumpFreq ms at (100+4*i) ms in mode Normal\n"
         string +="\n"+"#endrepeat\n\n\n"+"Channel DDS_2 do 0.1  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
-     
+        
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
         self.writingwidget.setPlainText(string)
 
+        leftwidget=QtGui.QWidget()
         buttonpanel = self.makeButtonPanel()
-        layout = QtGui.QGridLayout()
-        layout.addWidget(buttonpanel,0,0)
-        layout.addWidget(self.writingwidget, 1,0,6,1)
-        layout.addWidget(self.graphingwidget, 0,1,7,1)
-        widget.setLayout(layout)
-        return widget
+        leftlayout = QtGui.QGridLayout()
+        leftlayout.addWidget(buttonpanel,0,0)
+        leftlayout.addWidget(self.writingwidget, 1,0,6,1)
+        leftwidget.setLayout(leftlayout)
+
+
+        splitterwidget.addWidget(leftwidget)
+        splitterwidget.addWidget(self.graphingwidget)
+        return splitterwidget
 
     def makeButtonPanel(self):
         panel = QtGui.QWidget()
