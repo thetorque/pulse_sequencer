@@ -15,6 +15,11 @@ class graphingwidget(QtGui.QWidget):
         super(graphingwidget,self).__init__()
         self.reactor = reactor
         self.connection = cnx
+        self.plottingthread = QThread()
+        self.plottingworker = PlottingWorker()
+        self.plottingworker.plotted_trigger.connect(self.update)
+        self.plottingworker.moveToThread(self.plottingthread)
+        self.plottingthread.start()
         self.initialize()
 
 
@@ -46,12 +51,8 @@ class graphingwidget(QtGui.QWidget):
             anax.get_yaxis().set_ticks([])
             anax.set_ylim(0,1.5)
         self.channel_ax_list = axlist
-
-        self.plottingthread = QThread()
-        self.plottingworker = PlottingWorker((self.channel_ax_list))
-        self.plottingworker.plotted_trigger.connect(self.update)
-        self.plottingworker.moveToThread(self.plottingthread)
-        self.plottingthread.start()
+        self.plottingworker.setup_axes(axlist)
+        
 
     def update(self):
         self.canvas.draw()
@@ -75,14 +76,17 @@ if __name__== '__main__':
 class PlottingWorker(QObject):
     plotted_trigger= pyqtSignal()
     start = pyqtSignal(list)
-    def __init__(self,axlist):
+    def __init__(self):
         super(PlottingWorker,self).__init__()
-        self.channel_ax_list = axlist
+        self.thread_channel_ax_list = None
         self.start.connect(self.run)
+
+    def setup_axes(self,axlist):
+        self.thread_channel_ax_list = axlist
 
     def do_sequence(self,sequence):
         lastend = 0
-        for achannelname, achannelax in self.channel_ax_list.iteritems():
+        for achannelname, achannelax in self.thread_channel_ax_list.iteritems():
             channelpulses = [i for i in sequence if i[0] == achannelname]
             channelpulses.sort(key= lambda name: name[1]['ms'])
             starttimes = []
@@ -113,14 +117,14 @@ class PlottingWorker(QObject):
 
         minorLocator = AutoMinorLocator()
 
-        for i in range(len(self.channel_ax_list)):
-            achannelax = self.channel_ax_list.values()[i]
+        for i in range(len(self.thread_channel_ax_list)):
+            achannelax = self.thread_channel_ax_list.values()[i]
             achannelax.set_ylim(0,1.5)
             achannelax.set_xlim(0,lastend)
             achannelax.get_yaxis().set_ticks([])
             achannelax.get_xaxis().set_minor_locator(minorLocator)
             achannelax.get_xaxis().grid(True,which='both')
-            if i < (len(self.channel_ax_list)-1):
+            if i < (len(self.thread_channel_ax_list)-1):
                 achannelax.get_xaxis().set_ticklabels([])
     
     @pyqtSlot(list)

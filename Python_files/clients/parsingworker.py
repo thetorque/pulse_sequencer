@@ -6,10 +6,11 @@ import time
 
 class ParsingWorker(QObject):
     parsed_trigger = pyqtSignal(list)
-    finished = pyqtSignal()
+    finished = pyqtSignal(int)
     busy = pyqtSignal()
     start = pyqtSignal()
     trackingparameterserver = pyqtSignal(bool)
+    parsermessages = pyqtSignal(str)
 
     def __init__(self,reactor,connection,text):
         super(ParsingWorker,self).__init__()
@@ -19,33 +20,26 @@ class ParsingWorker(QObject):
         self.sequence = []
         self.defineRegexPatterns()
         self.start.connect(self.run)
-        self.get_parameters()
         self.connectedsignal =False
         self.tracking = False
         self.trackingparameterserver.emit(self.tracking)
+        self.ParameterID = 0
 
-    @inlineCallbacks
-    def get_parameters(self):
-        pv = yield self.connection.get_server('ParameterVault')
-        coldict = {}
-        collections = yield pv.get_collections()
-        for acol in collections:
-            coldict[acol] = {}
-            names = yield pv.get_parameter_names(acol)
-            for aname in names:
-                coldict[acol][aname] = yield pv.get_parameter(acol,aname)
-        self.parameters = coldict
+    def set_parameters(self,paramdict):
+        self.parameters = paramdict
 
-    @inlineCallbacks
-    def update_parameters(self,signal,info):
-        collection,name = info
-        pv = yield self.connection.get_server('ParameterVault')
-        self.parameters[collection][name] = yield pv.get_parameter(collection,name)
-        self.parse_text()
-        self.parsed_trigger.emit(self.sequence)
+    def update_parameters(self,collection,name,value):
+        if collection == "Raman" and name=="Parameters":
+            time,shotID,boolean,A,B,C = value
+            self.parameters['Raman']['A'] = A
+            self.parameters['Raman']['B'] = A
+            self.parameters['Raman']['C'] = A
+            self.ParameterID = shotID
+        else:
+            self.parameters[collection][name] = value
+
         if self.tracking:
-            self.program_sequence()
-        self.finished.emit()
+            self.run()
 
     def add_text(self,text):
         self.text = text
@@ -164,6 +158,7 @@ class ParsingWorker(QObject):
     @pyqtSlot()
     def run(self):
         self.parse_text()
+        self.parsermessages.emit('Parser: Parsing done')
         self.parsed_trigger.emit(self.sequence)
-        self.finished.emit()
         #self.program_sequence()
+        self.finished.emit(0)

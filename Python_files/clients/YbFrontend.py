@@ -10,6 +10,7 @@ from LINETRIGGER_CONTROL import linetriggerWidget
 from LEDindicator import LEDindicator
 from PyQt4.QtCore import QThread, QObject
 from parsingworker import ParsingWorker
+import time
 
 class mainwindow(QtGui.QMainWindow):
     start_signal = pyqtSignal()
@@ -19,34 +20,56 @@ class mainwindow(QtGui.QMainWindow):
     def __init__(self,reactor, parent=None):
         super(mainwindow,self).__init__()
         self.reactor = reactor
-        d = Deferred()
-        d.addCallback(self.connect_labrad)
-        d.addCallback(lambda ignored: self.create_layout())
-        d.addCallback(lambda ignored: self.setupListeners())
-        d.callback("self")
+        self.initialize()
 
 
+    # This is a seperate function because it needs to 
+    # be able to yield, and __init__ cannot do that
+    @inlineCallbacks
+    def initialize(self):
+        yield self.connect_labrad()
+        yield self.create_layout()
+        self.messageout('Layout done')
+        yield self.get_parameters()
+        self.start_parserthread()
+        self.messageout('Parserthread started')
+        self.fill_parameterstree()
+        self.setupListeners()
+        self.messageout('Listeners setup')
+        self.messageout('-------------------')
+        self.messageout('Initialization done')
+        
 
         self.RUNNING = False
 
     @inlineCallbacks
-    def connect_labrad(self,r):
+    def connect_labrad(self):
         from connection import connection
         cxn = connection()
         yield cxn.connect()
         self.connection = cxn
         self.context = cxn.context()
-        
+       
 
-
+########################################################################
+#########                                                      #########
+#########               Creating the GUI                       #########
+#########                                                      #########
+########################################################################
+    
+    #################
+    # Central (main window)
+    #################
     def create_layout(self):
         controlwidget = self.makeControlWidget()
         sequencewidget = self.makeSequenceWidget()
+        parameterswidget = self.makeParameterWidget()
         centralwidget = QtGui.QWidget()
         tabwidget = QtGui.QTabWidget()
 
         tabwidget.addTab(sequencewidget,'Sequence')
         tabwidget.addTab(controlwidget,'Controls')
+        tabwidget.addTab(parameterswidget,'Parameters')
 
         layout = QtGui.QHBoxLayout(self)
         layout.addWidget(tabwidget)
@@ -56,8 +79,24 @@ class mainwindow(QtGui.QMainWindow):
         self.create_menubar()
         self.statusBar().showMessage('Ready')
         self.setCentralWidget(centralwidget)
-        print "layout done"
 
+    def create_menubar(self):
+        menubar = self.menuBar()
+
+        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(self.closeEvent)
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(exitAction)
+
+    def closeEvent(self,event):
+        self.reactor.stop()
+  
+
+    #################
+    # Control tab panel
+    #################
     def makeControlWidget(self):
         widget = QtGui.QWidget()
         from SWITCH_CONTROL import switchWidget
@@ -74,58 +113,244 @@ class mainwindow(QtGui.QMainWindow):
         widget.setLayout(layout)
         return widget
 
+    #################
+    # Parameter tab panel
+    #################
+    def makeParameterWidget(self):
+        widget = QtGui.QWidget()
+        self.parametertree = QtGui.QTreeWidget()
+        self.parametertree.setColumnCount(2)
+        self.parametertree.header().setResizeMode(0,QtGui.QHeaderView.ResizeToContents)
+        self.parametertree.header().setResizeMode(1,QtGui.QHeaderView.ResizeToContents)
+        layout = QtGui.QHBoxLayout()
+        layout.addWidget(self.parametertree)
+        widget.setLayout(layout)
+        return widget
+
+    #################
+    # Sqeuence tab panel
+    #################
     def makeSequenceWidget(self):
+        from graphingwidget import graphingwidget
+        self.filename = None
         widget = QtGui.QWidget()
         string = "#def\n"+"test = PumpFreq from ParameterVault\n"+"#enddef\n"+"\n"+"#def\n"+"T_start = 10\n"+"#enddef\n"
         string +="\n"+"#repeat i=0,i<1,i+1\n"+"\n"+"Channel DDS_2 do 0.1  MHz with  10 dBm for PumpFreq ms at (100+4*i) ms in mode Normal\n"
         string +="\n"+"#endrepeat\n\n\n"+"Channel DDS_2 do 0.1  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
      
-        from graphingwidget import graphingwidget
-
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
         self.writingwidget.setPlainText(string)
-        self.filename = None
-        self.my_thread = QThread()
+
+        buttonpanel = self.makeButtonPanel()
+        layout = QtGui.QGridLayout()
+        layout.addWidget(buttonpanel,0,0)
+        layout.addWidget(self.writingwidget, 1,0,6,1)
+        layout.addWidget(self.graphingwidget, 0,1,7,1)
+        widget.setLayout(layout)
+        return widget
+
+    def makeButtonPanel(self):
+        panel = QtGui.QWidget()
+        Startbutton = QtGui.QPushButton(QtGui.QIcon('icons/go-next.svg'),'RUN')
+        Stopbutton = QtGui.QPushButton(QtGui.QIcon('icons/emblem-noread.svg'),'STOP')
+        LineTrigbutton = QtGui.QPushButton('linetrig')
+        LineTrigbutton.setCheckable(True)
+        state = False
+        LineTrigbutton.setChecked(state)
+        LineTrigbutton.pressed.connect(self.toggle_linetrig)
+        self.ledrunning = LEDindicator('Running')
+        self.ledprogramming = LEDindicator('Prog.')
+        self.ledlinetrigger = LEDindicator('Ext trig')
+        self.ledtracking = LEDindicator('Listening to Param')
+
+        filetoolbar = QtGui.QToolBar()
+        filetoolbar.addAction(QtGui.QIcon('icons/document-open.svg'),'open',self.openbuttonclick)
+        filetoolbar.addAction(QtGui.QIcon('icons/document-save.svg'),'save',self.savebuttonclick)
+        filetoolbar.addAction(QtGui.QIcon('icons/document-save-as.svg'),'save as',self.saveasbuttonclick)
+        filetoolbar.addAction(QtGui.QIcon('icons/document-new.svg'),'new',self.newbuttonclick)
+
+        self.Messagebox = QtGui.QTextEdit()
+        self.Messagebox.setReadOnly(True)
+        font = self.Messagebox.font()
+        font.setFamily("courier")
+        font.setPointSize(10)
+
+        Startbutton.pressed.connect(self.on_Start)
+        Stopbutton.pressed.connect(self.on_Stop)
+        Spacetaker = QtGui.QWidget()
+        ledpanel =QtGui.QWidget()
+        ledlayout = QtGui.QHBoxLayout()
+        ledlayout.setMargin(0)
+        ledlayout.setSpacing(0)
+        ledlayout.addWidget(self.ledrunning)
+        ledlayout.addWidget(self.ledprogramming)
+        ledlayout.addWidget(self.ledlinetrigger)
+        ledlayout.addWidget(self.ledtracking)
+        ledpanel.setLayout(ledlayout)
+        layout = QtGui.QGridLayout()
+        layout.addWidget(Startbutton,0,0)
+        layout.addWidget(Stopbutton,1,0)
+        layout.addWidget(ledpanel,0,1,1,5)
+        layout.addWidget(LineTrigbutton,1,1)
+        layout.addWidget(filetoolbar,2,0,1,2)
+        layout.addWidget(self.Messagebox,1,2,2,4)
+        panel.setLayout(layout)
+        return panel
+
+########################################################################
+#########                                                      #########
+#########                   Start parsers                      #########
+#########                and connect signals                   #########
+#########                                                      #########
+########################################################################
+    def start_parserthread(self):
+        self.parsingthread = QThread()
         self.parsingworker = ParsingWorker(self.reactor,
                                            self.connection,
                                            str(self.writingwidget.toPlainText()))
-        self.parsingworker.connectedsignal =False
-        self.parsingworker.moveToThread(self.my_thread)
-        self.my_thread.start()
-
-        '''
-        import __builtin__
-        __builtin__.__dict__.update(locals())
-        import numpy as np
-        print "timing:"
-        t = timeit.Timer('self.writing.on_parse()')
-        print np.mean(t.repeat(10,10))/.10
-        '''
-        
-        buttonpanel = self.makeButtonPanel()
-        filepanel = self.makeFilePanel()
+        self.parsingworker.moveToThread(self.parsingthread)
+        self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
         self.parsingworker.busy.connect(self.ledprogramming.setOn)
         self.parsingworker.finished.connect(self.ledprogramming.setOff)
         self.parsingworker.trackingparameterserver.connect(self.ledtracking.set)
-        layout = QtGui.QGridLayout()
-        layout.addWidget(buttonpanel,0,0)
-        layout.addWidget(filepanel,1,0)
-        layout.addWidget(self.writingwidget, 2,0,6,1)
-        layout.addWidget(self.graphingwidget, 0,1,7,1)
-        widget.setLayout(layout)
+        self.parsingworker.parsermessages.connect(self.messageout)
+        self.parsingthread.start()
+        self.parsingworker.set_parameters(self.parameters)
+        self.parsingworker.finished.connect(self.sendIdtoParameterVault)
+
+
+
+    @inlineCallbacks
+    def setupListeners(self):
+        SIGNALID = 115687
+        server = yield self.connection.get_server('Pulser')
+        yield server.signal__new_line_trigger_parameter(SIGNALID)
+        yield server.addListener(listener = self.line_trigger_signal,
+                                 source = None,
+                                 ID = SIGNALID,
+                                 context=self.context)
+        server = yield self.connection.get_server('ParameterVault')
+        yield server.signal__parameter_change(SIGNALID+10)
+        yield server.addListener(listener = self.parameter_change,
+                                 ID = SIGNALID+10)
+
+    def fill_parameterstree(self):
+        self.parametertree.clear()
+        self.fill_item(self.parametertree.invisibleRootItem(), self.parameters)
+
+    def fill_item(self,item, value):
+        item.setExpanded(False)
+
+        if type(value) is dict:
+            for key, val in sorted(value.iteritems()):
+                child = QtGui.QTreeWidgetItem()
+                child.setText(0, unicode(key))
+                item.addChild(child)
+                self.fill_item(child, val)
+        else:
+            item.setText(1, unicode(value))
+
         
-        return widget
-
-    def makeFilePanel(self):
-        panel = QtGui.QToolBar()
-        panel.addAction(QtGui.QIcon('icons/document-open.svg'),'open',self.openbuttonclick)
-        panel.addAction(QtGui.QIcon('icons/document-save.svg'),'save',self.savebuttonclick)
-        panel.addAction(QtGui.QIcon('icons/document-save-as.svg'),'save as',self.saveasbuttonclick)
-        panel.addAction(QtGui.QIcon('icons/document-new.svg'),'new',self.newbuttonclick)
-
-        return panel
+########################################################################
+#########                                                      #########
+#########                Signal and Callback                   #########
+#########                     handling                         #########
+#########                                                      #########
+######################################################################## 
     
+    #################
+    #Deliveres a message to the logbox
+    #################   
+    def messageout(self,text):
+        stamp = time.strftime('%H:%M:%S')
+        self.Messagebox.moveCursor(QtGui.QTextCursor.End)
+        self.Messagebox.insertPlainText(stamp+" - "+text + "\n")
+
+    @inlineCallbacks
+    def run_sequence(self):
+        self.ledrunning.setOn()
+        p = yield self.connection.get_server('Pulser')
+        while self.RUNNING:
+            yield p.start_number(1)
+            yield p.wait_sequence_done()
+        yield p.stop_sequence()
+        self.ledrunning.setOff()
+
+    
+    #################
+    #Line triggering
+    #################    
+    def line_trigger_signal(self,x, (state,duration)):
+        if state:
+            self.ledlinetrigger.setOn()
+        else:
+            self.ledlinetrigger.setOff()
+
+    @inlineCallbacks
+    def toggle_linetrig(self):
+        state = self.sender().isChecked()
+        server = yield self.connection.get_server('Pulser')
+        yield server.line_trigger_state(state)
+
+    #################
+    #Parameter change on the parameter server
+    #send it on on the parsingthread
+    #and update the parameter editor
+    #################
+    @inlineCallbacks
+    def parameter_change(self,signal,info):
+        collection, name = info
+        pv = yield self.connection.get_server('ParameterVault')
+        val = yield pv.get_parameter(collection,name)
+        self.parsingworker.update_parameters(collection,name,val)
+        self.parameters[collection][name] = val
+        treeitem = self.parametertree.findItems(name,QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
+        treeitem.setText(1,str(val))
+        self.messageout('New Value from Parameter Vault\n {:} = {:}'.format(name,val))
+
+
+    @inlineCallbacks
+    def get_parameters(self):
+        pv = yield self.connection.get_server('ParameterVault')
+        coldict = {}
+        collections = yield pv.get_collections()
+        for acol in collections:
+            coldict[acol] = {}
+            names = yield pv.get_parameter_names(acol)
+            for aname in names:
+                coldict[acol][aname] = yield pv.get_parameter(acol,aname)
+        self.parameters = coldict
+
+
+    @inlineCallbacks
+    def sendIdtoParameterVault(self,intID):
+        pv = yield self.connection.get_server('ParameterVault')
+        yield pv.set_parameter('shotID','PulserProgrammed',intID)
+        self.messageout('Programmed shotID: {:}'.format(intID))
+
+########################################################################
+#########                                                      #########
+#########                BUTTON ACTIONS                        #########
+#########                                                      #########
+########################################################################
+
+
+    #################
+    #Start and stop buttons
+    #################
+    def on_Start(self):
+        self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
+        self.parsingworker.start.emit()
+
+    def on_Stop(self):
+        self.RUNNING = False
+        self.stop_signal.emit()
+
+
+    #########################
+    #File buttons
+    #########################
     def openbuttonclick(self):
         if self.writingwidget.document().isModified():
             reply = QtGui.QMessageBox.question(self, 'Message',
@@ -136,13 +361,14 @@ class mainwindow(QtGui.QMainWindow):
             else:
                 if reply == QtGui.QMessageBox.Yes:
                     self.savebuttonclick()
-                fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file','sequencescripts/','*.txt')
-                self.filename=fname
-                try:
-                    with open(fname,'r') as f:
-                        self.writingwidget.setPlainText(f.read())
-                except Exception,e:
-                    print e
+        fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file','sequencescripts/','*.txt')
+        if len(fname) != 0:
+            self.filename=fname
+            try:
+                with open(fname,'r') as f:
+                    self.writingwidget.setPlainText(f.read())
+            except Exception,e:
+                print e
         
 
     def savebuttonclick(self):
@@ -155,8 +381,10 @@ class mainwindow(QtGui.QMainWindow):
     def saveasbuttonclick(self):
         defname = self.filename if self.filename is not None else "script.txt"
         sname = QtGui.QFileDialog.getSaveFileName(self,'Save file','sequencescripts/'+defname,'*.txt')
-        self.filename=sname
-        self.save()
+        if len(sname)!=0:
+            self.filename=sname
+            self.save()
+
 
     def save(self):
         try:
@@ -175,117 +403,8 @@ class mainwindow(QtGui.QMainWindow):
             else:
                 if reply == QtGui.QMessageBox.Yes:
                     self.savebuttonclick()
-                self.writingwidget.clear()
-                self.filename=None    
-
-
-
-    def makeButtonPanel(self):
-        panel = QtGui.QWidget()
-        Startbutton = QtGui.QPushButton(QtGui.QIcon('icons/go-next.svg'),'RUN')
-        Stopbutton = QtGui.QPushButton(QtGui.QIcon('icons/emblem-noread.svg'),'STOP')
-        LineTrigbutton = QtGui.QPushButton('linetrig')
-        LineTrigbutton.setCheckable(True)
-        state = False
-        LineTrigbutton.setChecked(state)
-        LineTrigbutton.pressed.connect(self.toggle_linetrig)
-        
-        self.ledrunning = LEDindicator('Running')
-        self.ledprogramming = LEDindicator('Prog.')
-        self.ledlinetrigger = LEDindicator('Ext trig')
-        self.ledtracking = LEDindicator('Listening to Param')
-        Startbutton.pressed.connect(self.on_Start)
-        Stopbutton.pressed.connect(self.on_Stop)
-        Spacetaker = QtGui.QWidget()
-        layout = QtGui.QGridLayout()
-        layout.addWidget(Startbutton,0,0,2,2)
-        layout.addWidget(Stopbutton,2,0,2,2)
-        layout.addWidget(self.ledrunning,0,3,2,1)
-        layout.addWidget(self.ledprogramming,0,4,2,1)
-        layout.addWidget(self.ledlinetrigger,0,5,2,1)
-        layout.addWidget(self.ledtracking,0,6,2,1)
-        layout.addWidget(LineTrigbutton,2,5,1,1)
-        layout.addWidget(Spacetaker,0,7,4,5)
-        layout.setSpacing(1)
-        layout.setMargin(1)
-        panel.setLayout(layout)
-        return panel
-
-    def on_Start(self):
-        if not self.parsingworker.connectedsignal:
-            self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
-            self.parsingworker.connectedsignal =True
-        self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
-        self.parsingworker.start.emit()
-
-    def on_Stop(self):
-        self.RUNNING = False
-        self.stop_signal.emit()
-        
-    @inlineCallbacks
-    def toggle_linetrig(self):
-        state = self.sender().isChecked()
-        server = yield self.connection.get_server('Pulser')
-        yield server.line_trigger_state(state)
-
-    def create_menubar(self):
-        menubar = self.menuBar()
-
-        exitAction = QtGui.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(self.closeEvent)
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(exitAction)
-
-    def closeEvent(self,event):
-        #reply = QtGui.QMessageBox.question(self, 'Message',
-         #       "Are you sure you want to quit?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
-        #        QtGui.QMessageBox.No)
-
-        #if reply == QtGui.QMessageBox.Yes:
-        self.reactor.stop()
-          #  event.accept()
-        #else:
-        #    event.ignore()
-
-    @inlineCallbacks
-    def run_sequence(self):
-        self.ledrunning.setOn()
-        p = yield self.connection.get_server('Pulser')
-        while self.RUNNING:
-            yield p.start_number(1)
-            yield p.wait_sequence_done()
-        yield p.stop_sequence()
-        self.ledrunning.setOff()
-
-    @inlineCallbacks
-    def setupListeners(self):
-        SIGNALID = 115687
-        server = yield self.connection.get_server('Pulser')
-        yield server.signal__new_line_trigger_parameter(SIGNALID)
-        yield server.addListener(listener = self.line_trigger_signal,
-                                 source = None,
-                                 ID = SIGNALID,
-                                 context=self.context)
-        server = yield self.connection.get_server('ParameterVault')
-        yield server.signal__parameter_change(SIGNALID+10)
-        yield server.addListener(listener = self.parsingworker.update_parameters,
-                                 ID = SIGNALID+10)
-        print "setup done"
-        
-    def line_trigger_signal(self,x, (state,duration)):
-        if state:
-            self.ledlinetrigger.setOn()
-        else:
-            self.ledlinetrigger.setOff()
-
-
-    def parameter_change(self,signal,info):
-        print "got signal"
-        collection, name = info
-        print collection,name
-        self.parsingworker.update_parameters(collection,name)
+        self.writingwidget.clear()
+        self.filename=None
 
 
 if __name__== '__main__':
@@ -294,5 +413,6 @@ if __name__== '__main__':
     qt4reactor.install()
     from twisted.internet import reactor
     widget = mainwindow(reactor)
+    widget.showMaximized()
     widget.show()
     reactor.run()
