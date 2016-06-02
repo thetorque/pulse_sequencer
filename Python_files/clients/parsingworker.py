@@ -1,12 +1,16 @@
 from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 import re
 import numpy as np
+import time
 
 class ParsingWorker(QObject):
     parsed_trigger = pyqtSignal(list)
     finished = pyqtSignal()
+    busy = pyqtSignal()
     start = pyqtSignal()
+    trackingparameterserver = pyqtSignal(bool)
+
     def __init__(self,reactor,connection,text):
         super(ParsingWorker,self).__init__()
         self.reactor = reactor
@@ -15,14 +19,51 @@ class ParsingWorker(QObject):
         self.sequence = []
         self.defineRegexPatterns()
         self.start.connect(self.run)
+        self.get_parameters()
+        self.connectedsignal =False
+        self.tracking = False
+        self.trackingparameterserver.emit(self.tracking)
+
+    @inlineCallbacks
+    def get_parameters(self):
+        pv = yield self.connection.get_server('ParameterVault')
+        coldict = {}
+        collections = yield pv.get_collections()
+        for acol in collections:
+            coldict[acol] = {}
+            names = yield pv.get_parameter_names(acol)
+            for aname in names:
+                coldict[acol][aname] = yield pv.get_parameter(acol,aname)
+        self.parameters = coldict
+
+    @inlineCallbacks
+    def update_parameters(self,signal,info):
+        collection,name = info
+        pv = yield self.connection.get_server('ParameterVault')
+        self.parameters[collection][name] = yield pv.get_parameter(collection,name)
+        self.parse_text()
+        self.parsed_trigger.emit(self.sequence)
+        if self.tracking:
+            self.program_sequence()
+        self.finished.emit()
+
+    def add_text(self,text):
+        self.text = text
 
     def parse_text(self):
-
-        defs,self.text = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
-        self.parseDefine(defs)
-        loops,self.text = self.findAndReplace(self.looppattern,self.text,re.DOTALL)
+        self.busy.emit()
+        self.sequence = []
+        defs,reducedtext = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
+        if any(["ParameterVault" in d for d in defs]):
+            self.tracking = True
+            self.trackingparameterserver.emit(self.tracking)
+        elif self.tracking == True:
+            self.tracking = False
+            self.trackingparameterserver.emit(self.tracking) 
+        loops,reducedtext = self.findAndReplace(self.looppattern,reducedtext,re.DOTALL)
+        self.parseDefine(defs,loops)
         self.parseLoop(loops)
-        self.parsePulses(self.text)
+        self.parsePulses(reducedtext)
 
 
     def findAndReplace(self,pattern,string,flags=0):
@@ -37,20 +78,23 @@ class ParsingWorker(QObject):
         self.defpattern     = r'#def\s+(.+?)\s*#enddef'
         self.modepattern    = r'in\s+mode\s+([aA-zZ]+)'
 
-
-    def parseDefine(self,listofstrings):
+    def parseDefine(self,listofstrings,loops):
         for defblock in listofstrings:
             for line in defblock.strip().split('\n'):
                 if '=' in line:
-                    line = re.sub('var','',line)
-                    exec('self.'+line.strip())
+                    if "ParameterVault" in line.split():
+                        line = re.sub(r'from|ParameterVault','',line)
+                        param = line.split()[2]
+                        line =re.sub(param,str(self.parameters['Raman'][param]),line)
+                    exec('self.' + line.strip())
                 else:
-                    line = line.split()[1].strip() # remove the var part of var A0
-                    exec('self.'+line+' = 0.0')
+                    words = line.strip().split()
+                    exec('self.'+words[1]+' = 0.0')
+
 
     def parseLoop(self,listofstrings):
         for loopparams, lines in listofstrings:
-            begin,it,end = loopparams.split(',')
+            begin,end,it = loopparams.split(',')
             lines = lines.strip()
             itervar = begin.split('=')[0]
             begin=int(begin.split('=')[1])
@@ -69,7 +113,10 @@ class ParsingWorker(QObject):
                     newlines += aline + '\n'
             self.parsePulses(newlines)
 
+
     def parsePulses(self,blockoftext):
+        if len(blockoftext.strip())==0:
+            return
         for line in blockoftext.strip().split('\n'):
             name,line = self.findAndReplace(self.channelpattern,line)
             mode,line = self.findAndReplace(self.modepattern,line)
@@ -105,7 +152,6 @@ class ParsingWorker(QObject):
                     __amp = WithUnit(float(value),unit)
                 except ValueError:
                     __amp = WithUnit(eval('self.'+value.split()[1].strip()),unit)
-
         self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
 
     @inlineCallbacks
@@ -119,5 +165,5 @@ class ParsingWorker(QObject):
     def run(self):
         self.parse_text()
         self.parsed_trigger.emit(self.sequence)
-        #self.finished.emit()
+        self.finished.emit()
         #self.program_sequence()
