@@ -30,10 +30,10 @@ class ParsingWorker(QObject):
 
     def update_parameters(self,collection,name,value):
         if collection == "Raman" and name=="Parameters":
-            time,shotID,boolean,A,B,C = value
+            time,shotID,mode,timetaken,boolean,A,B,C = value
             self.parameters['Raman']['A'] = A
-            self.parameters['Raman']['B'] = A
-            self.parameters['Raman']['C'] = A
+            self.parameters['Raman']['B'] = B
+            self.parameters['Raman']['C'] = C
             self.ParameterID = shotID
         else:
             self.parameters[collection][name] = value
@@ -151,6 +151,10 @@ class ParsingWorker(QObject):
     @inlineCallbacks
     def program_sequence(self):
         server = yield self.connection.get_server('Pulser')
+        try:
+            yield server.stop_sequence()
+        except Exception,e:
+            self.parsermessages('Parser:\n DEBUG: Program sequence \n'+ repr(e))
         yield server.new_sequence()
         yield server.add_dds_standard_pulses(self.sequence)
         yield server.program_sequence()
@@ -160,5 +164,5 @@ class ParsingWorker(QObject):
         self.parse_text()
         self.parsermessages.emit('Parser: Parsing done')
         self.parsed_trigger.emit(self.sequence)
-        #self.program_sequence()
-        self.finished.emit(0)
+        self.program_sequence()
+        self.finished.emit(self.ParameterID)

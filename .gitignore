@@ -47,3 +47,5 @@ Python_files/servers/pulser/test/
 *.qpf
 Python_files/LabRAD.ini
 Python_files/servers/registry/Servers.dir/Parameter Vault.dir/
+Python_files/servers/dummyLABVIEW.py
+Python_files/LaunchServers.bat

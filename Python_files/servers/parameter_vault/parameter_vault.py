@@ -121,7 +121,7 @@ class ParameterVault(LabradServer):
             return value
         
     #Changed full_info from default false to true, to prevent type checking
-    @setting(0, "Set Parameter", collection = 's', parameter_name = 's', value = '?', full_info = 'b', returns = '')
+    @setting(0, "Set Parameter")#, collection = 's', parameter_name = 's', value = '?', full_info = 'b', returns = '')
     def setParameter(self, c, collection, parameter_name, value, full_info = True):
         """Set Parameter"""
         key = (collection, parameter_name)

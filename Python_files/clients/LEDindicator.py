@@ -20,22 +20,28 @@ class LEDindicator(QtGui.QFrame):
         layout.addWidget(self.led)
         layout.setAlignment(Qt.AlignHCenter)
         self.setLayout(layout)
+        self.State = None
         self.setOff()
 
 
     def setOn(self):
+        self.State = True
         pal = QtGui.QPalette()
         pal.setColor(self.led.backgroundRole(), Qt.green)
         self.led.setPalette(pal)
         self.update()
 
-    def set(self,state):
+    def setState(self,state):
         if state:
             self.setOn()
         else:
             self.setOff()
-
+            
+    def getState(self):
+        return self.State
+        
     def setOff(self):
+        self.State = False
         pal = QtGui.QPalette()
         pal.setColor(self.led.backgroundRole(), Qt.lightGray)
         self.led.setPalette(pal)

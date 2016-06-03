@@ -104,12 +104,12 @@ class mainwindow(QtGui.QMainWindow):
         from LINETRIGGER_CONTROL import linetriggerWidget
 
         layout = QtGui.QVBoxLayout()
-        #try:
-        #    layout.addWidget(switchWidget(self.reactor,self.connection))
-        #    layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
-        #    layout.addWidget(linetriggerWidget(self.reactor,self.connection))
-        #except AttributeError, e:
-        #    print e
+        try:
+            layout.addWidget(switchWidget(self.reactor,self.connection))
+            layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
+            #layout.addWidget(linetriggerWidget(self.reactor,self.connection))
+        except AttributeError, e:
+            print e
         widget.setLayout(layout)
         return widget
 
@@ -146,7 +146,7 @@ class mainwindow(QtGui.QMainWindow):
         buttonpanel = self.makeButtonPanel()
         leftlayout = QtGui.QGridLayout()
         leftlayout.addWidget(buttonpanel,0,0)
-        leftlayout.addWidget(self.writingwidget, 1,0,6,1)
+        leftlayout.addWidget(self.writingwidget, 1,0,4,1)
         leftwidget.setLayout(leftlayout)
 
 
@@ -171,7 +171,6 @@ class mainwindow(QtGui.QMainWindow):
         filetoolbar = QtGui.QToolBar()
         filetoolbar.addAction(QtGui.QIcon('icons/document-open.svg'),'open',self.openbuttonclick)
         filetoolbar.addAction(QtGui.QIcon('icons/document-save.svg'),'save',self.savebuttonclick)
-        filetoolbar.addAction(QtGui.QIcon('icons/document-save-as.svg'),'save as',self.saveasbuttonclick)
         filetoolbar.addAction(QtGui.QIcon('icons/document-new.svg'),'new',self.newbuttonclick)
 
         self.Messagebox = QtGui.QTextEdit()
@@ -214,29 +213,24 @@ class mainwindow(QtGui.QMainWindow):
                                            self.connection,
                                            str(self.writingwidget.toPlainText()))
         self.parsingworker.moveToThread(self.parsingthread)
-        self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
         self.parsingworker.busy.connect(self.ledprogramming.setOn)
-        self.parsingworker.finished.connect(self.ledprogramming.setOff)
-        self.parsingworker.trackingparameterserver.connect(self.ledtracking.set)
+        self.parsingworker.trackingparameterserver.connect(self.ledtracking.setState)
         self.parsingworker.parsermessages.connect(self.messageout)
+        self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
+        self.parsingworker.finished.connect(self.ledprogramming.setOff)
+        self.parsingworker.finished.connect(self.run_sequence)
+        self.parsingworker.finished.connect(self.sendIdtoParameterVault)
         self.parsingthread.start()
         self.parsingworker.set_parameters(self.parameters)
-        self.parsingworker.finished.connect(self.sendIdtoParameterVault)
 
 
 
     @inlineCallbacks
     def setupListeners(self):
         SIGNALID = 115687
-        server = yield self.connection.get_server('Pulser')
-        yield server.signal__new_line_trigger_parameter(SIGNALID)
-        yield server.addListener(listener = self.line_trigger_signal,
-                                 source = None,
-                                 ID = SIGNALID,
-                                 context=self.context)
-        server = yield self.connection.get_server('ParameterVault')
-        yield server.signal__parameter_change(SIGNALID+10)
-        yield server.addListener(listener = self.parameter_change,
+        pv = yield self.connection.get_server('ParameterVault')
+        yield pv.signal__parameter_change(SIGNALID+10)
+        yield pv.addListener(listener = self.parameter_change,
                                  ID = SIGNALID+10)
 
     def fill_parameterstree(self):
@@ -272,30 +266,37 @@ class mainwindow(QtGui.QMainWindow):
         self.Messagebox.insertPlainText(stamp+" - "+text + "\n")
 
     @inlineCallbacks
-    def run_sequence(self):
-        self.ledrunning.setOn()
+    def run_sequence(self,r=None):
         p = yield self.connection.get_server('Pulser')
+        if self.RUNNING:
+            try:
+                yield p.stop_sequence()
+            except Exception,e:
+                print repr(e)
+        if self.ledtracking.getState():
+            self.RUNNING = True
+        self.messageout('Sequence started')
+        self.ledrunning.setOn()
         while self.RUNNING:
             yield p.start_number(1)
             yield p.wait_sequence_done()
         yield p.stop_sequence()
         self.ledrunning.setOff()
+        self.messageout('Sequence stopped')
 
     
     #################
     #Line triggering
     #################    
-    def line_trigger_signal(self,x, (state,duration)):
-        if state:
-            self.ledlinetrigger.setOn()
-        else:
-            self.ledlinetrigger.setOff()
-
     @inlineCallbacks
     def toggle_linetrig(self):
         state = self.sender().isChecked()
         server = yield self.connection.get_server('Pulser')
         yield server.line_trigger_state(state)
+        if state:
+            self.ledlinetrigger.setOn()
+        else:
+            self.ledlinetrigger.setOff()
 
     #################
     #Parameter change on the parameter server
@@ -309,8 +310,11 @@ class mainwindow(QtGui.QMainWindow):
         val = yield pv.get_parameter(collection,name)
         self.parsingworker.update_parameters(collection,name,val)
         self.parameters[collection][name] = val
-        treeitem = self.parametertree.findItems(name,QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)
-        treeitem.setText(1,str(val))
+        try:
+            treeitem = self.parametertree.findItems(name,QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)[0]
+            treeitem.setText(1,str(val))
+        except Exception, e:
+            self.messageout('DEBUG Parameter Change: \n' + repr(e))
         self.messageout('New Value from Parameter Vault\n {:} = {:}'.format(name,val))
 
 
@@ -332,6 +336,7 @@ class mainwindow(QtGui.QMainWindow):
         pv = yield self.connection.get_server('ParameterVault')
         yield pv.set_parameter('shotID','PulserProgrammed',intID)
         self.messageout('Programmed shotID: {:}'.format(intID))
+        
 
 ########################################################################
 #########                                                      #########
@@ -344,6 +349,7 @@ class mainwindow(QtGui.QMainWindow):
     #Start and stop buttons
     #################
     def on_Start(self):
+        self.RUNNING = True
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
         self.parsingworker.start.emit()
 
@@ -367,36 +373,22 @@ class mainwindow(QtGui.QMainWindow):
                     self.savebuttonclick()
         fname = QtGui.QFileDialog.getOpenFileName(self, 'Open file','sequencescripts/','*.txt')
         if len(fname) != 0:
-            self.filename=fname
             try:
                 with open(fname,'r') as f:
                     self.writingwidget.setPlainText(f.read())
             except Exception,e:
                 print e
         
-
     def savebuttonclick(self):
-        if self.filename is None:
-            self.saveasbuttonclick()
-        else:
-            self.save()
-            
-
-    def saveasbuttonclick(self):
-        defname = self.filename if self.filename is not None else "script.txt"
+        defname = time.strftime('%y%m%d_%H%M%S')
         sname = QtGui.QFileDialog.getSaveFileName(self,'Save file','sequencescripts/'+defname,'*.txt')
         if len(sname)!=0:
-            self.filename=sname
-            self.save()
-
-
-    def save(self):
-        try:
-            with open(self.filename,'w') as f:
-                f.write(self.writingwidget.toPlainText())
-        except Exception,e:
-            print e
-
+            try:
+                with open(sname,'w') as f:
+                    f.write(self.writingwidget.toPlainText())
+            except Exception,e:
+                print e
+            
     def newbuttonclick(self):
         if self.writingwidget.document().isModified():
             reply = QtGui.QMessageBox.question(self, 'Message',
@@ -408,7 +400,6 @@ class mainwindow(QtGui.QMainWindow):
                 if reply == QtGui.QMessageBox.Yes:
                     self.savebuttonclick()
         self.writingwidget.clear()
-        self.filename=None
 
 
 if __name__== '__main__':

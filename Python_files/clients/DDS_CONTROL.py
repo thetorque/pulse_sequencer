@@ -286,9 +286,8 @@ class DDS_CONTROL(QtGui.QFrame):
         listed in the registry. If there is no listing, will display all channels.
         '''
         server = yield self.cxn.get_server('Pulser')
-        all_channels = yield server.get_dds_channels(context = self.context)
-        #print all_channels
-        channels_to_display, widgets_per_row = yield self.registry_load_displayed(all_channels, 1)
+        all_channels = yield server.get_dds_channels()
+        channels_to_display, widgets_per_row = (None, None) #yield self.registry_load_displayed(all_channels, 1)
         if channels_to_display is None:
             channels_to_display = all_channels
         if widgets_per_row is None:
