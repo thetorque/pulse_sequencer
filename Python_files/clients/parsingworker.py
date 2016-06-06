@@ -1,21 +1,19 @@
 from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot
-from twisted.internet.defer import inlineCallbacks, returnValue
 import re
 import numpy as np
 import time
 
 class ParsingWorker(QObject):
-    parsed_trigger = pyqtSignal(list)
+    global GLOBAL__waitcondition
+    parsing_done_trigger = pyqtSignal(list)
     finished = pyqtSignal(int)
-    busy = pyqtSignal()
+    busy_trigger = pyqtSignal(bool)
     start = pyqtSignal()
     trackingparameterserver = pyqtSignal(bool)
     parsermessages = pyqtSignal(str)
 
-    def __init__(self,reactor,connection,text):
+    def __init__(self,text):
         super(ParsingWorker,self).__init__()
-        self.reactor = reactor
-        self.connection = connection
         self.text = text
         self.sequence = []
         self.defineRegexPatterns()
@@ -24,6 +22,8 @@ class ParsingWorker(QObject):
         self.tracking = False
         self.trackingparameterserver.emit(self.tracking)
         self.ParameterID = 0
+        self.Parsing = False
+        self.Busy = False
 
     def set_parameters(self,paramdict):
         self.parameters = paramdict
@@ -45,19 +45,19 @@ class ParsingWorker(QObject):
         self.text = text
 
     def parse_text(self):
-        self.busy.emit()
         self.sequence = []
-        defs,reducedtext = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
-        if any(["ParameterVault" in d for d in defs]):
-            self.tracking = True
-            self.trackingparameterserver.emit(self.tracking)
-        elif self.tracking == True:
-            self.tracking = False
-            self.trackingparameterserver.emit(self.tracking) 
-        loops,reducedtext = self.findAndReplace(self.looppattern,reducedtext,re.DOTALL)
-        self.parseDefine(defs,loops)
-        self.parseLoop(loops)
-        self.parsePulses(reducedtext)
+        if self.Parsing:
+            defs,reducedtext = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
+            if any(["ParameterVault" in d for d in defs]):
+                self.tracking = True
+                self.trackingparameterserver.emit(self.tracking)
+            elif self.tracking == True:
+                self.tracking = False
+                self.trackingparameterserver.emit(self.tracking) 
+            loops,reducedtext = self.findAndReplace(self.looppattern,reducedtext,re.DOTALL)
+            self.parseDefine(defs,loops)
+            self.parseLoop(loops)
+            self.parsePulses(reducedtext)
 
 
     def findAndReplace(self,pattern,string,flags=0):
@@ -75,7 +75,9 @@ class ParsingWorker(QObject):
     def parseDefine(self,listofstrings,loops):
         for defblock in listofstrings:
             for line in defblock.strip().split('\n'):
-                if '=' in line:
+                if not self.Parsing:
+                    break
+                elif '=' in line:
                     if "ParameterVault" in line.split():
                         line = re.sub(r'from|ParameterVault','',line)
                         param = line.split()[2]
@@ -97,14 +99,17 @@ class ParsingWorker(QObject):
             newlines = ''
             for i in np.arange(begin,end,it):
                 for aline in lines.split('\n'):
-                    for amatch in re.findall(r'(\(.+?\))',aline):
-                        if 'var' in amatch:
-                            newsubstr = str(eval(amatch.replace('var ','self.')))
-                            aline.replace(amatch,newsubstr)
-                        elif itervar in amatch:
-                            newsubstr = str(eval(amatch.replace(itervar,str(i))))
-                            aline = aline.replace(amatch,newsubstr)
-                    newlines += aline + '\n'
+                    if not self.Parsing:
+                        break
+                    else:
+                        for amatch in re.findall(r'(\(.+?\))',aline):
+                            if 'var' in amatch:
+                                newsubstr = str(eval(amatch.replace('var ','self.')))
+                                aline.replace(amatch,newsubstr)
+                            elif itervar in amatch:
+                                newsubstr = str(eval(amatch.replace(itervar,str(i))))
+                                aline = aline.replace(amatch,newsubstr)
+                        newlines += aline + '\n'
             self.parsePulses(newlines)
 
 
@@ -112,11 +117,14 @@ class ParsingWorker(QObject):
         if len(blockoftext.strip())==0:
             return
         for line in blockoftext.strip().split('\n'):
-            name,line = self.findAndReplace(self.channelpattern,line)
-            mode,line = self.findAndReplace(self.modepattern,line)
-            pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
-            if mode[0] == 'Normal':
-                self.makeNormalPulse(name,0,pulseparameters)
+            if not self.Parsing:
+                break
+            else:
+                name,line = self.findAndReplace(self.channelpattern,line)
+                mode,line = self.findAndReplace(self.modepattern,line)
+                pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
+                if mode[0] == 'Normal':
+                    self.makeNormalPulse(name,0,pulseparameters)
 
     def makeNormalPulse(self,name,mode,parameters):
         from labrad.units import WithUnit
@@ -126,43 +134,40 @@ class ParsingWorker(QObject):
         __ampramp = WithUnit(0,'dBm')
 
         for desig,value,unit in parameters:
-            if   desig == 'do':
-                try:
-                    __freq = WithUnit(float(value),unit)
-                except ValueError:
-                    __freq = WithUnit(eval('self.'+value.split()[1].strip()),unit) 
-            elif desig == 'at':
-                try:
-                    __begin = WithUnit(float(value),unit)
-                except ValueError:
-                    __begin = WithUnit(eval('self.'+value.split()[1].strip()),unit)
-            elif desig == 'for':
-                try:
-                    __dur = WithUnit(float(value),unit)
-                except ValueError:
-                    __dur = WithUnit(eval('self.'+value.split()[1].strip()),unit)
-            elif desig == 'with':
-                try:
-                    __amp = WithUnit(float(value),unit)
-                except ValueError:
-                    __amp = WithUnit(eval('self.'+value.split()[1].strip()),unit)
-        self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
+            if not self.Parsing:
+                break
+            else:
+                if   desig == 'do':
+                    try:
+                        __freq = WithUnit(float(value),unit)
+                    except ValueError:
+                        __freq = WithUnit(eval('self.'+value.split()[1].strip()),unit) 
+                elif desig == 'at':
+                    try:
+                        __begin = WithUnit(float(value),unit)
+                    except ValueError:
+                        __begin = WithUnit(eval('self.'+value.split()[1].strip()),unit)
+                elif desig == 'for':
+                    try:
+                        __dur = WithUnit(float(value),unit)
+                    except ValueError:
+                        __dur = WithUnit(eval('self.'+value.split()[1].strip()),unit)
+                elif desig == 'with':
+                    try:
+                        __amp = WithUnit(float(value),unit)
+                    except ValueError:
+                        __amp = WithUnit(eval('self.'+value.split()[1].strip()),unit)
+            self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
 
-    @inlineCallbacks
-    def program_sequence(self):
-        server = yield self.connection.get_server('Pulser')
-        try:
-            yield server.stop_sequence()
-        except Exception,e:
-            self.parsermessages('Parser:\n DEBUG: Program sequence \n'+ repr(e))
-        yield server.new_sequence()
-        yield server.add_dds_standard_pulses(self.sequence)
-        yield server.program_sequence()
-
+    
     @pyqtSlot()
     def run(self):
+        self.Busy, self.Parsing = True
+        self.busy_trigger.emit(self.Busy)
         self.parse_text()
-        self.parsermessages.emit('Parser: Parsing done')
-        self.parsed_trigger.emit(self.sequence)
-        self.program_sequence()
-        self.finished.emit(self.ParameterID)
+        if self.Parsing:
+            self.parsermessages.emit('Parser: Parsing done')
+            self.parsed_trigger.emit(self.sequence,self.ParameterID)
+        self.Busy, self.Parsing = False, False
+        GLOBAL__waitcondition.wakeAll()
+        self.busy_trigger.emit(self.Busy)            

@@ -1,6 +1,6 @@
 from PyQt4 import QtGui
 from PyQt4 import QtCore
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal,QThread, QObject, QEventLoop, QWaitCondition
 from twisted.internet.defer import inlineCallbacks, Deferred
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvasQTAgg
 import matplotlib.pyplot as plt
@@ -8,7 +8,6 @@ from SWITCH_CONTROL import switchWidget
 from DDS_CONTROL import DDS_CONTROL
 from LINETRIGGER_CONTROL import linetriggerWidget
 from LEDindicator import LEDindicator
-from PyQt4.QtCore import QThread, QObject
 from parsingworker import ParsingWorker
 import time
 
@@ -21,6 +20,7 @@ class mainwindow(QtGui.QMainWindow):
         super(mainwindow,self).__init__()
         self.reactor = reactor
         self.initialize()
+        self.ParamID = None
 
 
     # This is a seperate function because it needs to 
@@ -208,22 +208,18 @@ class mainwindow(QtGui.QMainWindow):
 #########                                                      #########
 ########################################################################
     def start_parserthread(self):
+        global GLOBAL__waitcondition
+        GLOBAL__waitcondition = QWaitCondition()
         self.parsingthread = QThread()
-        self.parsingworker = ParsingWorker(self.reactor,
-                                           self.connection,
-                                           str(self.writingwidget.toPlainText()))
+        self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.waitcondition)
         self.parsingworker.moveToThread(self.parsingthread)
-        self.parsingworker.busy.connect(self.ledprogramming.setOn)
+        self.parsingworker.busy_trigger.connect(self.ledparsing.setState)
         self.parsingworker.trackingparameterserver.connect(self.ledtracking.setState)
         self.parsingworker.parsermessages.connect(self.messageout)
-        self.parsingworker.parsed_trigger.connect(self.graphingwidget.plottingworker.run)
-        self.parsingworker.finished.connect(self.ledprogramming.setOff)
-        self.parsingworker.finished.connect(self.run_sequence)
-        self.parsingworker.finished.connect(self.sendIdtoParameterVault)
+        self.parsingworker.parsing_done_trigger.connect(self.done_parsing)
+        self.parsingworker.parsing_done_trigger.connect(self.graphingwidget.plottingworker.run)
         self.parsingthread.start()
         self.parsingworker.set_parameters(self.parameters)
-
-
 
     @inlineCallbacks
     def setupListeners(self):
@@ -239,7 +235,6 @@ class mainwindow(QtGui.QMainWindow):
 
     def fill_item(self,item, value):
         item.setExpanded(False)
-
         if type(value) is dict:
             for key, val in sorted(value.iteritems()):
                 child = QtGui.QTreeWidgetItem()
@@ -266,16 +261,25 @@ class mainwindow(QtGui.QMainWindow):
         self.Messagebox.insertPlainText(stamp+" - "+text + "\n")
 
     @inlineCallbacks
+    def done_parsing(self,sequence,parameterID):
+        self.ledprogramming.setOn()
+        server = yield self.connection.get_server('Pulser')
+        try:
+            yield server.stop_sequence()
+        except Exception,e:
+            self.parsermessages('DEBUG: Program sequence \n'+ repr(e))
+        yield server.new_sequence()
+        yield server.add_dds_standard_pulses(self.sequence)
+        yield server.program_sequence()
+        self.ledprogramming.setOff()
+        self.sendIdtoParameterVault(parameterID)
+        self.run_sequence()
+
+    @inlineCallbacks
     def run_sequence(self,r=None):
+        self.RUNNING = True
         p = yield self.connection.get_server('Pulser')
-        if self.RUNNING:
-            try:
-                yield p.stop_sequence()
-            except Exception,e:
-                print repr(e)
-        if self.ledtracking.getState():
-            self.RUNNING = True
-        self.messageout('Sequence started')
+        self.messageout('Started sequence'+ str(self.paramID))
         self.ledrunning.setOn()
         while self.RUNNING:
             yield p.start_number(1)
@@ -283,6 +287,7 @@ class mainwindow(QtGui.QMainWindow):
         yield p.stop_sequence()
         self.ledrunning.setOff()
         self.messageout('Sequence stopped')
+
 
     
     #################
@@ -303,12 +308,18 @@ class mainwindow(QtGui.QMainWindow):
     #send it on on the parsingthread
     #and update the parameter editor
     #################
+
     @inlineCallbacks
     def parameter_change(self,signal,info):
+        self.RUNNING = False # Stops the sequence running operation
         collection, name = info
         pv = yield self.connection.get_server('ParameterVault')
         val = yield pv.get_parameter(collection,name)
+        self.parsingworker.Parsing = False # Stops the parsing operation
+        
+        GLOBAL__waitcondition.wait()
         self.parsingworker.update_parameters(collection,name,val)
+    
         self.parameters[collection][name] = val
         try:
             treeitem = self.parametertree.findItems(name,QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)[0]
@@ -332,10 +343,12 @@ class mainwindow(QtGui.QMainWindow):
 
 
     @inlineCallbacks
-    def sendIdtoParameterVault(self,intID):
+    def sendIdtoParameterVault(self,sequence,intID):
+        self.paramID = parameterID
         pv = yield self.connection.get_server('ParameterVault')
         yield pv.set_parameter('shotID','PulserProgrammed',intID)
         self.messageout('Programmed shotID: {:}'.format(intID))
+
         
 
 ########################################################################
@@ -349,12 +362,13 @@ class mainwindow(QtGui.QMainWindow):
     #Start and stop buttons
     #################
     def on_Start(self):
-        self.RUNNING = True
+        self.RUNNING = False
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
         self.parsingworker.start.emit()
 
     def on_Stop(self):
         self.RUNNING = False
+        self.parsingworker.Parsing = False
         self.stop_signal.emit()
 
 
