@@ -91,8 +91,8 @@ class Pulser(DDS, LineTrigger):
         """
         Create New Pulse Sequence
         """
-        #print "new sequence"
         c['sequence'] = Sequence(self)
+        returnValue(True)
     
     @setting(1, "Program Sequence", returns = '')
     def programSequence(self, c, sequence):
@@ -112,12 +112,14 @@ class Pulser(DDS, LineTrigger):
         #print "done programming"
 
     @setting(37, 'Get dds program representation')
-    def get_program_representation(self,sequence):    
+    def get_program_representation(self,c):   
+        sequence = c.get('sequence')
         dds,ttl = sequence.progRepresentation()
-        return dds
+        print dds
+        returnValue(dds)
 
     @setting(38, 'Program dds')
-    def program_dds(self,dds):
+    def program_dds(self,c,dds):
         yield self.inCommunication.acquire()
         yield self._programDDSSequence(dds)
         self.inCommunication.release()

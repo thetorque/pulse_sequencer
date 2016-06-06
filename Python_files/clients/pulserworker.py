@@ -4,19 +4,17 @@ from twisted.internet.defer import inlineCallbacks
 class PulserWorker(QObject):
 
 
-    start = pyqtSignal()
-    stop = pyqtSignal()
+    startsignal = pyqtSignal()
+    stopsignal = pyqtSignal()
     pulsermessages = pyqtSignal(str)
 
     def __init__(self,reactor,connection):
         super(PulserWorker,self).__init__()
-        self.start.connect(self.run)
         self.reactor = reactor
         self.connection = connection
         self.sequencestorage = []
-        self.initialize()
-        self.connect.start(self.run)
-        self.connect.stop(self.stop)
+        self.startsignal.connect(self.run)
+        self.stopsignal.connect(self.stop)
         self.timer = QTimer()
         self.timer.timeout.connect(self.run)
         self.running = False
@@ -25,8 +23,10 @@ class PulserWorker(QObject):
         self.shottime = time
 
     @pyqtSlot()
-    def new_binary_sequence(self,binaryandid):
-        self.sequencestorage.append(binaryandid)
+    def new_binary_sequence(self,binary,ID):
+        print binary,ID
+        self.sequencestorage.append((binary,ID))
+        self.run()
 
     def stop(self):
         self.stopping = True

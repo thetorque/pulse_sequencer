@@ -136,9 +136,8 @@ class mainwindow(QtGui.QMainWindow):
         from graphingwidget import graphingwidget
         self.filename = None
         splitterwidget = QtGui.QSplitter()
-        string = "#def\n"+"test = PumpFreq from ParameterVault\n"+"#enddef\n"+"\n"+"#def\n"+"T_start = 10\n"+"#enddef\n"
-        string +="\n"+"#repeat i=0,i<1,i+1\n"+"\n"+"Channel DDS_2 do 0.1  MHz with  10 dBm for PumpFreq ms at (100+4*i) ms in mode Normal\n"
-        string +="\n"+"#endrepeat\n\n\n"+"Channel DDS_2 do 0.1  MHz with 10 dBm for var T_start ms at 40 ms in mode Normal\n"
+        string = "#def\n"+"tstart = 10\n"+"#enddef\n"
+        string += "Channel DDS_2 do 10  MHz with -10 dBm for var tstart ms at 40 ms in mode Normal\n"
         
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
@@ -162,13 +161,14 @@ class mainwindow(QtGui.QMainWindow):
         Stopbutton = QtGui.QPushButton(QtGui.QIcon('icons/emblem-noread.svg'),'STOP')
         LineTrigbutton = QtGui.QPushButton('linetrig')
         LineTrigbutton.setCheckable(True)
-        state = False
+        state = True
         LineTrigbutton.setChecked(state)
         LineTrigbutton.pressed.connect(self.toggle_linetrig)
         self.ledrunning = LEDindicator('Running')
         self.ledprogramming = LEDindicator('Prog.')
         self.ledlinetrigger = LEDindicator('Ext trig')
         self.ledtracking = LEDindicator('Listening to Param')
+        self.ledparsing = LEDindicator('Parse')
 
         filetoolbar = QtGui.QToolBar()
         filetoolbar.addAction(QtGui.QIcon('icons/document-open.svg'),'open',self.openbuttonclick)
@@ -190,6 +190,7 @@ class mainwindow(QtGui.QMainWindow):
         ledlayout.setSpacing(0)
         ledlayout.addWidget(self.ledrunning)
         ledlayout.addWidget(self.ledprogramming)
+        ledlayout.addWidget(self.ledparsing)
         ledlayout.addWidget(self.ledlinetrigger)
         ledlayout.addWidget(self.ledtracking)
         ledpanel.setLayout(ledlayout)
@@ -211,12 +212,12 @@ class mainwindow(QtGui.QMainWindow):
 ########################################################################
     def start_parserthread(self):
         self.parsingthread = QThread()
-        self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.waitcondition)
+        self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.reactor,self.connection,self.context)
         self.parsingworker.moveToThread(self.parsingthread)
         self.parsingworker.busy_trigger.connect(self.ledparsing.setState)
         self.parsingworker.trackingparameterserver.connect(self.ledtracking.setState)
         self.parsingworker.parsermessages.connect(self.messageout)
-        self.parsingworker.parsing_done_trigger.connect(self.done_parsing)
+        #self.parsingworker.parsing_done_trigger.connect(self.done_parsing)
         self.parsingworker.parsing_done_trigger.connect(self.graphingwidget.plottingworker.run)
         self.parsingthread.start()
         self.parsingworker.set_parameters(self.parameters)
@@ -226,9 +227,9 @@ class mainwindow(QtGui.QMainWindow):
         self.pulserworker = PulserWorker(self.reactor,self.connection)
         self.pulserworker.moveToThread(self.pulserthread)
         self.pulserworker.pulsermessages.connect(self.messageout)
-        self.parsingworker.binary_trigger.connect(self.parsingworker.new_binary_sequence)
+        self.parsingworker.binary_trigger.connect(self.pulserworker.new_binary_sequence)
         self.pulserthread.start()
-        self.set_shottime(2000) #cycletime of operation
+        self.pulserworker.set_shottime(2000) #cycletime of operation
 
     @inlineCallbacks
     def setupListeners(self):
@@ -267,22 +268,23 @@ class mainwindow(QtGui.QMainWindow):
     def messageout(self,text):
         stamp = time.strftime('%H:%M:%S')
         self.Messagebox.moveCursor(QtGui.QTextCursor.End)
-        self.Messagebox.insertPlainText(stamp+" - "+text + "\n")
+        self.Messagebox.insertPlainText("\n"+stamp+" - "+text)
+        self.Messagebox.moveCursor(QtGui.QTextCursor.End)
 
     @inlineCallbacks
     def done_parsing(self,sequence,parameterID):
         self.ledprogramming.setOn()
-        server = yield self.connection.get_server('Pulser')
-        try:
-            yield server.stop_sequence()
-        except Exception,e:
-            self.parsermessages('DEBUG: Program sequence \n'+ repr(e))
-        yield server.new_sequence()
-        yield server.add_dds_standard_pulses(self.sequence)
-        yield server.program_sequence()
+        #server = yield self.connection.get_server('Pulser')
+        #try:
+        #    yield server.stop_sequence()
+        #except Exception,e:
+        #    self.parsermessages('DEBUG: Program sequence \n'+ repr(e))
+        #yield server.new_sequence()
+        #yield server.add_dds_standard_pulses(self.sequence)
+        #yield server.program_sequence()
         self.ledprogramming.setOff()
-        self.sendIdtoParameterVault(parameterID)
-        self.run_sequence()
+        #self.sendIdtoParameterVault(parameterID)
+        #self.run_sequence()
 
     
     #################
@@ -357,6 +359,7 @@ class mainwindow(QtGui.QMainWindow):
     def on_Start(self):
         self.RUNNING = False
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
+        print 'starting'
         self.parsingworker.start.emit()
 
     def on_Stop(self):

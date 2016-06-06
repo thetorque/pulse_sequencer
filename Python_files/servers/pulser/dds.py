@@ -105,7 +105,6 @@ class DDS(LabradServer):
         '''
         input in the form of a list [(name, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate,mode)]
         '''
-
         sequence = c.get('sequence')
         if not sequence: raise Exception ("Please create new sequence first")
         for value in values:
@@ -130,6 +129,7 @@ class DDS(LabradServer):
             ramp_rate = ramp_rate['MHz']
             amp_ramp_rate = amp_ramp_rate['dBm']
             self.addDDSPulse(c,(name,start,dur,freq,ampl,phase,ramp_rate,amp_ramp_rate,mode))
+        returnValue(True)
             
     @setting(47, 'Add DDS Pulses')
     def addDDSPulse(self, c, values):
@@ -163,6 +163,7 @@ class DDS(LabradServer):
         if not dur == 0:#0 length pulses are ignored
             sequence.addDDS(name, start, num, 'start')
             sequence.addDDS(name, start + dur, num_off, 'stop')
+        returnValue(True)
         
     @setting(48, 'Get DDS Amplitude Range', name = 's', returns = '(vv)')
     def getDDSAmplRange(self, c, name = None):

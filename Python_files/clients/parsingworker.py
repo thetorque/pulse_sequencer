@@ -1,11 +1,11 @@
 from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, QMutex
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 import re
 import numpy as np
 import time
 
 class ParsingWorker(QObject):
-    parsing_done_trigger = pyqtSignal(list)
+    parsing_done_trigger = pyqtSignal(list,int)
     finished = pyqtSignal(int)
     busy_trigger = pyqtSignal(bool)
     start = pyqtSignal()
@@ -13,11 +13,10 @@ class ParsingWorker(QObject):
     parsermessages = pyqtSignal(str)
     binary_trigger = pyqtSignal()
 
-    def __init__(self,text,reactor,connection):
+    def __init__(self,text,reactor,connection,cntx):
         super(ParsingWorker,self).__init__()
         self.text = text
         self.reactor = reactor
-        self.connection = connection
         self.sequence = []
         self.defineRegexPatterns()
         self.start.connect(self.run)
@@ -46,8 +45,10 @@ class ParsingWorker(QObject):
 
     def add_text(self,text):
         self.text = text
-
+        
+    @inlineCallbacks
     def parse_text(self):
+        print 'got here'
         self.sequence = []
         defs,reducedtext = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
         if any(["ParameterVault" in d for d in defs]):
@@ -60,8 +61,16 @@ class ParsingWorker(QObject):
         self.parseDefine(defs,loops)
         self.parseLoop(loops)
         self.parsePulses(reducedtext)
-        self.parsed_trigger.emit(self.sequence,self.ParameterID)
-        self.get_binary_repres()
+        #self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
+        p = yield self.connection.get_server('Pulser')
+        p.new_sequence()
+        p.add_dds_standard_pulses(self.sequence)
+        self.parsermessages.emit('Got here')
+        binary = p.get_dds_program_representation()
+        print 'went here'
+        a = yield binary
+        print a
+                #yield self.binary_trigger.emit(binary,self.ParameterID)
 
 
     def findAndReplace(self,pattern,string,flags=0):
@@ -150,19 +159,17 @@ class ParsingWorker(QObject):
                     __amp = WithUnit(float(value),unit)
                 except ValueError:
                     __amp = WithUnit(eval('self.'+value.split()[1].strip()),unit)
-            self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
+        self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
 
-    @inlineCallbacks
-    def get_binary_repres(self):
-        p = yield connection.get_server('Pulser')
-        binary = yield p.get_dds_program_representation()
-        self.binary_trigger.emit((binary,self.ParameterID))
+    
+ 
 
     
     @pyqtSlot()
     def run(self):
         self.Busy = True
         self.busy_trigger.emit(self.Busy)
+        print 'GOt here in running'
         self.parse_text()
         self.parsermessages.emit('Parser: Parsing done')
         self.Busy = False
