@@ -9,6 +9,7 @@ from DDS_CONTROL import DDS_CONTROL
 from LINETRIGGER_CONTROL import linetriggerWidget
 from LEDindicator import LEDindicator
 from parsingworker import ParsingWorker
+from pulserworker import PulserWorker
 import time
 
 class mainwindow(QtGui.QMainWindow):
@@ -32,6 +33,7 @@ class mainwindow(QtGui.QMainWindow):
         self.messageout('Layout done')
         yield self.get_parameters()
         self.start_parserthread()
+        self.start_pulserthread()
         self.messageout('Parserthread started')
         self.fill_parameterstree()
         self.setupListeners()
@@ -208,8 +210,6 @@ class mainwindow(QtGui.QMainWindow):
 #########                                                      #########
 ########################################################################
     def start_parserthread(self):
-        global GLOBAL__waitcondition
-        GLOBAL__waitcondition = QWaitCondition()
         self.parsingthread = QThread()
         self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.waitcondition)
         self.parsingworker.moveToThread(self.parsingthread)
@@ -220,6 +220,15 @@ class mainwindow(QtGui.QMainWindow):
         self.parsingworker.parsing_done_trigger.connect(self.graphingwidget.plottingworker.run)
         self.parsingthread.start()
         self.parsingworker.set_parameters(self.parameters)
+
+    def start_pulserthread(self):
+        self.pulserthread = QThread()
+        self.pulserworker = PulserWorker(self.reactor,self.connection)
+        self.pulserworker.moveToThread(self.pulserthread)
+        self.pulserworker.pulsermessages.connect(self.messageout)
+        self.parsingworker.binary_trigger.connect(self.parsingworker.new_binary_sequence)
+        self.pulserthread.start()
+        self.set_shottime(2000) #cycletime of operation
 
     @inlineCallbacks
     def setupListeners(self):
@@ -275,20 +284,6 @@ class mainwindow(QtGui.QMainWindow):
         self.sendIdtoParameterVault(parameterID)
         self.run_sequence()
 
-    @inlineCallbacks
-    def run_sequence(self,r=None):
-        self.RUNNING = True
-        p = yield self.connection.get_server('Pulser')
-        self.messageout('Started sequence'+ str(self.paramID))
-        self.ledrunning.setOn()
-        while self.RUNNING:
-            yield p.start_number(1)
-            yield p.wait_sequence_done()
-        yield p.stop_sequence()
-        self.ledrunning.setOff()
-        self.messageout('Sequence stopped')
-
-
     
     #################
     #Line triggering
@@ -315,9 +310,7 @@ class mainwindow(QtGui.QMainWindow):
         collection, name = info
         pv = yield self.connection.get_server('ParameterVault')
         val = yield pv.get_parameter(collection,name)
-        self.parsingworker.Parsing = False # Stops the parsing operation
         
-        GLOBAL__waitcondition.wait()
         self.parsingworker.update_parameters(collection,name,val)
     
         self.parameters[collection][name] = val

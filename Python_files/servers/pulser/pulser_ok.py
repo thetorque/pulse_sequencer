@@ -110,6 +110,18 @@ class Pulser(DDS, LineTrigger):
         self.isProgrammed = True
         #self.api.resetAllDDS()
         #print "done programming"
+
+    @setting(37, 'Get dds program representation')
+    def get_program_representation(self,sequence):    
+        dds,ttl = sequence.progRepresentation()
+        return dds
+
+    @setting(38, 'Program dds')
+    def program_dds(self,dds):
+        yield self.inCommunication.acquire()
+        yield self._programDDSSequence(dds)
+        self.inCommunication.release()
+        self.isProgrammed = True
     
     @setting(2, "Start Infinite", returns = '')
     def startInfinite(self,c):
