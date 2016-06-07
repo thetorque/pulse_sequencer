@@ -92,7 +92,6 @@ class Pulser(DDS, LineTrigger):
         Create New Pulse Sequence
         """
         c['sequence'] = Sequence(self)
-        returnValue(True)
     
     @setting(1, "Program Sequence", returns = '')
     def programSequence(self, c, sequence):
@@ -111,19 +110,25 @@ class Pulser(DDS, LineTrigger):
         #self.api.resetAllDDS()
         #print "done programming"
 
-    @setting(37, 'Get dds program representation')
-    def get_program_representation(self,c):   
+    @setting(37, 'Get dds program representation', returns = '*(ss)')
+    def get_dds_program_representation(self,c):   
         sequence = c.get('sequence')
-        dds,ttl = sequence.progRepresentation()
-        print dds
-        returnValue(dds)
+        dds, ttl = sequence.progRepresentation()
+        # As labrad cannot handle returnig the bytearray, we convert it to string first
+        for key, value in dds.iteritems():
+            dds[key] = str(value)
+        # It also cannot handle dictionaries, so we recreate it as a list of tuples
+        passable = dds.items()
+        return passable
 
     @setting(38, 'Program dds')
     def program_dds(self,c,dds):
+        dds = dict([(x,bytearray(y)) for x,y in dds])
         yield self.inCommunication.acquire()
         yield self._programDDSSequence(dds)
-        self.inCommunication.release()
+        yield self.inCommunication.release()
         self.isProgrammed = True
+        returnValue(self.isProgrammed)
     
     @setting(2, "Start Infinite", returns = '')
     def startInfinite(self,c):
@@ -304,7 +309,7 @@ class Pulser(DDS, LineTrigger):
     @setting(16, 'Wait Sequence Done', timeout = 'v', returns = 'b')
     def waitSequenceDone(self, c, timeout = None):
         """
-        Returns true if the sequence has completed within a timeout period
+        Returns true if the sequence has completed within a timeout period (in seconds)
         """
         if timeout is None: timeout = self.sequenceTimeRange[1]
         #print timeout

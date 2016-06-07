@@ -1,6 +1,6 @@
 from PyQt4 import QtGui
 from PyQt4 import QtCore
-from PyQt4.QtCore import pyqtSignal,QThread, QObject, QEventLoop, QWaitCondition
+from PyQt4.QtCore import pyqtSignal,QThread, QObject, QEventLoop, QWaitCondition, QTimer
 from twisted.internet.defer import inlineCallbacks, Deferred
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvasQTAgg
 import matplotlib.pyplot as plt
@@ -224,12 +224,14 @@ class mainwindow(QtGui.QMainWindow):
 
     def start_pulserthread(self):
         self.pulserthread = QThread()
-        self.pulserworker = PulserWorker(self.reactor,self.connection)
+        self.pulserworker = PulserWorker(self.reactor,self.connection,self.parsingworker)
         self.pulserworker.moveToThread(self.pulserthread)
         self.pulserworker.pulsermessages.connect(self.messageout)
         self.parsingworker.binary_trigger.connect(self.pulserworker.new_binary_sequence)
+        self.pulserworker.sequence_done_trigger.connect(self.sendIdtoParameterVault)
         self.pulserthread.start()
-        self.pulserworker.set_shottime(2000) #cycletime of operation
+        
+        self.pulserworker.set_shottime(2) #cycletime of operation
 
     @inlineCallbacks
     def setupListeners(self):
@@ -326,23 +328,25 @@ class mainwindow(QtGui.QMainWindow):
 
     @inlineCallbacks
     def get_parameters(self):
-        pv = yield self.connection.get_server('ParameterVault')
-        coldict = {}
-        collections = yield pv.get_collections()
-        for acol in collections:
-            coldict[acol] = {}
-            names = yield pv.get_parameter_names(acol)
-            for aname in names:
-                coldict[acol][aname] = yield pv.get_parameter(acol,aname)
-        self.parameters = coldict
-
-
+        try:
+            pv = yield self.connection.get_server('ParameterVault')
+            coldict = {}
+            collections = yield pv.get_collections()
+            for acol in collections:
+                coldict[acol] = {}
+                names = yield pv.get_parameter_names(acol)
+                for aname in names:
+                    coldict[acol][aname] = yield pv.get_parameter(acol,aname)
+            self.parameters = coldict
+        except Exception, e:
+            print repr(e)
+        
     @inlineCallbacks
-    def sendIdtoParameterVault(self,sequence,intID):
-        self.paramID = parameterID
+    def sendIdtoParameterVault(self,intID):
+        self.paramID = intID
         pv = yield self.connection.get_server('ParameterVault')
         yield pv.set_parameter('shotID','PulserProgrammed',intID)
-        self.messageout('Programmed shotID: {:}'.format(intID))
+        self.messageout('Completed shot: {:}'.format(intID))
 
         
 
@@ -361,11 +365,13 @@ class mainwindow(QtGui.QMainWindow):
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
         print 'starting'
         self.parsingworker.start.emit()
+        self.pulserworker.startsignal.emit()
 
     def on_Stop(self):
         self.RUNNING = False
         self.parsingworker.Parsing = False
         self.stop_signal.emit()
+        self.pulserworker.stopsignal.emit()
 
 
     #########################

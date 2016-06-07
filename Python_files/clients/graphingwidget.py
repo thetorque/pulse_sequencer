@@ -27,7 +27,6 @@ class graphingwidget(QtGui.QWidget):
         self.plottingworker.plotted_trigger.connect(self.update)
         self.plottingworker.moveToThread(self.plottingthread)
         self.plottingthread.start()
-        
         self.do_layout(channellist)
 
 

@@ -1,5 +1,6 @@
-from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, QMutex
-from twisted.internet.defer import inlineCallbacks, returnValue
+from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, QMutex, QMutexLocker
+from twisted.internet.defer import inlineCallbacks, returnValue  
+
 import re
 import numpy as np
 import time
@@ -11,12 +12,13 @@ class ParsingWorker(QObject):
     start = pyqtSignal()
     trackingparameterserver = pyqtSignal(bool)
     parsermessages = pyqtSignal(str)
-    binary_trigger = pyqtSignal()
+    binary_trigger = pyqtSignal(list,int,tuple)
 
     def __init__(self,text,reactor,connection,cntx):
         super(ParsingWorker,self).__init__()
         self.text = text
         self.reactor = reactor
+        self.connection = connection
         self.sequence = []
         self.defineRegexPatterns()
         self.start.connect(self.run)
@@ -25,7 +27,10 @@ class ParsingWorker(QObject):
         self.trackingparameterserver.emit(self.tracking)
         self.ParameterID = 0
         self.Busy = False
+        self.sequencestorage = []
         self.mutex = QMutex()
+        
+
 
     def set_parameters(self,paramdict):
         self.parameters = paramdict
@@ -46,11 +51,9 @@ class ParsingWorker(QObject):
     def add_text(self,text):
         self.text = text
         
-    @inlineCallbacks
     def parse_text(self):
-        print 'got here'
-        self.sequence = []
-        defs,reducedtext = self.findAndReplace(self.defpattern,self.text,re.DOTALL)
+        self.sequence =  []
+        defs,reducedtext =  self.findAndReplace(self.defpattern,self.text,re.DOTALL)
         if any(["ParameterVault" in d for d in defs]):
             self.tracking = True
             self.trackingparameterserver.emit(self.tracking)
@@ -61,16 +64,8 @@ class ParsingWorker(QObject):
         self.parseDefine(defs,loops)
         self.parseLoop(loops)
         self.parsePulses(reducedtext)
-        #self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
-        p = yield self.connection.get_server('Pulser')
-        p.new_sequence()
-        p.add_dds_standard_pulses(self.sequence)
-        self.parsermessages.emit('Got here')
-        binary = p.get_dds_program_representation()
-        print 'went here'
-        a = yield binary
-        print a
-                #yield self.binary_trigger.emit(binary,self.ParameterID)
+        self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
+        self.get_binary_repres()
 
 
     def findAndReplace(self,pattern,string,flags=0):
@@ -160,16 +155,38 @@ class ParsingWorker(QObject):
                 except ValueError:
                     __amp = WithUnit(eval('self.'+value.split()[1].strip()),unit)
         self.sequence.append((name[0],__begin,__dur,__freq,__amp,__phase,__ramprate,__ampramp,mode))
-
     
- 
-
     
+    def get_binary_repres(self):
+        import labrad
+        try:
+            p = labrad.connect().pulser
+        except Exeption, e:
+            parsermessages.emit('Parser \nDEBUG:\n'+repr(e))
+        else:
+            cont = p.context()
+            p.new_sequence(context = cont)
+            p.add_dds_standard_pulses(self.sequence,context = cont)
+            binary = p.get_dds_program_representation(context = cont)
+        self.mutex.tryLock()
+        self.sequencestorage.append((binary,self.ParameterID,cont))
+        print self.sequencestorage
+        self.mutex.unlock()
+        
+    def get_sequence(self):
+        locker = QMutexLocker(self.mutex)
+        if len(self.sequencestorage)<2:
+            currentsequence, currentID, currentcntx = self.sequencestorage[0]
+        else:
+            currentsequence, currentID, currentcntx = self.sequencestorage.pop(0)
+        return currentsequence, currentID, currentcntx
+        self.mutex.unlock()
+        
+        
     @pyqtSlot()
     def run(self):
         self.Busy = True
         self.busy_trigger.emit(self.Busy)
-        print 'GOt here in running'
         self.parse_text()
         self.parsermessages.emit('Parser: Parsing done')
         self.Busy = False
