@@ -121,10 +121,12 @@ class Pulser(DDS, LineTrigger):
         passable = dds.items()
         return passable
 
-    @setting(38, 'Program dds')
-    def program_dds(self,c,dds):
+    @setting(38, 'Program dds and ttl')
+    def program_dds_and_ttl(self,c,dds,ttl):
         dds = dict([(x,bytearray(y)) for x,y in dds])
+        ttl = bytearray(ttl)
         yield self.inCommunication.acquire()
+        yield deferToThread(self.api.programBoard, ttl)
         yield self._programDDSSequence(dds)
         yield self.inCommunication.release()
         self.isProgrammed = True

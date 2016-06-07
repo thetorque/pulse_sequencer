@@ -40,11 +40,11 @@ class PulserWorker(QObject):
         self.pulsermessages.emit('Pulser: Pulser timed out')
 
         
-    def do_sequence(self,currentsequence,currentID,currentcntx):
+    def do_sequence(self,currentsequence,currentttl,currentID):
         import labrad
         p = labrad.connect().pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
-        p.program_dds(currentsequence,context = currentcntx)
+        p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
         p.start_number(1)
         try:
@@ -61,15 +61,13 @@ class PulserWorker(QObject):
     def run(self):
         while not self.stopping:
             try:
-                print 'trying to get sequence'
-                currentsequence, currentID, context = self.parsingworker.get_sequence()
+                currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
+                print str(currentttl)
             except IndexError, e:
                 self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')
                 time.sleep(2)
-                print 'done sleeping'
             else:
-                print 'got sequence, doing something'
-                self.do_sequence(currentsequence, currentID, context)
+                self.do_sequence(currentsequence, currentttl, currentID)
             
         self.stopping = False
         self.pulsermessages.emit('Pulser: Stopped')

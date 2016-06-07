@@ -310,11 +310,9 @@ class mainwindow(QtGui.QMainWindow):
 
     @inlineCallbacks
     def parameter_change(self,signal,info):
-        self.RUNNING = False # Stops the sequence running operation
         collection, name = info
         pv = yield self.connection.get_server('ParameterVault')
         val = yield pv.get_parameter(collection,name)
-        
         self.parsingworker.update_parameters(collection,name,val)
     
         self.parameters[collection][name] = val
@@ -361,14 +359,12 @@ class mainwindow(QtGui.QMainWindow):
     #Start and stop buttons
     #################
     def on_Start(self):
-        self.RUNNING = False
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
         print 'starting'
         self.parsingworker.start.emit()
         self.pulserworker.startsignal.emit()
 
     def on_Stop(self):
-        self.RUNNING = False
         self.parsingworker.Parsing = False
         self.stop_signal.emit()
         self.pulserworker.stopsignal.emit()

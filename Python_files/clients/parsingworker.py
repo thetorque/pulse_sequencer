@@ -1,9 +1,11 @@
 from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, QMutex, QMutexLocker
 from twisted.internet.defer import inlineCallbacks, returnValue  
-
 import re
-import numpy as np
 import time
+import numpy as np
+import array
+from hardwareConfiguration import hardwareConfiguration
+from decimal import Decimal
 
 class ParsingWorker(QObject):
     parsing_done_trigger = pyqtSignal(list,int)
@@ -66,6 +68,7 @@ class ParsingWorker(QObject):
         self.parsePulses(reducedtext)
         self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
         self.get_binary_repres()
+        
 
 
     def findAndReplace(self,pattern,string,flags=0):
@@ -158,28 +161,44 @@ class ParsingWorker(QObject):
     
     
     def get_binary_repres(self):
-        import labrad
-        try:
-            p = labrad.connect().pulser
-        except Exeption, e:
-            parsermessages.emit('Parser \nDEBUG:\n'+repr(e))
-        else:
-            cont = p.context()
-            p.new_sequence(context = cont)
-            p.add_dds_standard_pulses(self.sequence,context = cont)
-            binary = p.get_dds_program_representation(context = cont)
+        binary = None
+        #import labrad
+        #try:
+        #    print 'got here super last!'
+        #    p = labrad.connect().pulser
+        #except Exeption, e:
+        #    parsermessages.emit('Parser \nDEBUG:\n'+repr(e))
+        #else:
+        #    cont = p.context()
+        #    p.new_sequence(context = cont)
+        #    p.add_dds_standard_pulses(self.sequence,context = cont)
+        #    binary = p.get_dds_program_representation(context = cont)
+        seqObject = Sequence()
+        print self.sequence
+        seqObject.addDDSStandardPulses(self.sequence)
+        binary = seqObject.parseDDS()
+        ttl = seqObject.parseTTL()
+        print ttl
+        # As labrad cannot handle returnig the bytearray, we convert it to string first
+        for key, value in binary.iteritems():
+            binary[key] = str(value)
+        # It also cannot handle dictionaries, so we recreate it as a list of tuples
+        passable = binary.items()
+        
+        
+        
         self.mutex.tryLock()
-        self.sequencestorage.append((binary,self.ParameterID,cont))
-        print self.sequencestorage
+        print 'adding to the sequence'
+        self.sequencestorage.append((passable,str(ttl),self.ParameterID))
         self.mutex.unlock()
         
     def get_sequence(self):
         locker = QMutexLocker(self.mutex)
         if len(self.sequencestorage)<2:
-            currentsequence, currentID, currentcntx = self.sequencestorage[0]
+            currentsequence, currentttl, currentID = self.sequencestorage[0]
         else:
-            currentsequence, currentID, currentcntx = self.sequencestorage.pop(0)
-        return currentsequence, currentID, currentcntx
+            currentsequence, currentttl, currentID = self.sequencestorage.pop(0)
+        return currentsequence, currentttl, currentID
         self.mutex.unlock()
         
         
@@ -191,3 +210,406 @@ class ParsingWorker(QObject):
         self.parsermessages.emit('Parser: Parsing done')
         self.Busy = False
         self.busy_trigger.emit(self.Busy)            
+        
+class Sequence():
+    """Sequence for programming pulses"""
+    def __init__(self):
+        self.channelTotal = hardwareConfiguration.channelTotal
+        self.timeResolution = Decimal(hardwareConfiguration.timeResolution)
+        self.MAX_SWITCHES = hardwareConfiguration.maxSwitches
+        self.resetstepDuration = hardwareConfiguration.resetstepDuration
+        self.ddsDict = hardwareConfiguration.ddsDict
+        #dictionary in the form time:which channels to switch
+        #time is expressed as timestep with the given resolution
+        #which channels to switch is a channelTotal-long array with 1 to switch ON, -1 to switch OFF, 0 to do nothing
+        self.switchingTimes = {0:np.zeros(self.channelTotal, dtype = np.int8)} 
+        self.switches = 1 #keeps track of how many switches are to be performed (same as the number of keys in the switching Times dictionary"
+        #dictionary for storing information about dds switches, in the format:
+        #timestep: {channel_name: integer representing the state}
+        self.ddsSettingList = []
+        self.sequenceTimeRange = hardwareConfiguration.sequenceTimeRange
+        self.advanceDDS = hardwareConfiguration.channelDict['AdvanceDDS'].channelnumber
+        self.resetDDS = hardwareConfiguration.channelDict['ResetDDS'].channelnumber
+        
+    def addDDS(self, name, start, num, typ):
+        timeStep = self.secToStep(start)
+        self.ddsSettingList.append((name, timeStep, num, typ))
+        
+    def _addNewSwitch(self, timeStep, chan, value):
+        if self.switchingTimes.has_key(timeStep):
+            if self.switchingTimes[timeStep][chan]: raise Exception ('Double switch at time {} for channel {}'.format(timeStep, chan))
+            self.switchingTimes[timeStep][chan] = value
+        else:
+            if self.switches == self.MAX_SWITCHES: raise Exception("Exceeded maximum number of switches {}".format(self.switches))
+            self.switchingTimes[timeStep] = np.zeros(self.channelTotal, dtype = np.int8)
+            self.switches += 1
+            self.switchingTimes[timeStep][chan] = value
+    
+    def progRepresentation(self, parse = True):
+        if parse:
+            self.ddsSettings = self.parseDDS()
+            self.ttlProgram = self.parseTTL()
+        return self.ddsSettings, self.ttlProgram
+        
+    def userAddedDDS(self):
+        return bool(len(self.ddsSettingList))
+    
+    def _getCurrentDDS(self):
+        '''
+        Returns a dictionary {name:num} with the reprsentation of the current dds state
+        '''
+        d = dict([(name,self._channel_to_num(channel)) for (name,channel) in self.ddsDict.iteritems()])
+        return d
+        
+    def _channel_to_num(self, channel):
+        '''returns the current state of the channel in the num represenation'''
+        if channel.state:
+            #if on, use current values. else, use off values
+            freq,ampl,mode = (channel.frequency, channel.amplitude,channel.mode)
+            self._checkRange('amplitude', channel, ampl)
+            self._checkRange('frequency', channel, freq)
+        else:
+            freq,ampl = channel.off_parameters
+        num = self.settings_to_num(channel, freq, ampl,mode)
+        return num
+    
+    def parseDDS(self):
+        if not self.userAddedDDS(): return None
+        state = self._getCurrentDDS()
+        pulses_end = {}.fromkeys(state, (0, 'stop')) #time / boolean whether in a middle of a pulse 
+        dds_program = {}.fromkeys(state, '')
+        lastTime = 0
+        entries = sorted(self.ddsSettingList, key = lambda t: t[1] ) #sort by starting time
+        possibleError = (0,'')
+        while True:
+            try:
+                name,start,num,typ = entries.pop(0)
+            except IndexError:
+                if start  == lastTime:
+                    #still have unprogrammed entries
+                    self.addToProgram(dds_program, state)
+                    self._addNewSwitch(lastTime,self.advanceDDS,1)
+                    self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
+                #add termination
+                for name in dds_program.iterkeys():
+                    dds_program[name] +=  '\x00\x00'
+                #at the end of the sequence, reset dds
+                lastTTL = max(self.switchingTimes.keys())
+                self._addNewSwitch(lastTTL ,self.resetDDS, 1 )
+                self._addNewSwitch(lastTTL + self.resetstepDuration ,self.resetDDS,-1)
+                return dds_program
+            end_time, end_typ =  pulses_end[name]
+            if start > lastTime:
+                #the time has advanced, so need to program the previous state
+                if possibleError[0] == lastTime and len(possibleError[1]): raise Exception(possibleError[1]) #if error exists and belongs to that time
+                self.addToProgram(dds_program, state)
+                if not lastTime == 0:
+                    self._addNewSwitch(lastTime,self.advanceDDS,1)
+                    self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
+                lastTime = start
+            if start == end_time:
+                #overwite only when extending pulse
+                if end_typ == 'stop' and typ == 'start':
+                    possibleError = (0,'')
+                    state[name] = num
+                    pulses_end[name] = (start, typ)
+                elif end_typ == 'start' and typ == 'stop':
+                    possibleError = (0,'')
+            elif end_typ == typ:
+                possibleError = (start,'Found Overlap Of Two Pules for channel {}'.format(name))
+                state[name] = num
+                pulses_end[name] = (start, typ)
+            else:
+                state[name] = num
+                pulses_end[name] = (start, typ)
+
+    def addToProgram(self, prog, state):
+        for name,num in state.iteritems():
+            if not hardwareConfiguration.ddsDict[name].phase_coherent_model:
+                buf = self._intToBuf(num)
+            else:  
+                buf = self._intToBuf_coherent(num)
+            prog[name] += buf
+            
+            
+    def addDDSFreqModPulses(self, values):
+        '''
+        input in the form of a list [(name, start, duration, frequency, amplitude, phase, freq_deviation, mod_freq,mode)]
+        '''
+        for value in values:
+            mode = value[-1]
+            if mode != 1:
+                raise Exception('Wrong mode pulse detected')
+            try:
+                name,start,dur,freq,ampl = value
+                phase  = 0.0
+            except ValueError:
+                name,start,dur,freq,ampl,phase, freq_deviation, mod_freq, mode = value
+            try:
+                channel = self.ddsDict[name]
+            except KeyError:
+                raise Exception("Unknown DDS channel {}".format(name))
+            start = start['s']
+            dur = dur['s']
+            freq = freq['MHz']
+            ampl = ampl['dBm']
+            phase = phase['deg']
+            freq_deviation = freq_deviation['MHz']
+            mod_freq = mod_freq['MHz']
+            self.addDDSPulse([name,start,dur,freq,ampl,phase,freq_deviation,mod_freq,mode])
+    
+    def addDDSStandardPulses(self, values):
+        '''
+        input in the form of a list [(name, start, duration, frequency, amplitude, phase, ramp_rate, amp_ramp_rate,mode)]
+        '''
+        for value in values:
+            mode = value[-1]
+            if mode != 0:
+                raise Exception('Wrong mode pulse detected')
+            try:
+                name,start,dur,freq,ampl = value
+                phase  = 0.0
+                ramprate = 0.0
+            except ValueError:
+                name,start,dur,freq,ampl,phase, ramp_rate, amp_ramp_rate, mode = value
+            try:
+                channel = self.ddsDict[name]
+            except KeyError:
+                raise Exception("Unknown DDS channel {}".format(name))
+            start = start['s']
+            dur = dur['s']
+            freq = freq['MHz']
+            ampl = ampl['dBm']
+            phase = phase['deg']
+            ramp_rate = ramp_rate['MHz']
+            amp_ramp_rate = amp_ramp_rate['dBm']
+            self.addDDSPulse((name,start,dur,freq,ampl,phase,ramp_rate,amp_ramp_rate,mode))
+            
+    def addDDSPulse(self,values):
+        name,start,dur,freq,ampl,phase,ramp_rate_or_freq_deviation,amp_ramp_rate_or_mod_freq,mode = values
+        try:
+            channel = self.ddsDict[name]
+        except KeyError:
+            raise Exception("Unknown DDS channel {}".format(name))
+            
+        freq_off, ampl_off = channel.off_parameters
+        
+        if freq == 0:
+            freq, ampl = freq_off,ampl_off
+        else:
+            self._checkRange('frequency', channel, freq)
+            self._checkRange('amplitude', channel, ampl)
+        num = self.settings_to_num(channel, freq, ampl, mode, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq)
+        if not channel.phase_coherent_model:
+            num_off = self.settings_to_num(channel, freq_off, ampl_off, mode)
+        else:
+            #note that keeping the frequency the same when switching off to preserve phase coherence
+            num_off = self.settings_to_num(channel, freq, ampl_off, mode,phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq)
+            
+        #note < sign, because start can not be 0. 
+        #this would overwrite the 0 position of the ram, and cause the dds to change before pulse sequence is launched
+        if not self.sequenceTimeRange[0] < start <= self.sequenceTimeRange[1]: 
+            raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start))
+        if not self.sequenceTimeRange[0] < start + dur <= self.sequenceTimeRange[1]: 
+            raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start + dur))
+        if not dur == 0:#0 length pulses are ignored
+            self.addDDS(name, start, num, 'start')
+            self.addDDS(name, start + dur, num_off, 'stop')
+            
+            
+            
+
+    def settings_to_num(self, channel, freq, ampl, mode, phase = 0.0, ramp_rate_or_freq_deviation = 0.0, amp_ramp_rate_or_mod_freq = 0.0):
+            if not channel.phase_coherent_model:
+                num = self._valToInt(channel, freq, ampl)
+            else:
+                num = self._valToInt_coherent(channel, freq, ampl, phase, ramp_rate_or_freq_deviation, amp_ramp_rate_or_mod_freq, mode)
+            return num
+            
+    def _valToInt_coherent(self, channel, freq, ampl,phase = 0, ramp_rate_or_freq_deviation = 0, amp_ramp_rate_or_mod_freq = 0, mode=0): ### add ramp for ramping functionality
+        '''
+        takes the frequency and amplitude values for the specific channel and returns integer representation of the dds setting
+        freq is in MHz
+        power is in dbm
+        '''
+        ans = 0
+        ## changed the precision from 32 to 64 to handle super fine frequency tuning
+        if mode in [0,2]: #0 = Normal operation mode, 2 = External trigger mode (TBD)
+            ramp_rate = ramp_rate_or_freq_deviation
+            amp_ramp_rate = amp_ramp_rate_or_mod_freq
+            for val, r, m, precision, extrabits in [(freq,channel.boardfreqrange, 1, 64, False), (ampl,channel.boardamplrange, 2 ** 64,  16, True), (phase,channel.boardphaserange, 2**80, 16, False)]:
+                minim, maxim = r
+                resolution = (maxim - minim) / float(2**precision - 1)
+                seq = int((val - minim)/resolution) #sequential representation
+                if extrabits:
+                    seq = 4*( seq/4)  # Bitshifting 2 right, then 2 left the DAC is only 14 bits, so we mask the two LSB and use them to encode the operating mode.
+                    seq += mode
+                ans += m*seq
+                
+            ### add ramp rate 
+            minim, maxim = channel.boardramprange
+            resolution = (maxim - minim) / float(2**16 - 1)
+            if ramp_rate < minim: ### if the ramp rate is smaller than the minim, thenn treat it as no rampp
+                seq = 0
+            elif ramp_rate > maxim:
+                seq = 2**16-1
+            else:
+                seq = int((ramp_rate-minim)/resolution)  
+
+            
+            ans += 2**96*seq 
+            
+            ### add amp ramp rate
+            
+            minim, maxim = channel.board_amp_ramp_range
+            minim_slope = 1/maxim
+            maxim_slope = 1/minim
+            resolution = (maxim_slope - minim_slope) / float(2**16 - 1)
+            if (amp_ramp_rate < minim):
+                seq_amp_ramp = 0
+            elif (amp_ramp_rate>maxim):
+                seq_amp_ramp = 1
+            else:
+                slope = 1/amp_ramp_rate
+                seq_amp_ramp = int(np.ceil((slope - minim_slope)/resolution))  # return ceiling of the number
+
+                
+            ans += 2**112*seq_amp_ramp
+        
+        
+            
+        elif mode == 1: # Frequency modulation mode
+            centerfrequency = freq
+            ampl = ampl
+            phase = phase
+            modulationfrequency = amp_ramp_rate_or_mod_freq
+            frequencyexcursion = ramp_rate_or_freq_deviation
+            
+            high_ramp_limit = centerfrequency + frequencyexcursion
+            low_ramp_limit  = centerfrequency - frequencyexcursion
+            ramping_interval = (10*24.)/2000  # hardcoded in fpga code, 120 ns between each frequency step
+            freq_change_rate  = 4 * frequencyexcursion * modulationfrequency # frequency change per second required
+            freq_step_size = freq_change_rate * ramping_interval
+            
+            for val, r, m, precision, extrabits in [(low_ramp_limit,channel.boardfreqrange, 1, 32, False), 
+                                                    (high_ramp_limit,channel.boardfreqrange, 2 ** 32, 32, False),
+                                                    (ampl,channel.boardamplrange, 2 ** 64,  16, True),
+                                                    (phase,channel.boardphaserange, 2**80, 16, False),  
+                                                    (freq_step_size, channel.boardfreqrange, 2**96,32,False)]:
+                minim, maxim = r
+                resolution = (maxim - minim) / float(2**precision - 1)
+                seq = int((val - minim)/resolution) #sequential representation
+                
+                if extrabits:
+                    seq = seq & int('1'*14 + '00',2) # the DAC is only 14 bits, so we mask the two LSB and use them to encode the operating mode.
+                    seq += mode
+                ans += m*seq
+                
+        return ans
+    
+    def secToStep(self, sec):
+        '''converts seconds to time steps'''
+        start = '{0:.9f}'.format(sec) #round to nanoseconds
+        start = Decimal(start) #convert to decimal 
+        step = ( start / self.timeResolution).to_integral_value()
+        step = int(step)
+        return step
+
+    def _intToBuf_coherent(self, num):
+        '''
+        takes the integer representing the setting and returns the buffer string for dds programming
+        '''
+        ans = 0
+        mode = num // 2**64 %2
+        #phase
+        phase_num = (num // 2**80)%(2**16)
+        phase = bytearray(2)
+        phase[0] = phase_num%256
+        phase[1] = (phase_num//256)%256
+        
+        
+        ### amplitude
+        ampl_num = (num // 2**64)%(2**16)
+        amp = bytearray(2)
+        amp[0] = ampl_num%256
+        amp[1] = (ampl_num//256)%256
+        
+        if mode in [0,2]:
+            freq_num = (num % 2**64)  # change according to the new DDS which supports 64 bit tuning of the frequency. Used to be #freq_num = (num % 2**32)*2**32
+            b = bytearray(8)          # initialize the byte array to sent to the pusler later
+            for i in range(8):
+                b[i]=(freq_num//(2**(i*8)))%256
+            
+           
+            ### ramp rate. 16 bit tunability from roughly 116 Hz/ms to 7.5 MHz/ms 
+            ramp_rate = (num // 2**96)%(2**16)
+            ramp = bytearray(2)
+            ramp[0] = ramp_rate%256
+            ramp[1] = (ramp_rate//256)%256
+            
+            ##  amplitude ramp rate
+            amp_ramp_rate = (num // 2**112)%(2**16)
+            #print "amp_ramp is" , amp_ramp_rate
+            amp_ramp = bytearray(2)
+            amp_ramp[0] = amp_ramp_rate%256
+            amp_ramp[1] = (amp_ramp_rate//256)%256
+            
+            ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
+            ans = phase + amp + amp_ramp + ramp + b
+            
+        elif mode == 1: #frequency modulation mode
+            low_ramp = (num%(2**32))
+            low = bytearray(4)
+            for i in range(4):
+                low[i]=(low_ramp//(2**(i*8)))%256
+            
+            high_ramp = (num // 2**32) % (2 **32)
+            high = bytearray(4)
+            for i in range(4):
+                high[i]=(high_ramp//(2**(i*8)))%256
+            
+            freq_step = (num // 2**96)%(2**32)
+            freq_s = bytearray(4)
+            for i in range(4):
+                freq_s[i]=(freq_step//(2**(i*8)))%256
+            ans = phase + amp + freq_s + high + low  
+        return ans
+        
+    def _checkRange(self, t, channel, val):
+        if t == 'amplitude':
+            r = channel.allowedamplrange
+        elif t == 'frequency':
+            r = channel.allowedfreqrange
+        if not r[0]<= val <= r[1]: raise Exception ("channel {0} : {1} of {2} is outside the allowed range".format(channel.name, t, val))
+    
+    def _getChannel(self, name):
+        try:
+            channel = self.ddsDict[name]
+        except KeyError:
+            raise Exception("Channel {0} not found".format(name))
+        return channel
+        
+    def parseTTL(self):
+        """Returns the representation of the sequence for programming the FPGA"""
+        rep = ''
+        lastChannels = np.zeros(self.channelTotal)
+        powerArray = 2**np.arange(self.channelTotal, dtype = np.uint64)
+        for key,newChannels in sorted(self.switchingTimes.iteritems()):
+            channels = lastChannels + newChannels #computes the action of switching on the state
+            if (channels < 0).any(): raise Exception ('Trying to switch off channel that is not already on')
+            channelInt = np.dot(channels,powerArray)
+            rep = rep + self.numToHex(key) + self.numToHex(channelInt) #converts the new state to hex and adds it to the sequence
+            lastChannels = channels
+        rep = rep + 2*self.numToHex(0) #adding termination
+        return rep
+        
+    def numToHex(self, number):
+        number = int(number)
+        b = bytearray(4)
+        b[2] = number%256
+        b[3] = (number//256)%256
+        b[0] = (number//65536)%256
+        b[1] = (number//16777216)%256
+        #print np.array([b[0],b[1],b[2],b[3]])
+        return b
+
