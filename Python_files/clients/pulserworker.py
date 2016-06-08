@@ -44,11 +44,13 @@ class PulserWorker(QObject):
         import labrad
         p = labrad.connect().pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
+        p.new_sequence()
         p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
         p.start_number(1)
         try:
             p.wait_sequence_done(timeout=self.shottime)
+            p.stop_sequence() #The stop signal stops the loop *if more than one repetition was set, and resets the OKfpga (the ttltimings)
         except labrad.errors.RequestTimeoutError, e:
             p.stop_sequence()
             print repr(e)
@@ -62,7 +64,6 @@ class PulserWorker(QObject):
         while not self.stopping:
             try:
                 currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
-                print str(currentttl)
             except IndexError, e:
                 self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')
                 time.sleep(2)
