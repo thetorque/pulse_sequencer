@@ -136,8 +136,9 @@ class mainwindow(QtGui.QMainWindow):
         from graphingwidget import graphingwidget
         self.filename = None
         splitterwidget = QtGui.QSplitter()
-        string = "#def\n"+"tstart = 10\n"+"#enddef\n"
+        string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
         string += "Channel DDS_2 do 10  MHz with -10 dBm for var tstart ms at 40 ms in mode Normal\n"
+        string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
         
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
@@ -219,6 +220,7 @@ class mainwindow(QtGui.QMainWindow):
         self.parsingworker.parsermessages.connect(self.messageout)
         #self.parsingworker.parsing_done_trigger.connect(self.done_parsing)
         self.parsingworker.parsing_done_trigger.connect(self.graphingwidget.plottingworker.run)
+        self.stop_signal.connect(self.parsingworker.reset_sequence_storage)
         self.parsingthread.start()
         self.parsingworker.set_parameters(self.parameters)
 
@@ -227,7 +229,6 @@ class mainwindow(QtGui.QMainWindow):
         self.pulserworker = PulserWorker(self.reactor,self.connection,self.parsingworker)
         self.pulserworker.moveToThread(self.pulserthread)
         self.pulserworker.pulsermessages.connect(self.messageout)
-        self.parsingworker.binary_trigger.connect(self.pulserworker.new_binary_sequence)
         self.pulserworker.sequence_done_trigger.connect(self.sendIdtoParameterVault)
         self.pulserthread.start()
         
@@ -314,7 +315,6 @@ class mainwindow(QtGui.QMainWindow):
         pv = yield self.connection.get_server('ParameterVault')
         val = yield pv.get_parameter(collection,name)
         self.parsingworker.update_parameters(collection,name,val)
-    
         self.parameters[collection][name] = val
         try:
             treeitem = self.parametertree.findItems(name,QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive)[0]

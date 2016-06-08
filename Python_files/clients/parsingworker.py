@@ -14,7 +14,8 @@ class ParsingWorker(QObject):
     start = pyqtSignal()
     trackingparameterserver = pyqtSignal(bool)
     parsermessages = pyqtSignal(str)
-    binary_trigger = pyqtSignal(list,int,tuple)
+    new_sequence_trigger = pyqtSignal()
+
 
     def __init__(self,text,reactor,connection,cntx):
         super(ParsingWorker,self).__init__()
@@ -31,7 +32,6 @@ class ParsingWorker(QObject):
         self.Busy = False
         self.sequencestorage = []
         self.mutex = QMutex()
-        
 
 
     def set_parameters(self,paramdict):
@@ -185,22 +185,37 @@ class ParsingWorker(QObject):
         # It also cannot handle dictionaries, so we recreate it as a list of tuples
         passable = binary.items()
         
-        
-        
-        self.mutex.tryLock()
-        print 'adding to the sequence'
-        self.sequencestorage.append((passable,str(ttl),self.ParameterID))
-        self.mutex.unlock()
+        self.mutex.lock()
+        try:
+            #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
+            self.sequencestorage = [(passable,str(ttl),self.ParameterID)]
+        except Exception,e:
+            print e
+        finally:
+            self.mutex.unlock()
+        self.new_sequence_trigger.emit()
         
     def get_sequence(self):
-        locker = QMutexLocker(self.mutex)
-        if len(self.sequencestorage)<2:
-            currentsequence, currentttl, currentID = self.sequencestorage[0]
+        if self.mutex.tryLock(1):
+            try:
+                if len(self.sequencestorage)<2:
+                    currentsequence, currentttl, currentID = self.sequencestorage[0]
+                else:
+                    currentsequence, currentttl, currentID = self.sequencestorage.pop(0)
+                return currentsequence, currentttl, currentID
+            except Exception,e:
+                print e
+                return None,None,None
+            finally:
+                self.mutex.unlock()
         else:
-            currentsequence, currentttl, currentID = self.sequencestorage.pop(0)
-        return currentsequence, currentttl, currentID
-        self.mutex.unlock()
+            print 'locked'
+            return None, None, None
         
+    @pyqtSlot()
+    def reset_sequence_storage(self):
+        locker = QMutexLocker(self.mutex)
+        self.sequencestorage = []
         
     @pyqtSlot()
     def run(self):

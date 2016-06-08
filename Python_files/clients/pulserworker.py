@@ -15,6 +15,7 @@ class PulserWorker(QObject):
         super(PulserWorker,self).__init__()
         self.reactor = reactor
         self.parsingworker = parsingworker
+        self.parsingworker.new_sequence_trigger.connect(self.run)
         self.connection = connection
         self.sequencestorage = []
         self.startsignal.connect(self.run)
@@ -25,15 +26,9 @@ class PulserWorker(QObject):
     def set_shottime(self,time):
         self.shottime = time
 
-
-    @pyqtSlot(int,int)
-    def new_binary_sequence(self,binary,ID,cntx):
-        self.sequencestorage.append((binary,ID,cntx))
-        print 'signal receiving'
-        self.run()
-
     def stop(self):
         self.stopping = True
+        self.pulsermessages.emit('Pulser: Stopped')
 
     def timed_out(self):
         print 'timed out'
@@ -62,13 +57,13 @@ class PulserWorker(QObject):
     @pyqtSlot()
     def run(self):
         while not self.stopping:
-            try:
-                currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
-            except IndexError, e:
-                self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')
-                time.sleep(2)
+            currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
+            if None in (currentsequence, currentttl, currentID):
+                #self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')
+                time.sleep(0.2)
             else:
+                self.stopping = True
                 self.do_sequence(currentsequence, currentttl, currentID)
             
         self.stopping = False
-        self.pulsermessages.emit('Pulser: Stopped')
+        
