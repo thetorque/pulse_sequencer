@@ -344,6 +344,7 @@ class mainwindow(QtGui.QMainWindow):
         self.paramID = intID
         pv = yield self.connection.get_server('ParameterVault')
         yield pv.set_parameter('shotID','PulserProgrammed',intID)
+        #print 'time updated id: ',time.time()
         self.messageout('Completed shot: {:}'.format(intID))
 
         

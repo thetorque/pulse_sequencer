@@ -55,6 +55,7 @@ class ParsingWorker(QObject):
         
     def parse_text(self):
         self.sequence =  []
+        #tic = time.clock()
         defs,reducedtext =  self.findAndReplace(self.defpattern,self.text,re.DOTALL)
         if any(["ParameterVault" in d for d in defs]):
             self.tracking = True
@@ -66,6 +67,8 @@ class ParsingWorker(QObject):
         self.parseDefine(defs,loops)
         self.parseLoop(loops)
         self.parsePulses(reducedtext)
+        #toc = time.clock()
+        #print 'Parsing time:                  ',toc-tic
         self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
         self.get_binary_repres()
         
@@ -161,7 +164,7 @@ class ParsingWorker(QObject):
     
     
     def get_binary_repres(self):
-        binary = None
+        #tic = time.clock()
         #import labrad
         #try:
         #    print 'got here super last!'
@@ -174,11 +177,9 @@ class ParsingWorker(QObject):
         #    p.add_dds_standard_pulses(self.sequence,context = cont)
         #    binary = p.get_dds_program_representation(context = cont)
         seqObject = Sequence()
-        print self.sequence
         seqObject.addDDSStandardPulses(self.sequence)
         binary = seqObject.parseDDS()
         ttl = seqObject.parseTTL()
-        print ttl
         # As labrad cannot handle returnig the bytearray, we convert it to string first
         for key, value in binary.iteritems():
             binary[key] = str(value)
@@ -193,6 +194,8 @@ class ParsingWorker(QObject):
             print e
         finally:
             self.mutex.unlock()
+        #toc = time.clock()
+        #print 'Binary compilation time:       ',toc-tic
         self.new_sequence_trigger.emit()
         
     def get_sequence(self):

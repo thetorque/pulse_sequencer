@@ -5,6 +5,7 @@ import array
 from labrad.units import WithUnit
 from errors import dds_access_locked
 import numpy as np
+import time
 
 class DDS(LabradServer):
     
@@ -262,7 +263,7 @@ class DDS(LabradServer):
         for name,channel in self.ddsDict.iteritems():
             buf = dds[name]
             yield self.program_dds_chanel(channel, buf)
-    
+               
     @inlineCallbacks
     def _setParameters(self, channel, freq, ampl, mode):
         buf = self.settings_to_buf(channel, freq, ampl, mode)
@@ -333,9 +334,14 @@ class DDS(LabradServer):
     
     def _setDDSLocal(self, addr, buf):
         self.api.resetAllDDS()
-        self.api.setDDSchannel(addr)  
+        self.api.setDDSchannel(addr)
+        tic = time.clock()
         self.api.programDDS(buf)
-    
+        toc = time.clock()
+        print 'Data sent:    ',toc-tic
+
+
+        
     @inlineCallbacks
     def _setDDSRemote(self, channel, addr, buf):
         cxn = self.remoteConnections[channel.remote]

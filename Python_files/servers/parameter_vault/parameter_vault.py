@@ -18,6 +18,7 @@ timeout = 20
 from labrad.server import LabradServer, setting, Signal
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
+import time
 
 class ParameterVault(LabradServer):
     """
@@ -133,7 +134,7 @@ class ParameterVault(LabradServer):
             self.parameters[key] = self._save_full(key, value)
         notified = self.getOtherListeners(c)
         self.onParameterChange((key[0], key[1]), notified)
-        print "parameter changed"
+        print "parameter changed: ",time.time()
 
     @setting(1, "Get Parameter", collection = 's', parameter_name = 's', checked = 'b', returns = ['?'])
     def getParameter(self, c, collection, parameter_name, checked = True):

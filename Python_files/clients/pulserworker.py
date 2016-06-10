@@ -40,17 +40,24 @@ class PulserWorker(QObject):
         p = labrad.connect().pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
         p.new_sequence()
+        #tic = time.clock()
         p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
         p.start_number(1)
+        #toc = time.clock()
+        #print 'Programming and starting time: ',toc-tic
         try:
+            #tic = time.clock()
             p.wait_sequence_done(timeout=self.shottime)
             p.stop_sequence() #The stop signal stops the loop *if more than one repetition was set, and resets the OKfpga (the ttltimings)
+            #toc = time.clock()
+            #print 'Sequence done:                 ',toc-tic
         except labrad.errors.RequestTimeoutError, e:
             p.stop_sequence()
             print repr(e)
             self.pulsermessages.emit('Pulser: Timed out')
         else:
+            #print 'time done:       ',time.time()
             self.sequence_done_trigger.emit(currentID)
         
     
