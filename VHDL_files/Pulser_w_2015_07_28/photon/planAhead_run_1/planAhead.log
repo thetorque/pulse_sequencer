@@ -1,0 +1,206 @@
+#-----------------------------------------------------------
+# PlanAhead v14.7 (64-bit)
+# Build 321239 by xbuild on Fri Sep 27 19:29:51 MDT 2013
+# Start of session at: Thu Jun 09 15:29:29 2016
+# Process ID: 32544
+# Log file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/planAhead_run_1/planAhead.log
+# Journal file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/planAhead_run_1/planAhead.jou
+#-----------------------------------------------------------
+INFO: [Common 17-78] Attempting to get a license: PlanAhead
+INFO: [Common 17-290] Got license for PlanAhead
+INFO: [Common 17-86] Your PlanAhead license expires in -101 day(s)
+INFO: [Device 21-36] Loading parts and site information from C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/arch.xml
+Parsing RTL primitives file [C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+Finished parsing RTL primitives file [C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+start_gui
+source C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pa.fromHdl.tcl
+# create_project -name photon -dir "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/planAhead_run_1" -part xc6slx45fgg484-2
+# set_param project.pinAheadLayout yes
+# set srcset [get_property srcset [current_run -impl]]
+# set_property target_constrs_file "xem6010.ucf" [current_fileset -constrset]
+Adding file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/xem6010.ucf' to fileset 'constrs_1'
+# add_files [list {okCoreHarness.ngc}]
+# set hdlfile [add_files [list {readout_count_fifo.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# add_files [list {okWireOut.ngc}]
+# add_files [list {okWireIn.ngc}]
+# add_files [list {okTriggerIn.ngc}]
+# set hdlfile [add_files [list {okLibrary.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# add_files [list {okBTPipeOut.ngc}]
+# add_files [list {okBTPipeIn.ngc}]
+# set hdlfile [add_files [list {normal_pmt_fifo.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {ipcore_dir/pulse_fifo.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {ipcore_dir/pulser_ram.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {ipcore_dir/fifo_photon.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {ipcore_dir/clk_pll_100_in_200_out.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {dds_fifo.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set hdlfile [add_files [list {photon.vhd}]]
+# set_property file_type VHDL $hdlfile
+# set_property library work $hdlfile
+# set_property top photon $srcset
+# add_files [list {xem6010.ucf}] -fileset [get_property constrset [current_run]]
+# add_files [list {C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pulser_ram.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/dds_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/fifo_photon.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/normal_pmt_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/pulser_ram.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/pulse_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/readout_count_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# open_rtl_design -part xc6slx45fgg484-2
+Using Verific elaboration
+Parsing VHDL file "C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/lib/synplify/synattr.vhd" into library synplify
+Parsing VHDL file "C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/lib/synplify/synattr.vhd" into library synplify
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/readout_count_fifo.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okLibrary.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/normal_pmt_fifo.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/pulse_fifo.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/pulser_ram.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/fifo_photon.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/clk_pll_100_in_200_out.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/dds_fifo.vhd" into library work
+Parsing VHDL file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" into library work
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'dds_fifo' instantiated as 'fifo4' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:334]
+Resolution: File names need to match cell names: an EDIF definition will be found in dds_fifo.edf; an HDL definition may be placed in any Verilog/VHDL file.
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'pulse_fifo' instantiated as 'fifo2' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:410]
+Resolution: File names need to match cell names: an EDIF definition will be found in pulse_fifo.edf; an HDL definition may be placed in any Verilog/VHDL file.
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'pulser_ram' instantiated as 'ram1' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:429]
+Resolution: File names need to match cell names: an EDIF definition will be found in pulser_ram.edf; an HDL definition may be placed in any Verilog/VHDL file.
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'fifo_photon' instantiated as 'fifo1' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:842]
+Resolution: File names need to match cell names: an EDIF definition will be found in fifo_photon.edf; an HDL definition may be placed in any Verilog/VHDL file.
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'normal_pmt_fifo' instantiated as 'fifo3' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:896]
+Resolution: File names need to match cell names: an EDIF definition will be found in normal_pmt_fifo.edf; an HDL definition may be placed in any Verilog/VHDL file.
+CRITICAL WARNING: [EDIF 20-96] Could not resolve non-primitive black box cell 'readout_count_fifo' instantiated as 'fifo5' [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd:973]
+Resolution: File names need to match cell names: an EDIF definition will be found in readout_count_fifo.edf; an HDL definition may be placed in any Verilog/VHDL file.
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okCoreHarness.ngc ...
+WARNING:NetListWriters:298 - No output is written to okCoreHarness.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okCoreHarness.edif ...
+ngc2edif: Total memory usage is 77616 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okCoreHarness.ngc' for (cell view 'okCoreHarness', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okCoreHarness.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okCoreHarness.edif]
+CRITICAL WARNING: [Designutils 20-1022] Could not resolve non-primitive black box cell 'TFIFO64x8a_64x8b' instantiated in module 'core0/core0/a0/cb0'.
+Resolution: File names need to match cell names: an EDIF definition will be found in TFIFO64x8a_64x8b.edf; a HDL definition may be placed in any Verilog/VHDL file.
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireIn.edif ...
+ngc2edif: Total memory usage is 76528 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okWireIn.ngc' for (cell view 'okWireIn', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okWireIn.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okWireIn.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okTriggerIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okTriggerIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okTriggerIn.edif ...
+ngc2edif: Total memory usage is 76528 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okTriggerIn.ngc' for (cell view 'okTriggerIn', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okTriggerIn.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okTriggerIn.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireOut.edif ...
+ngc2edif: Total memory usage is 76528 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okWireOut.ngc' for (cell view 'okWireOut', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okWireOut.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okWireOut.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeIn.edif ...
+ngc2edif: Total memory usage is 76528 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okBTPipeIn.ngc' for (cell view 'okBTPipeIn', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okBTPipeIn.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okBTPipeIn.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeOut.edif ...
+ngc2edif: Total memory usage is 76528 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okBTPipeOut.ngc' for (cell view 'okBTPipeOut', library 'work', file 'okLibrary.vhd')
+Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okBTPipeOut.edif]
+Finished Parsing EDIF File [./.Xil/PlanAhead-32544-Controller/ngc2edif/okBTPipeOut.edif]
+INFO: [Netlist 29-17] Analyzing 63 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+Loading clock regions from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/ClockRegion.xml
+Loading clock buffers from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/ClockBuffers.xml
+Loading package pin functions from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/PinFunctions.xml...
+Loading package from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/fgg484/Package.xml
+Loading io standards from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\./parts/xilinx/spartan6/IOStandards.xml
+Loading device configuration modes from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/ConfigModes.xml
+Loading list of drcs for the architecture : C:/Xilinx/14.7/ISE_DS/PlanAhead/data\./parts/xilinx/spartan6/drc.xml
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/xem6010.ucf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/xem6010.ucf]
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 63 instances were transformed.
+  IOBUF => IOBUF (OBUFT, IBUF): 1 instances
+  LUT6_2 => LUT6_2 (LUT6, LUT5): 50 instances
+  RAM128X1S => RAM128X1S (RAMS64E, RAMS64E, MUXF7): 8 instances
+  RAM32M => RAM32M (RAMD32, RAMD32, RAMD32, RAMD32, RAMD32, RAMD32, RAMS32, RAMS32): 4 instances
+
+Phase 0 | Netlist Checksum: d8adbcad
+open_rtl_design: Time (s): elapsed = 00:00:17 . Memory (MB): peak = 681.328 ; gain = 243.555
+update_compile_order -fileset sim_1
+exit
+ERROR: [PlanAhead 12-106] *** Exception: ui.h.b: Found deleted key in HTclEventBroker. Verify if the classes listed here call cleanup()
+HTclEvent: DEBUG_PORT_CONFIG_CHANGE   Classes: ui.views.aR 
+HTclEvent: SIGNAL_BUS_MODIFY   Classes: ui.views.aR 
+HTclEvent: SIGNAL_MODIFY   Classes: ui.views.aR 
+HTclEvent: DEBUG_CORE_CONFIG_CHANGE   Classes: ui.views.aR 
+ (See C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon\planAhead_pid32544.debug)
+ERROR: [Common 17-39] 'stop_gui' failed due to earlier errors.
+INFO: [Common 17-206] Exiting PlanAhead at Fri Jun 10 16:58:02 2016...
+INFO: [Common 17-83] Releasing license: PlanAhead

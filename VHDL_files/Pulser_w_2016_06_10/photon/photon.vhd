@@ -66,6 +66,23 @@ architecture arch of photon is
 		wr_data_count: OUT STD_LOGIC_VECTOR(10 downto 0));
 	end component;
 	
+	---- fifo for usb to fifo for dds ----
+	
+	component usb_dds_fifo PORT (
+		rst : IN STD_LOGIC;
+		wr_clk : IN STD_LOGIC;
+		rd_clk : IN STD_LOGIC;
+		din : IN STD_LOGIC_VECTOR(15 DOWNTO 0);
+		wr_en : IN STD_LOGIC;
+		rd_en : IN STD_LOGIC;
+		dout : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
+		full : OUT STD_LOGIC;
+		empty : OUT STD_LOGIC;
+		wr_data_count: OUT STD_LOGIC_VECTOR(10 downto 0));
+	end component;
+	
+	
+	
 	----- FIFO for photon data -------
 	----- The time stamp of the photon is recorded into the fifo and ready to be read from the PC ------------
 	----- Due to the limitation in RAM size on-board, the number of photon tagged can be only 2^15 = 32768 ---
@@ -229,12 +246,22 @@ architecture arch of photon is
 	signal   fifo_pulser_rd_data_count: STD_LOGIC_VECTOR(7 downto 0);
 	
 		---- dds pulser signal ----
+	signal   usb_fifo_dds_rst 		: STD_LOGIC;	
+	signal   usb_fifo_dds_rd_clk   : STD_LOGIC;
+	signal	usb_fifo_dds_rd_en		: STD_LOGIC;
+	signal	usb_fifo_dds_dout		: STD_LOGIC_VECTOR(15 downto 0);
+	signal	usb_fifo_dds_full		: STD_LOGIC;
+	signal	usb_fifo_dds_empty		: STD_LOGIC;
+	signal	usb_fifo_dds_wr_data_count		: STD_LOGIC_vector(10 downto 0);
 	
+	signal   fifo_dds_wr_clk   : STD_LOGIC;
+	signal   fifo_dds_wr_en    : STD_LOGIC;
 	signal   fifo_dds_rst 		: STD_LOGIC;
 	signal	fifo_dds_rd_clk	: STD_LOGIC;
 	signal   fifo_dds_rd_clk_temp: STD_LOGIC;
 	signal	fifo_dds_rd_en		: STD_LOGIC;
 	signal	fifo_dds_dout		: STD_LOGIC_VECTOR(15 downto 0);
+	signal	fifo_dds_din		: STD_LOGIC_VECTOR(15 downto 0);
 	signal	fifo_dds_full		: STD_LOGIC;
 	signal	fifo_dds_empty		: STD_LOGIC;
 	signal	fifo_dds_wr_data_count		: STD_LOGIC_vector(10 downto 0);
@@ -327,23 +354,94 @@ architecture arch of photon is
 
 begin
 
-
+---============= DDS stuff ==============================
 -----------------------------------------------------------------------------
+--------- usb DDS fifo --------------
+fifo6: usb_dds_fifo port map(
+		rst=>usb_fifo_dds_rst,
+		wr_clk=>ti_clk,
+		rd_clk=>usb_fifo_dds_rd_clk,
+		din=> pipe_in_data_dds,
+		wr_en=> pipe_in_write_dds,
+		rd_en=> usb_fifo_dds_rd_en, 
+		dout=> usb_fifo_dds_dout,
+		full=> usb_fifo_dds_full,
+		empty=> usb_fifo_dds_empty,
+		wr_data_count=>usb_fifo_dds_wr_data_count);
+		
+pipe_in_ready_dds <= '1'; ---- enable pipe in. The only pipe in used in this design is writing of the pulse into this fifo.
+usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
+
+---------------------------------------------------------
+---------------- usb fifo to dds fifo -------------------
+
+process (clk_100,pulser_ram_reset)
+		variable main_count: integer range 0 to 5 :=0;
+		variable blocks_read: integer range 0 to 8 :=0;
+	begin
+		if (pulser_ram_reset = '1') then
+			main_count := 0;
+			blocks_read := 0;
+		elsif rising_edge(clk_100) then
+			case main_count is
+				--------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
+				--------- fifo_pulser empty. 
+				when 0 => usb_fifo_dds_rd_clk <= '1';
+							 usb_fifo_dds_rd_en <= '0';
+							 fifo_dds_wr_clk <= '0';
+							 main_count := 1;
+				when 1 => usb_fifo_dds_rd_clk <= '0';
+				          if (usb_fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
+								main_count:=0; 
+							 else 
+							   usb_fifo_dds_rd_en <= '1';
+								main_count:= 2;  ---- if there's anything in the fifo, go to the next case
+							 end if;
+				---------- look at the data and decide what to do ------
+				when 2 => if (blocks_read = 0) then
+							     --do something with the 16 bit meta data
+								  if (fifo_dds_empty = '1') then  -- if fifo going to dds is empty, then change the addresse
+								      setnewddsaddresse
+										blocks_read := blocks_read + 1;
+										fifo_dds_wr_en <= '1';
+										main_count := 3;
+								  else--- will only proceed once the fifo dds is empty and a new addresse has been set
+										main_count := 2;
+							 	  end if;
+							 end if;
+
+				when 3 => fifo_dds_wr_clk <= '1'; -- write to dds fifo
+							 usb_fifo_dds_rd_clk <= '0';
+                      main_count := 4;
+            when 4 => usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+				          fifo_dds_wr_clk <= '0';
+                      main_count := 5;
+				when 5 => if (usb_fifo_dds_empty = '1') then
+				              main_count:= 0;
+							 elsif (blocks_read = 8) then
+							     blocks_read := 0;
+								  fifo_dds_wr_en <= '0';
+							     main_count := 2;
+							 else
+							     main_count := 3;
+							 end if;
+			end case;
+		end if;
+end process;
 
 --------- DDS fifo --------------
 fifo4: dds_fifo port map(
 		rst=>fifo_dds_rst,
-		wr_clk=>ti_clk,
+		wr_clk=>fifo_dds_wr_clk,
 		rd_clk=>fifo_dds_rd_clk,
-		din=> pipe_in_data_dds,
-		wr_en=> pipe_in_write_dds,
+		din=> usb_fifo_dds_dout,
+		wr_en=> fifo_dds_wr_en,
 		rd_en=> fifo_dds_rd_en, 
 		dout=> fifo_dds_dout,
 		full=> fifo_dds_full,
 		empty=> fifo_dds_empty,
 		wr_data_count=>fifo_dds_wr_data_count);
 		
-pipe_in_ready_dds <= '1'; ---- enable pipe in. The only pipe in used in this design is writing of the pulse into this fifo.
 fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
 led(5) <= not fifo_dds_empty;
 led(4 downto 0) <= not logic_out(4 downto 0);
