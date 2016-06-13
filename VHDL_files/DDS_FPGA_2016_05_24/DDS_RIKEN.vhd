@@ -114,9 +114,11 @@ architecture behaviour of DDS_RIKEN is
 	signal   dds_step_to_next_freq : STD_LOGIC;
 	signal 	dds_step_to_next_freq_sampled: STD_LOGIC;
 	
-	signal clk_50: std_logic;
+	-- clock outputs from pll
+	-- input is clk_dds (125 MHz)
+	signal clk_50: std_logic; -- 1/4 of clk_dds -> 31 MHz
 	
-	signal clk_slow: std_logic;
+	signal clk_slow: std_logic; -- 1/1250 of clk_dds -> 100 KHz
 	
 	----- frequency and amplitude sweeping related signals ----
 	signal   ramp_enable          : std_logic:='0';
