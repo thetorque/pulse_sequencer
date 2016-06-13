@@ -253,6 +253,7 @@ architecture arch of photon is
 	signal	usb_fifo_dds_full		: STD_LOGIC;
 	signal	usb_fifo_dds_empty		: STD_LOGIC;
 	signal	usb_fifo_dds_wr_data_count		: STD_LOGIC_vector(10 downto 0);
+    signal  dds_addresse : STD_LOGIC_vector (3 downto 0);
 	
 	signal   fifo_dds_wr_clk   : STD_LOGIC;
 	signal   fifo_dds_wr_en    : STD_LOGIC;
@@ -378,6 +379,7 @@ usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if 
 process (clk_100,pulser_ram_reset)
 		variable main_count: integer range 0 to 5 :=0;
 		variable blocks_read: integer range 0 to 8 :=0;
+        variable var_dds_addresse: STD_LOGIC_VECTOR (3 downto 0);
 	begin
 		if (pulser_ram_reset = '1') then
 			main_count := 0;
@@ -401,7 +403,8 @@ process (clk_100,pulser_ram_reset)
 				when 2 => if (blocks_read = 0) then
 							     --do something with the 16 bit meta data
 								  if (fifo_dds_empty = '1') then  -- if fifo going to dds is empty, then change the addresse
-								      setnewddsaddresse
+								        var_dds_address := not usb_fifo_dds_dout (3 downto 0);
+                                        dds_addresse <= var_dds_addresse;
 										blocks_read := blocks_read + 1;
 										fifo_dds_wr_en <= '1';
 										main_count := 3;
@@ -478,7 +481,7 @@ dds_logic_ram_reset <= not (master_logic(19) or ep40wire(4)); -----------dds res
 dds_logic_step_to_next_value <= not (master_logic(18) or ep40wire(5));
 dds_logic_reset_dds_chip <= not (ep40wire(6));
 
-dds_logic_address <= not (ep04wire(3 downto 0)); ---------------set dds channel
+--dds_logic_address <= not (ep04wire(3 downto 0)); ---------------set dds channel
 
 ----------------------------------------------------------
 

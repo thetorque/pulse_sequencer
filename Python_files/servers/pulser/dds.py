@@ -263,6 +263,10 @@ class DDS(LabradServer):
         for name,channel in self.ddsDict.iteritems():
             buf = dds[name]
             yield self.program_dds_chanel(channel, buf)
+    @inlineCallbacks    
+    def _programDDSSequenceBurst(self,dds):
+        self.ddsLock = True
+        yield deferToThread(self.api.programDDS(dds))
                
     @inlineCallbacks
     def _setParameters(self, channel, freq, ampl, mode):
@@ -335,11 +339,7 @@ class DDS(LabradServer):
     def _setDDSLocal(self, addr, buf):
         self.api.resetAllDDS()
         self.api.setDDSchannel(addr)
-        tic = time.clock()
         self.api.programDDS(buf)
-        toc = time.clock()
-        print 'Data sent:    ',toc-tic
-
 
         
     @inlineCallbacks

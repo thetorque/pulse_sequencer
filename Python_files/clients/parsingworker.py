@@ -180,16 +180,11 @@ class ParsingWorker(QObject):
         seqObject.addDDSStandardPulses(self.sequence)
         binary = seqObject.parseDDS()
         ttl = seqObject.parseTTL()
-        # As labrad cannot handle returnig the bytearray, we convert it to string first
-        for key, value in binary.iteritems():
-            binary[key] = str(value)
-        # It also cannot handle dictionaries, so we recreate it as a list of tuples
-        passable = binary.items()
         
         self.mutex.lock()
         try:
             #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
-            self.sequencestorage = [(passable,str(ttl),self.ParameterID)]
+            self.sequencestorage = [(str(binary),str(ttl),self.ParameterID)]
         except Exception,e:
             print e
         finally:
@@ -267,7 +262,17 @@ class Sequence():
         if parse:
             self.ddsSettings = self.parseDDS()
             self.ttlProgram = self.parseTTL()
-        return self.ddsSettings, self.ttlProgram
+            fullbinary = None
+            for name,pulsebinary in self.ddsSettings.iteritems():
+                addresse = self.ddsDict[name].channelnumber
+                addressebinary = bytearray([addresse]) + bytearray(16-len(addresse)%16)
+
+                if fullbinary is None:
+                    fullbinary =  addressebinary + pulsebinary
+                else:
+                    fullbinary += addressebinary + pulsebinary
+
+         return fullbinary, self.ttlProgram
         
     def userAddedDDS(self):
         return bool(len(self.ddsSettingList))
