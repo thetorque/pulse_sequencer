@@ -43,7 +43,7 @@ class PulserWorker(QObject):
         #tic = time.clock()
         p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
-        p.start_number(1)
+        '''p.start_number(1)
         #toc = time.clock()
         #print 'Programming and starting time: ',toc-tic
         try:
@@ -58,12 +58,14 @@ class PulserWorker(QObject):
             self.pulsermessages.emit('Pulser: Timed out')
         else:
             #print 'time done:       ',time.time()
-            self.sequence_done_trigger.emit(currentID)
-        
+            #self.sequence_done_trigger.emit(currentID)
+            pass
+        '''
     
     @pyqtSlot()
     def run(self):
         while not self.stopping:
+            print 'starting'
             currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
             if None in (currentsequence, currentttl, currentID):
                 #self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')

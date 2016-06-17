@@ -136,9 +136,10 @@ class mainwindow(QtGui.QMainWindow):
         from graphingwidget import graphingwidget
         self.filename = None
         splitterwidget = QtGui.QSplitter()
-        string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
-        string += "Channel DDS_2 do 10  MHz with -10 dBm for var tstart ms at 40 ms in mode Normal\n"
-        string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
+        #string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
+        #string = "Channel Raman_rad do 360  MHz with -10 dBm for 1000 ms at 40 ms in mode Normal\n"
+        string = 'bytearray([0]*4) + bytearray([255]*1) + bytearray([0]*13)'
+        #string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
         
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
@@ -361,9 +362,9 @@ class mainwindow(QtGui.QMainWindow):
     #################
     def on_Start(self):
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
-        print 'starting'
+        print 'starting button clicked'
         self.parsingworker.start.emit()
-        self.pulserworker.startsignal.emit()
+        #self.pulserworker.startsignal.emit()
 
     def on_Stop(self):
         self.parsingworker.Parsing = False

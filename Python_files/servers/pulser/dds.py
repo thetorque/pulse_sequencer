@@ -266,8 +266,10 @@ class DDS(LabradServer):
     @inlineCallbacks    
     def _programDDSSequenceBurst(self,dds):
         self.ddsLock = True
-        yield deferToThread(self.api.programDDS(dds))
-               
+        tic = time.clock()
+        yield deferToThread(self.api.programDDSburst, dds)
+        toc = time.clock()
+        print toc-tic
     @inlineCallbacks
     def _setParameters(self, channel, freq, ampl, mode):
         buf = self.settings_to_buf(channel, freq, ampl, mode)

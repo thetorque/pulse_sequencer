@@ -178,9 +178,13 @@ class ParsingWorker(QObject):
         #    binary = p.get_dds_program_representation(context = cont)
         seqObject = Sequence()
         seqObject.addDDSStandardPulses(self.sequence)
-        binary = seqObject.parseDDS()
-        ttl = seqObject.parseTTL()
-        
+        binary,ttl = seqObject.progRepresentation()
+        binary = (bytearray([0]*4) + bytearray([255]*1) + bytearray([0]*13))#*100+ bytearray([0]*120)# + bytearray([255]*4)
+        #binary = (bytearray([0]*17) + bytearray([255]) + bytearray([0])*0)
+        import binascii
+        for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
+            print '------------------lol'
+            print binascii.hexlify(abyte),len(abyte)
         self.mutex.lock()
         try:
             #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
@@ -191,6 +195,27 @@ class ParsingWorker(QObject):
             self.mutex.unlock()
         #toc = time.clock()
         #print 'Binary compilation time:       ',toc-tic
+        print 'compiling done'
+        self.new_sequence_trigger.emit()
+        
+    def testing(self):
+        string = self.text
+        binary = eval(string)
+        import binascii
+        for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
+            print '------------------'
+            print binascii.hexlify(abyte),len(abyte)
+        self.mutex.lock()
+        try:
+            #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
+            self.sequencestorage = [(str(binary),'12',0)]
+        except Exception,e:
+            print e
+        finally:
+            self.mutex.unlock()
+        #toc = time.clock()
+        #print 'Binary compilation time:       ',toc-tic
+        print 'compiling done'
         self.new_sequence_trigger.emit()
         
     def get_sequence(self):
@@ -219,7 +244,8 @@ class ParsingWorker(QObject):
     def run(self):
         self.Busy = True
         self.busy_trigger.emit(self.Busy)
-        self.parse_text()
+        #self.parse_text()
+        self.testing()
         self.parsermessages.emit('Parser: Parsing done')
         self.Busy = False
         self.busy_trigger.emit(self.Busy)            
@@ -265,14 +291,13 @@ class Sequence():
             fullbinary = None
             for name,pulsebinary in self.ddsSettings.iteritems():
                 addresse = self.ddsDict[name].channelnumber
-                addressebinary = bytearray([addresse]) + bytearray(16-len(addresse)%16)
+                for ablock in [pulsebinary[i:i+16] for i in range(0, len(pulsebinary), 16)]:
+                    if fullbinary is None:
+                        fullbinary =  bytearray([0,addresse]) + ablock
+                    else:   
+                        fullbinary += bytearray([0,addresse]) + ablock
 
-                if fullbinary is None:
-                    fullbinary =  addressebinary + pulsebinary
-                else:
-                    fullbinary += addressebinary + pulsebinary
-
-         return fullbinary, self.ttlProgram
+        return fullbinary, self.ttlProgram
         
     def userAddedDDS(self):
         return bool(len(self.ddsSettingList))
@@ -314,8 +339,8 @@ class Sequence():
                     self._addNewSwitch(lastTime,self.advanceDDS,1)
                     self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
                 #add termination
-                for name in dds_program.iterkeys():
-                    dds_program[name] +=  '\x00\x00'
+                #for name in dds_program.iterkeys():
+                #    dds_program[name] +=  '\x00\x00'
                 #at the end of the sequence, reset dds
                 lastTTL = max(self.switchingTimes.keys())
                 self._addNewSwitch(lastTTL ,self.resetDDS, 1 )
@@ -579,7 +604,6 @@ class Sequence():
             
             ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
             ans = phase + amp + amp_ramp + ramp + b
-            
         elif mode == 1: #frequency modulation mode
             low_ramp = (num%(2**32))
             low = bytearray(4)
@@ -596,6 +620,7 @@ class Sequence():
             for i in range(4):
                 freq_s[i]=(freq_step//(2**(i*8)))%256
             ans = phase + amp + freq_s + high + low  
+        
         return ans
         
     def _checkRange(self, t, channel, val):
