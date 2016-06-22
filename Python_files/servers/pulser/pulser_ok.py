@@ -123,7 +123,6 @@ class Pulser(DDS, LineTrigger):
 
     @setting(38, 'Program dds and ttl')
     def program_dds_and_ttl(self,c,dds,ttl):
-        self.api.resetAllDDS()
         dds = bytearray(dds)
         ttl = bytearray(ttl)
         yield self.inCommunication.acquire()

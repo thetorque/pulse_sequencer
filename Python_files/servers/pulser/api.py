@@ -257,12 +257,12 @@ class api(object):
     def programDDSburst(self, prog):
         '''program the dds channel with a list of frequencies and amplitudes. The channel of the particular channel must be selected first'''
         ### add the initial padding
-#        prog = bytearray.fromhex(u'0000') + prog
+        #prog = bytearray.fromhex(u'0000') + prog
 #         for i in range(len(prog)):
 #             print "prog dds",i,"=", prog[i]
         ### pad to a multiple of 16 bytes
  #       prog_padded = self.padTo16(prog)
-        print self.xem.WriteToBlockPipeIn(0x81, 2, prog)  # very important !!! second argument need to be 16. Don't change this.
+        print self.xem.WriteToBlockPipeIn(0x81, 2 , prog)  # very important !!! second argument need to be 16. Don't change this.
         #print "program DDS"
     
     def initializeDDS(self):

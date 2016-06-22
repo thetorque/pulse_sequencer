@@ -1,6 +1,6 @@
 Analysis & Synthesis report for DDS_RIKEN
-Mon Jun 13 17:50:45 2016
-Quartus II 64-Bit Version 15.0.0 Build 145 04/22/2015 SJ Web Edition
+Wed Jun 22 12:32:19 2016
+Quartus Prime Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 
 
 ---------------------
@@ -49,7 +49,7 @@ functions, and any output files from any of the foregoing
 (including device programming or simulation files), and any 
 associated documentation or information are expressly subject 
 to the terms and conditions of the Altera Program License 
-Subscription Agreement, the Altera Quartus II License Agreement,
+Subscription Agreement, the Altera Quartus Prime License Agreement,
 the Altera MegaCore Function License Agreement, or other 
 applicable license agreement, including, without limitation, 
 that your use is for the sole purpose of programming logic 
@@ -59,24 +59,24 @@ agreement for further details.
 
 
 
-+---------------------------------------------------------------------------------+
-; Analysis & Synthesis Summary                                                    ;
-+------------------------------------+--------------------------------------------+
-; Analysis & Synthesis Status        ; Successful - Mon Jun 13 17:50:45 2016      ;
-; Quartus II 64-Bit Version          ; 15.0.0 Build 145 04/22/2015 SJ Web Edition ;
-; Revision Name                      ; DDS_RIKEN                                  ;
-; Top-level Entity Name              ; DDS_RIKEN                                  ;
-; Family                             ; Cyclone IV E                               ;
-; Total logic elements               ; 2,045                                      ;
-;     Total combinational functions  ; 1,589                                      ;
-;     Dedicated logic registers      ; 1,014                                      ;
-; Total registers                    ; 1014                                       ;
-; Total pins                         ; 113                                        ;
-; Total virtual pins                 ; 0                                          ;
-; Total memory bits                  ; 524,288                                    ;
-; Embedded Multiplier 9-bit elements ; 0                                          ;
-; Total PLLs                         ; 1                                          ;
-+------------------------------------+--------------------------------------------+
++----------------------------------------------------------------------------------+
+; Analysis & Synthesis Summary                                                     ;
++------------------------------------+---------------------------------------------+
+; Analysis & Synthesis Status        ; Successful - Wed Jun 22 12:32:19 2016       ;
+; Quartus Prime Version              ; 15.1.0 Build 185 10/21/2015 SJ Lite Edition ;
+; Revision Name                      ; DDS_RIKEN                                   ;
+; Top-level Entity Name              ; DDS_RIKEN                                   ;
+; Family                             ; Cyclone IV E                                ;
+; Total logic elements               ; 2,075                                       ;
+;     Total combinational functions  ; 1,619                                       ;
+;     Dedicated logic registers      ; 1,022                                       ;
+; Total registers                    ; 1022                                        ;
+; Total pins                         ; 113                                         ;
+; Total virtual pins                 ; 0                                           ;
+; Total memory bits                  ; 524,288                                     ;
+; Embedded Multiplier 9-bit elements ; 0                                           ;
+; Total PLLs                         ; 1                                           ;
++------------------------------------+---------------------------------------------+
 
 
 +----------------------------------------------------------------------------------------------------------------------+
@@ -166,67 +166,60 @@ agreement for further details.
 +----------------------------------------------------------------------------+--------------------+--------------------+
 
 
-+------------------------------------------+
-; Parallel Compilation                     ;
-+----------------------------+-------------+
-; Processors                 ; Number      ;
-+----------------------------+-------------+
-; Number detected on machine ; 8           ;
-; Maximum allowed            ; 4           ;
-;                            ;             ;
-; Average used               ; 1.00        ;
-; Maximum used               ; 4           ;
-;                            ;             ;
-; Usage by Processor         ; % Time Used ;
-;     Processor 1            ; 100.0%      ;
-;     Processors 2-4         ; < 0.1%      ;
-;     Processors 5-8         ;   0.0%      ;
-+----------------------------+-------------+
+Parallel compilation was disabled, but you have multiple processors available. Enable parallel compilation to reduce compilation time.
++-------------------------------------+
+; Parallel Compilation                ;
++----------------------------+--------+
+; Processors                 ; Number ;
++----------------------------+--------+
+; Number detected on machine ; 4      ;
+; Maximum allowed            ; 1      ;
++----------------------------+--------+
 
 
-+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; Analysis & Synthesis Source Files Read                                                                                                                                                      ;
-+----------------------------------+-----------------+------------------------------+-----------------------------------------------------------------------------------------------+---------+
-; File Name with User-Entered Path ; Used in Netlist ; File Type                    ; File Name with Absolute Path                                                                  ; Library ;
-+----------------------------------+-----------------+------------------------------+-----------------------------------------------------------------------------------------------+---------+
-; DDS_RIKEN.vhd                    ; yes             ; User VHDL File               ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd          ;         ;
-; dds_ram.vhd                      ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd            ;         ;
-; dds_pll.vhd                      ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd            ;         ;
-; dds_compare.vhd                  ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd        ;         ;
-; dds_add_subtract.vhd             ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd   ;         ;
-; dds_14bit_compare.vhd            ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd  ;         ;
-; dds_14bit_adder.vhd              ; yes             ; User Wizard-Generated File   ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd    ;         ;
-; altpll.tdf                       ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altpll.tdf                                     ;         ;
-; aglobal150.inc                   ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/aglobal150.inc                                 ;         ;
-; stratix_pll.inc                  ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/stratix_pll.inc                                ;         ;
-; stratixii_pll.inc                ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/stratixii_pll.inc                              ;         ;
-; cycloneii_pll.inc                ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/cycloneii_pll.inc                              ;         ;
-; db/dds_pll_altpll.v              ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/dds_pll_altpll.v    ;         ;
-; lpm_compare.tdf                  ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/lpm_compare.tdf                                ;         ;
-; comptree.inc                     ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/comptree.inc                                   ;         ;
-; altshift.inc                     ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altshift.inc                                   ;         ;
-; db/cmpr_eng.tdf                  ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_eng.tdf        ;         ;
-; lpm_add_sub.tdf                  ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/lpm_add_sub.tdf                                ;         ;
-; addcore.inc                      ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/addcore.inc                                    ;         ;
-; look_add.inc                     ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/look_add.inc                                   ;         ;
-; bypassff.inc                     ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/bypassff.inc                                   ;         ;
-; alt_stratix_add_sub.inc          ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/alt_stratix_add_sub.inc                        ;         ;
-; db/add_sub_urg.tdf               ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_urg.tdf     ;         ;
-; db/cmpr_ach.tdf                  ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_ach.tdf        ;         ;
-; db/add_sub_fog.tdf               ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_fog.tdf     ;         ;
-; altsyncram.tdf                   ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altsyncram.tdf                                 ;         ;
-; stratix_ram_block.inc            ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/stratix_ram_block.inc                          ;         ;
-; lpm_mux.inc                      ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/lpm_mux.inc                                    ;         ;
-; lpm_decode.inc                   ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/lpm_decode.inc                                 ;         ;
-; a_rdenreg.inc                    ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/a_rdenreg.inc                                  ;         ;
-; altrom.inc                       ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altrom.inc                                     ;         ;
-; altram.inc                       ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altram.inc                                     ;         ;
-; altdpram.inc                     ; yes             ; Megafunction                 ; c:/altera/15.0/quartus/libraries/megafunctions/altdpram.inc                                   ;         ;
-; db/altsyncram_kip3.tdf           ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf ;         ;
-; db/decode_msa.tdf                ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/decode_msa.tdf      ;         ;
-; db/decode_f8a.tdf                ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/decode_f8a.tdf      ;         ;
-; db/mux_9qb.tdf                   ; yes             ; Auto-Generated Megafunction  ; C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/DDS_FPGA_2016_05_24/db/mux_9qb.tdf         ;         ;
-+----------------------------------+-----------------+------------------------------+-----------------------------------------------------------------------------------------------+---------+
++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+; Analysis & Synthesis Source Files Read                                                                                                                                             ;
++----------------------------------+-----------------+------------------------------+--------------------------------------------------------------------------------------+---------+
+; File Name with User-Entered Path ; Used in Netlist ; File Type                    ; File Name with Absolute Path                                                         ; Library ;
++----------------------------------+-----------------+------------------------------+--------------------------------------------------------------------------------------+---------+
+; DDS_RIKEN.vhd                    ; yes             ; User VHDL File               ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd          ;         ;
+; dds_ram.vhd                      ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd            ;         ;
+; dds_pll.vhd                      ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd            ;         ;
+; dds_compare.vhd                  ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd        ;         ;
+; dds_add_subtract.vhd             ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd   ;         ;
+; dds_14bit_compare.vhd            ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd  ;         ;
+; dds_14bit_adder.vhd              ; yes             ; User Wizard-Generated File   ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd    ;         ;
+; altpll.tdf                       ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altpll.tdf                       ;         ;
+; aglobal151.inc                   ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/aglobal151.inc                   ;         ;
+; stratix_pll.inc                  ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/stratix_pll.inc                  ;         ;
+; stratixii_pll.inc                ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/stratixii_pll.inc                ;         ;
+; cycloneii_pll.inc                ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/cycloneii_pll.inc                ;         ;
+; db/dds_pll_altpll.v              ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/dds_pll_altpll.v    ;         ;
+; lpm_compare.tdf                  ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_compare.tdf                  ;         ;
+; comptree.inc                     ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/comptree.inc                     ;         ;
+; altshift.inc                     ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altshift.inc                     ;         ;
+; db/cmpr_eng.tdf                  ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_eng.tdf        ;         ;
+; lpm_add_sub.tdf                  ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_add_sub.tdf                  ;         ;
+; addcore.inc                      ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/addcore.inc                      ;         ;
+; look_add.inc                     ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/look_add.inc                     ;         ;
+; bypassff.inc                     ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/bypassff.inc                     ;         ;
+; alt_stratix_add_sub.inc          ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/alt_stratix_add_sub.inc          ;         ;
+; db/add_sub_urg.tdf               ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_urg.tdf     ;         ;
+; db/cmpr_ach.tdf                  ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_ach.tdf        ;         ;
+; db/add_sub_fog.tdf               ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_fog.tdf     ;         ;
+; altsyncram.tdf                   ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altsyncram.tdf                   ;         ;
+; stratix_ram_block.inc            ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/stratix_ram_block.inc            ;         ;
+; lpm_mux.inc                      ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_mux.inc                      ;         ;
+; lpm_decode.inc                   ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_decode.inc                   ;         ;
+; a_rdenreg.inc                    ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/a_rdenreg.inc                    ;         ;
+; altrom.inc                       ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altrom.inc                       ;         ;
+; altram.inc                       ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altram.inc                       ;         ;
+; altdpram.inc                     ; yes             ; Megafunction                 ; c:/altera_lite/15.1/quartus/libraries/megafunctions/altdpram.inc                     ;         ;
+; db/altsyncram_kip3.tdf           ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf ;         ;
+; db/decode_msa.tdf                ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/decode_msa.tdf      ;         ;
+; db/decode_f8a.tdf                ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/decode_f8a.tdf      ;         ;
+; db/mux_9qb.tdf                   ; yes             ; Auto-Generated Megafunction  ; C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/mux_9qb.tdf         ;         ;
++----------------------------------+-----------------+------------------------------+--------------------------------------------------------------------------------------+---------+
 
 
 +----------------------------------------------------------------------------------------------------------------------------------+
@@ -234,20 +227,20 @@ agreement for further details.
 +---------------------------------------------+------------------------------------------------------------------------------------+
 ; Resource                                    ; Usage                                                                              ;
 +---------------------------------------------+------------------------------------------------------------------------------------+
-; Estimated Total logic elements              ; 2,045                                                                              ;
+; Estimated Total logic elements              ; 2,075                                                                              ;
 ;                                             ;                                                                                    ;
-; Total combinational functions               ; 1589                                                                               ;
+; Total combinational functions               ; 1619                                                                               ;
 ; Logic element usage by number of LUT inputs ;                                                                                    ;
-;     -- 4 input functions                    ; 937                                                                                ;
-;     -- 3 input functions                    ; 503                                                                                ;
-;     -- <=2 input functions                  ; 149                                                                                ;
+;     -- 4 input functions                    ; 953                                                                                ;
+;     -- 3 input functions                    ; 511                                                                                ;
+;     -- <=2 input functions                  ; 155                                                                                ;
 ;                                             ;                                                                                    ;
 ; Logic elements by mode                      ;                                                                                    ;
-;     -- normal mode                          ; 1313                                                                               ;
-;     -- arithmetic mode                      ; 276                                                                                ;
+;     -- normal mode                          ; 1328                                                                               ;
+;     -- arithmetic mode                      ; 291                                                                                ;
 ;                                             ;                                                                                    ;
-; Total registers                             ; 1014                                                                               ;
-;     -- Dedicated logic registers            ; 1014                                                                               ;
+; Total registers                             ; 1022                                                                               ;
+;     -- Dedicated logic registers            ; 1022                                                                               ;
 ;     -- I/O registers                        ; 0                                                                                  ;
 ;                                             ;                                                                                    ;
 ; I/O pins                                    ; 113                                                                                ;
@@ -260,7 +253,7 @@ agreement for further details.
 ;                                             ;                                                                                    ;
 ; Maximum fan-out node                        ; dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated|wire_pll1_clk[0] ;
 ; Maximum fan-out                             ; 929                                                                                ;
-; Total fan-out                               ; 10610                                                                              ;
+; Total fan-out                               ; 10765                                                                              ;
 ; Average fan-out                             ; 3.67                                                                               ;
 +---------------------------------------------+------------------------------------------------------------------------------------+
 
@@ -270,7 +263,7 @@ agreement for further details.
 +-------------------------------------------+-------------------+--------------+-------------+--------------+---------+-----------+------+--------------+-----------------------------------------------------------------------------------------------------------------+--------------+
 ; Compilation Hierarchy Node                ; LC Combinationals ; LC Registers ; Memory Bits ; DSP Elements ; DSP 9x9 ; DSP 18x18 ; Pins ; Virtual Pins ; Full Hierarchy Name                                                                                             ; Library Name ;
 +-------------------------------------------+-------------------+--------------+-------------+--------------+---------+-----------+------+--------------+-----------------------------------------------------------------------------------------------------------------+--------------+
-; |DDS_RIKEN                                ; 1589 (1018)       ; 1014 (1012)  ; 524288      ; 0            ; 0       ; 0         ; 113  ; 0            ; |DDS_RIKEN                                                                                                      ; work         ;
+; |DDS_RIKEN                                ; 1619 (1047)       ; 1022 (1020)  ; 524288      ; 0            ; 0       ; 0         ; 113  ; 0            ; |DDS_RIKEN                                                                                                      ; work         ;
 ;    |dds_14bit_compare:comparer_14bit_1|   ; 14 (0)            ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1                                                                   ; work         ;
 ;       |lpm_compare:LPM_COMPARE_component| ; 14 (0)            ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component                                 ; work         ;
 ;          |cmpr_eng:auto_generated|        ; 14 (14)           ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component|cmpr_eng:auto_generated         ; work         ;
@@ -286,10 +279,10 @@ agreement for further details.
 ;    |dds_pll:pll|                          ; 0 (0)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_pll:pll                                                                                          ; work         ;
 ;       |altpll:altpll_component|           ; 0 (0)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_pll:pll|altpll:altpll_component                                                                  ; work         ;
 ;          |dds_pll_altpll:auto_generated|  ; 0 (0)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated                                    ; work         ;
-;    |dds_ram:ram1|                         ; 263 (0)           ; 2 (0)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1                                                                                         ; work         ;
-;       |altsyncram:altsyncram_component|   ; 263 (0)           ; 2 (0)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component                                                         ; work         ;
-;          |altsyncram_kip3:auto_generated| ; 263 (0)           ; 2 (2)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated                          ; work         ;
-;             |decode_f8a:rden_decode_b|    ; 3 (3)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_f8a:rden_decode_b ; work         ;
+;    |dds_ram:ram1|                         ; 264 (0)           ; 2 (0)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1                                                                                         ; work         ;
+;       |altsyncram:altsyncram_component|   ; 264 (0)           ; 2 (0)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component                                                         ; work         ;
+;          |altsyncram_kip3:auto_generated| ; 264 (0)           ; 2 (2)        ; 524288      ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated                          ; work         ;
+;             |decode_f8a:rden_decode_b|    ; 4 (4)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_f8a:rden_decode_b ; work         ;
 ;             |decode_msa:decode2|          ; 4 (4)             ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_msa:decode2       ; work         ;
 ;             |mux_9qb:mux3|                ; 256 (256)         ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|mux_9qb:mux3             ; work         ;
 +-------------------------------------------+-------------------+--------------+-------------+--------------+---------+-----------+------+--------------+-----------------------------------------------------------------------------------------------------------------+--------------+
@@ -326,8 +319,8 @@ Note: For table entries with two numbers listed, the numbers in parentheses indi
 ; Latch Name                                         ; Latch Enable Signal ; Free of Timing Hazards ;
 +----------------------------------------------------+---------------------+------------------------+
 ; operating_mode_changed                             ; GND                 ; yes                    ;
-; previous_operating_mode[0]                         ; Equal9              ; yes                    ;
-; previous_operating_mode[1]                         ; Equal9              ; yes                    ;
+; previous_operating_mode[0]                         ; Equal11             ; yes                    ;
+; previous_operating_mode[1]                         ; Equal11             ; yes                    ;
 ; Number of user-specified and inferred latches = 3  ;                     ;                        ;
 +----------------------------------------------------+---------------------+------------------------+
 Note: All latches listed above may not be present at the end of synthesis due to various synthesis optimizations.
@@ -352,12 +345,12 @@ Note: All latches listed above may not be present at the end of synthesis due to
 +----------------------------------------------+-------+
 ; Statistic                                    ; Value ;
 +----------------------------------------------+-------+
-; Total registers                              ; 1014  ;
-; Number of registers using Synchronous Clear  ; 18    ;
+; Total registers                              ; 1022  ;
+; Number of registers using Synchronous Clear  ; 34    ;
 ; Number of registers using Synchronous Load   ; 24    ;
-; Number of registers using Asynchronous Clear ; 54    ;
+; Number of registers using Asynchronous Clear ; 71    ;
 ; Number of registers using Asynchronous Load  ; 0     ;
-; Number of registers using Clock Enable       ; 960   ;
+; Number of registers using Clock Enable       ; 967   ;
 ; Number of registers using Preset             ; 0     ;
 +----------------------------------------------+-------+
 
@@ -378,31 +371,31 @@ Note: All latches listed above may not be present at the end of synthesis due to
 +--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
 ; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                   ;
 +--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
-; 3:1                ; 64 bits   ; 128 LEs       ; 0 LEs                ; 128 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_frequency_var[58] ;
-; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|high_ramp_limit_var[15]           ;
-; 3:1                ; 14 bits   ; 28 LEs        ; 0 LEs                ; 28 LEs                 ; Yes        ; |DDS_RIKEN|\process_6:main_amplitude_var[2]  ;
-; 3:1                ; 14 bits   ; 28 LEs        ; 14 LEs               ; 14 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude_var[4]             ;
-; 4:1                ; 16 bits   ; 32 LEs        ; 0 LEs                ; 32 LEs                 ; Yes        ; |DDS_RIKEN|main_phase_var[11]                ;
-; 4:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|low_ramp_limit_var[18]            ;
+; 3:1                ; 64 bits   ; 128 LEs       ; 0 LEs                ; 128 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_frequency_var[23] ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|high_ramp_limit_var[30]           ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|low_ramp_limit_var[11]            ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|freq_step_size_var[2]             ;
+; 3:1                ; 16 bits   ; 32 LEs        ; 0 LEs                ; 32 LEs                 ; Yes        ; |DDS_RIKEN|main_phase_var[0]                 ;
+; 3:1                ; 14 bits   ; 28 LEs        ; 0 LEs                ; 28 LEs                 ; Yes        ; |DDS_RIKEN|\process_6:main_amplitude_var[1]  ;
+; 3:1                ; 14 bits   ; 28 LEs        ; 14 LEs               ; 14 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude_var[10]            ;
 ; 5:1                ; 2 bits    ; 6 LEs         ; 4 LEs                ; 2 LEs                  ; Yes        ; |DDS_RIKEN|\process_6:main_count[1]          ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |DDS_RIKEN|\process_7:count[0]               ;
-; 4:1                ; 16 bits   ; 32 LEs        ; 16 LEs               ; 16 LEs                 ; Yes        ; |DDS_RIKEN|sub_count[0]                      ;
-; 5:1                ; 32 bits   ; 96 LEs        ; 0 LEs                ; 96 LEs                 ; Yes        ; |DDS_RIKEN|freq_step_size_var[21]            ;
-; 6:1                ; 14 bits   ; 56 LEs        ; 14 LEs               ; 42 LEs                 ; Yes        ; |DDS_RIKEN|old_amp[8]                        ;
-; 5:1                ; 14 bits   ; 42 LEs        ; 14 LEs               ; 28 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude[1]                 ;
-; 6:1                ; 64 bits   ; 256 LEs       ; 64 LEs               ; 192 LEs                ; Yes        ; |DDS_RIKEN|old_freq[43]                      ;
-; 5:1                ; 64 bits   ; 192 LEs       ; 64 LEs               ; 128 LEs                ; Yes        ; |DDS_RIKEN|main_frequency[30]                ;
+; 4:1                ; 16 bits   ; 32 LEs        ; 16 LEs               ; 16 LEs                 ; Yes        ; |DDS_RIKEN|sub_count[6]                      ;
+; 6:1                ; 14 bits   ; 56 LEs        ; 14 LEs               ; 42 LEs                 ; Yes        ; |DDS_RIKEN|old_amp[13]                       ;
+; 5:1                ; 14 bits   ; 42 LEs        ; 14 LEs               ; 28 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude[10]                ;
+; 6:1                ; 64 bits   ; 256 LEs       ; 64 LEs               ; 192 LEs                ; Yes        ; |DDS_RIKEN|old_freq[56]                      ;
+; 5:1                ; 64 bits   ; 192 LEs       ; 64 LEs               ; 128 LEs                ; Yes        ; |DDS_RIKEN|main_frequency[33]                ;
 ; 20:1               ; 2 bits    ; 26 LEs        ; 4 LEs                ; 22 LEs                 ; Yes        ; |DDS_RIKEN|LED_OE~reg0                       ;
-; 12:1               ; 9 bits    ; 72 LEs        ; 9 LEs                ; 63 LEs                 ; Yes        ; |DDS_RIKEN|number_lines_in_ram[6]            ;
-; 38:1               ; 16 bits   ; 400 LEs       ; 16 LEs               ; 384 LEs                ; Yes        ; |DDS_RIKEN|count_delay[12]                   ;
+; 11:1               ; 2 bits    ; 14 LEs        ; 10 LEs               ; 4 LEs                  ; Yes        ; |DDS_RIKEN|ram_process_count[2]              ;
+; 11:1               ; 2 bits    ; 14 LEs        ; 6 LEs                ; 8 LEs                  ; Yes        ; |DDS_RIKEN|\process_1:count[1]               ;
+; 38:1               ; 16 bits   ; 400 LEs       ; 16 LEs               ; 384 LEs                ; Yes        ; |DDS_RIKEN|count_delay[15]                   ;
 ; 12:1               ; 2 bits    ; 16 LEs        ; 6 LEs                ; 10 LEs                 ; Yes        ; |DDS_RIKEN|count[2]                          ;
-; 13:1               ; 2 bits    ; 16 LEs        ; 6 LEs                ; 10 LEs                 ; Yes        ; |DDS_RIKEN|\process_1:count[2]               ;
-; 12:1               ; 2 bits    ; 16 LEs        ; 0 LEs                ; 16 LEs                 ; Yes        ; |DDS_RIKEN|par_add[7]                        ;
-; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |DDS_RIKEN|ram_process_count[0]              ;
-; 42:1               ; 14 bits   ; 392 LEs       ; 0 LEs                ; 392 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_amplitude_var[9]  ;
-; 35:1               ; 3 bits    ; 69 LEs        ; 24 LEs               ; 45 LEs                 ; Yes        ; |DDS_RIKEN|par_data[14]                      ;
-; 37:1               ; 6 bits    ; 144 LEs       ; 48 LEs               ; 96 LEs                 ; Yes        ; |DDS_RIKEN|par_data[5]                       ;
-; 18:1               ; 5 bits    ; 60 LEs        ; 30 LEs               ; 30 LEs                 ; Yes        ; |DDS_RIKEN|main_count[3]                     ;
+; 12:1               ; 2 bits    ; 16 LEs        ; 0 LEs                ; 16 LEs                 ; Yes        ; |DDS_RIKEN|par_add[6]                        ;
+; 13:1               ; 16 bits   ; 128 LEs       ; 16 LEs               ; 112 LEs                ; Yes        ; |DDS_RIKEN|subcount[15]                      ;
+; 39:1               ; 14 bits   ; 364 LEs       ; 0 LEs                ; 364 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_amplitude_var[1]  ;
+; 10:1               ; 2 bits    ; 12 LEs        ; 6 LEs                ; 6 LEs                  ; Yes        ; |DDS_RIKEN|ram_process_count[1]              ;
+; 35:1               ; 3 bits    ; 69 LEs        ; 24 LEs               ; 45 LEs                 ; Yes        ; |DDS_RIKEN|par_data[13]                      ;
+; 37:1               ; 6 bits    ; 144 LEs       ; 48 LEs               ; 96 LEs                 ; Yes        ; |DDS_RIKEN|par_data[11]                      ;
+; 18:1               ; 5 bits    ; 60 LEs        ; 30 LEs               ; 30 LEs                 ; Yes        ; |DDS_RIKEN|main_count[2]                     ;
 +--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
 
 
@@ -1050,31 +1043,32 @@ Note: In order to hide this table in the UI and the text report file, please set
 ; Type                  ; Count                       ;
 +-----------------------+-----------------------------+
 ; boundary_port         ; 113                         ;
-; cycloneiii_ff         ; 1014                        ;
-;     CLR               ; 18                          ;
+; cycloneiii_ff         ; 1022                        ;
+;     CLR               ; 19                          ;
 ;     CLR SLD           ; 5                           ;
-;     ENA               ; 894                         ;
+;     ENA               ; 885                         ;
 ;     ENA CLR           ; 31                          ;
+;     ENA CLR SCLR      ; 16                          ;
 ;     ENA SCLR          ; 16                          ;
 ;     ENA SLD           ; 19                          ;
 ;     SCLR              ; 2                           ;
 ;     plain             ; 29                          ;
 ; cycloneiii_io_obuf    ; 2                           ;
-; cycloneiii_lcell_comb ; 1592                        ;
-;     arith             ; 276                         ;
-;         2 data inputs ; 60                          ;
+; cycloneiii_lcell_comb ; 1622                        ;
+;     arith             ; 291                         ;
+;         2 data inputs ; 75                          ;
 ;         3 data inputs ; 216                         ;
-;     normal            ; 1316                        ;
+;     normal            ; 1331                        ;
 ;         0 data inputs ; 2                           ;
-;         1 data inputs ; 10                          ;
-;         2 data inputs ; 80                          ;
-;         3 data inputs ; 287                         ;
-;         4 data inputs ; 937                         ;
+;         1 data inputs ; 11                          ;
+;         2 data inputs ; 70                          ;
+;         3 data inputs ; 295                         ;
+;         4 data inputs ; 953                         ;
 ; cycloneiii_pll        ; 1                           ;
 ; cycloneiii_ram_block  ; 64                          ;
 ;                       ;                             ;
 ; Max LUT depth         ; 11.30                       ;
-; Average LUT depth     ; 6.15                        ;
+; Average LUT depth     ; 6.11                        ;
 +-----------------------+-----------------------------+
 
 
@@ -1083,7 +1077,7 @@ Note: In order to hide this table in the UI and the text report file, please set
 +----------------+--------------+
 ; Partition Name ; Elapsed Time ;
 +----------------+--------------+
-; Top            ; 00:00:07     ;
+; Top            ; 00:00:09     ;
 +----------------+--------------+
 
 
@@ -1091,57 +1085,56 @@ Note: In order to hide this table in the UI and the text report file, please set
 ; Analysis & Synthesis Messages ;
 +-------------------------------+
 Info: *******************************************************************
-Info: Running Quartus II 64-Bit Analysis & Synthesis
-    Info: Version 15.0.0 Build 145 04/22/2015 SJ Web Edition
-    Info: Processing started: Mon Jun 13 17:50:15 2016
+Info: Running Quartus Prime Analysis & Synthesis
+    Info: Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
+    Info: Processing started: Wed Jun 22 12:31:47 2016
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off DDS_RIKEN -c DDS_RIKEN
-Info (11104): Parallel Compilation has detected 8 hyper-threaded processors. However, the extra hyper-threaded processors will not be used by default. Parallel Compilation will use 4 of the 4 physical processors detected instead.
+Warning (20028): Parallel compilation is not licensed and has been disabled
 Info (12021): Found 2 design units, including 1 entities, in source file dds_riken.vhd
-    Info (12022): Found design unit 1: DDS_RIKEN-behaviour
-    Info (12023): Found entity 1: DDS_RIKEN
+    Info (12022): Found design unit 1: DDS_RIKEN-behaviour File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 55
+    Info (12023): Found entity 1: DDS_RIKEN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 8
 Info (12021): Found 2 design units, including 1 entities, in source file dds_ram.vhd
-    Info (12022): Found design unit 1: dds_ram-SYN
-    Info (12023): Found entity 1: dds_ram
+    Info (12022): Found design unit 1: dds_ram-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd Line: 57
+    Info (12023): Found entity 1: dds_ram File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd Line: 43
 Info (12021): Found 2 design units, including 1 entities, in source file dds_pll.vhd
-    Info (12022): Found design unit 1: dds_pll-SYN
-    Info (12023): Found entity 1: dds_pll
+    Info (12022): Found design unit 1: dds_pll-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 53
+    Info (12023): Found entity 1: dds_pll File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 43
 Info (12021): Found 2 design units, including 1 entities, in source file dds_compare.vhd
-    Info (12022): Found design unit 1: dds_compare-SYN
-    Info (12023): Found entity 1: dds_compare
+    Info (12022): Found design unit 1: dds_compare-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd Line: 55
+    Info (12023): Found entity 1: dds_compare File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd Line: 43
 Info (12021): Found 2 design units, including 1 entities, in source file dds_add_subtract.vhd
-    Info (12022): Found design unit 1: dds_add_subtract-SYN
-    Info (12023): Found entity 1: dds_add_subtract
+    Info (12022): Found design unit 1: dds_add_subtract-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd Line: 54
+    Info (12023): Found entity 1: dds_add_subtract File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd Line: 43
 Info (12021): Found 2 design units, including 1 entities, in source file dds_14bit_compare.vhd
-    Info (12022): Found design unit 1: dds_14bit_compare-SYN
-    Info (12023): Found entity 1: dds_14bit_compare
+    Info (12022): Found design unit 1: dds_14bit_compare-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd Line: 53
+    Info (12023): Found entity 1: dds_14bit_compare File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd Line: 43
 Info (12021): Found 2 design units, including 1 entities, in source file dds_14bit_adder.vhd
-    Info (12022): Found design unit 1: dds_14bit_adder-SYN
-    Info (12023): Found entity 1: dds_14bit_adder
+    Info (12022): Found design unit 1: dds_14bit_adder-SYN File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd Line: 53
+    Info (12023): Found entity 1: dds_14bit_adder File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd Line: 43
 Info (12127): Elaborating entity "DDS_RIKEN" for the top level hierarchy
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(119): object "clk_slow" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(129): object "comparer_aeb" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(131): object "comparer_alb" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(136): object "comparer_aeb2" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(138): object "comparer_alb2" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(162): object "ramping_flag" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(163): object "amp_ramping_flag" assigned a value but never read
-Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(262): object "amp_ramp_up" assigned a value but never read
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(543): signal "high_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(544): signal "low_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(545): signal "freq_step_size" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(548): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(550): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list
-Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(534): inferring latch(es) for signal or variable "previous_operating_mode", which holds its previous value in one or more paths through the process
-Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(534): inferring latch(es) for signal or variable "operating_mode_changed", which holds its previous value in one or more paths through the process
-Warning (10873): Using initial value X (don't care) for net "dds_bus_out[7..2]" at DDS_RIKEN.vhd(35)
-Warning (10873): Using initial value X (don't care) for net "led_value[7]" at DDS_RIKEN.vhd(65)
-Info (10041): Inferred latch for "operating_mode_changed" at DDS_RIKEN.vhd(534)
-Info (10041): Inferred latch for "previous_operating_mode[0]" at DDS_RIKEN.vhd(551)
-Info (10041): Inferred latch for "previous_operating_mode[1]" at DDS_RIKEN.vhd(551)
-Info (12128): Elaborating entity "dds_pll" for hierarchy "dds_pll:pll"
-Info (12128): Elaborating entity "altpll" for hierarchy "dds_pll:pll|altpll:altpll_component"
-Info (12130): Elaborated megafunction instantiation "dds_pll:pll|altpll:altpll_component"
-Info (12133): Instantiated megafunction "dds_pll:pll|altpll:altpll_component" with the following parameter:
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(121): object "clk_slow" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 121
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(131): object "comparer_aeb" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 131
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(133): object "comparer_alb" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 133
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(138): object "comparer_aeb2" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 138
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(140): object "comparer_alb2" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 140
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(164): object "ramping_flag" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 164
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(165): object "amp_ramping_flag" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 165
+Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(274): object "amp_ramp_up" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 274
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(587): signal "high_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 587
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(588): signal "low_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 588
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(589): signal "freq_step_size" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 589
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(592): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 592
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(594): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 594
+Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(578): inferring latch(es) for signal or variable "previous_operating_mode", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 578
+Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(578): inferring latch(es) for signal or variable "operating_mode_changed", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 578
+Warning (10873): Using initial value X (don't care) for net "dds_bus_out[7..2]" at DDS_RIKEN.vhd(35) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+Info (10041): Inferred latch for "operating_mode_changed" at DDS_RIKEN.vhd(578) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 578
+Info (10041): Inferred latch for "previous_operating_mode[0]" at DDS_RIKEN.vhd(595) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 595
+Info (10041): Inferred latch for "previous_operating_mode[1]" at DDS_RIKEN.vhd(595) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 595
+Info (12128): Elaborating entity "dds_pll" for hierarchy "dds_pll:pll" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 176
+Info (12128): Elaborating entity "altpll" for hierarchy "dds_pll:pll|altpll:altpll_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 142
+Info (12130): Elaborated megafunction instantiation "dds_pll:pll|altpll:altpll_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 142
+Info (12133): Instantiated megafunction "dds_pll:pll|altpll:altpll_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 142
     Info (12134): Parameter "bandwidth_type" = "AUTO"
     Info (12134): Parameter "clk0_divide_by" = "4"
     Info (12134): Parameter "clk0_duty_cycle" = "50"
@@ -1201,56 +1194,56 @@ Info (12133): Instantiated megafunction "dds_pll:pll|altpll:altpll_component" wi
     Info (12134): Parameter "port_extclk3" = "PORT_UNUSED"
     Info (12134): Parameter "width_clock" = "5"
 Info (12021): Found 1 design units, including 1 entities, in source file db/dds_pll_altpll.v
-    Info (12023): Found entity 1: dds_pll_altpll
-Info (12128): Elaborating entity "dds_pll_altpll" for hierarchy "dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated"
-Info (12128): Elaborating entity "dds_14bit_compare" for hierarchy "dds_14bit_compare:comparer_14bit_1"
-Info (12128): Elaborating entity "lpm_compare" for hierarchy "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component"
-Info (12130): Elaborated megafunction instantiation "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component"
-Info (12133): Instantiated megafunction "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component" with the following parameter:
+    Info (12023): Found entity 1: dds_pll_altpll File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/dds_pll_altpll.v Line: 30
+Info (12128): Elaborating entity "dds_pll_altpll" for hierarchy "dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/altpll.tdf Line: 898
+Info (12128): Elaborating entity "dds_14bit_compare" for hierarchy "dds_14bit_compare:comparer_14bit_1" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 264
+Info (12128): Elaborating entity "lpm_compare" for hierarchy "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd Line: 75
+Info (12130): Elaborated megafunction instantiation "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd Line: 75
+Info (12133): Instantiated megafunction "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_compare.vhd Line: 75
     Info (12134): Parameter "lpm_representation" = "UNSIGNED"
     Info (12134): Parameter "lpm_type" = "LPM_COMPARE"
     Info (12134): Parameter "lpm_width" = "14"
 Info (12021): Found 1 design units, including 1 entities, in source file db/cmpr_eng.tdf
-    Info (12023): Found entity 1: cmpr_eng
-Info (12128): Elaborating entity "cmpr_eng" for hierarchy "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component|cmpr_eng:auto_generated"
-Info (12128): Elaborating entity "dds_14bit_adder" for hierarchy "dds_14bit_adder:adder_14bit"
-Info (12128): Elaborating entity "lpm_add_sub" for hierarchy "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component"
-Info (12130): Elaborated megafunction instantiation "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component"
-Info (12133): Instantiated megafunction "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component" with the following parameter:
+    Info (12023): Found entity 1: cmpr_eng File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_eng.tdf Line: 23
+Info (12128): Elaborating entity "cmpr_eng" for hierarchy "dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component|cmpr_eng:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_compare.tdf Line: 281
+Info (12128): Elaborating entity "dds_14bit_adder" for hierarchy "dds_14bit_adder:adder_14bit" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 265
+Info (12128): Elaborating entity "lpm_add_sub" for hierarchy "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd Line: 82
+Info (12130): Elaborated megafunction instantiation "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd Line: 82
+Info (12133): Instantiated megafunction "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_14bit_adder.vhd Line: 82
     Info (12134): Parameter "lpm_direction" = "UNUSED"
     Info (12134): Parameter "lpm_hint" = "ONE_INPUT_IS_CONSTANT=YES,CIN_USED=NO"
     Info (12134): Parameter "lpm_representation" = "UNSIGNED"
     Info (12134): Parameter "lpm_type" = "LPM_ADD_SUB"
     Info (12134): Parameter "lpm_width" = "14"
 Info (12021): Found 1 design units, including 1 entities, in source file db/add_sub_urg.tdf
-    Info (12023): Found entity 1: add_sub_urg
-Info (12128): Elaborating entity "add_sub_urg" for hierarchy "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component|add_sub_urg:auto_generated"
-Info (12128): Elaborating entity "dds_compare" for hierarchy "dds_compare:comparer_1"
-Info (12128): Elaborating entity "lpm_compare" for hierarchy "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component"
-Info (12130): Elaborated megafunction instantiation "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component"
-Info (12133): Instantiated megafunction "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component" with the following parameter:
+    Info (12023): Found entity 1: add_sub_urg File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_urg.tdf Line: 23
+Info (12128): Elaborating entity "add_sub_urg" for hierarchy "dds_14bit_adder:adder_14bit|lpm_add_sub:LPM_ADD_SUB_component|add_sub_urg:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_add_sub.tdf Line: 119
+Info (12128): Elaborating entity "dds_compare" for hierarchy "dds_compare:comparer_1" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 345
+Info (12128): Elaborating entity "lpm_compare" for hierarchy "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd Line: 83
+Info (12130): Elaborated megafunction instantiation "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd Line: 83
+Info (12133): Instantiated megafunction "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_compare.vhd Line: 83
     Info (12134): Parameter "lpm_representation" = "UNSIGNED"
     Info (12134): Parameter "lpm_type" = "LPM_COMPARE"
     Info (12134): Parameter "lpm_width" = "64"
 Info (12021): Found 1 design units, including 1 entities, in source file db/cmpr_ach.tdf
-    Info (12023): Found entity 1: cmpr_ach
-Info (12128): Elaborating entity "cmpr_ach" for hierarchy "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component|cmpr_ach:auto_generated"
-Info (12128): Elaborating entity "dds_add_subtract" for hierarchy "dds_add_subtract:adder"
-Info (12128): Elaborating entity "lpm_add_sub" for hierarchy "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component"
-Info (12130): Elaborated megafunction instantiation "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component"
-Info (12133): Instantiated megafunction "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component" with the following parameter:
+    Info (12023): Found entity 1: cmpr_ach File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/cmpr_ach.tdf Line: 23
+Info (12128): Elaborating entity "cmpr_ach" for hierarchy "dds_compare:comparer_1|lpm_compare:LPM_COMPARE_component|cmpr_ach:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_compare.tdf Line: 281
+Info (12128): Elaborating entity "dds_add_subtract" for hierarchy "dds_add_subtract:adder" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 347
+Info (12128): Elaborating entity "lpm_add_sub" for hierarchy "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd Line: 79
+Info (12130): Elaborated megafunction instantiation "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd Line: 79
+Info (12133): Instantiated megafunction "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_add_subtract.vhd Line: 79
     Info (12134): Parameter "lpm_direction" = "UNUSED"
     Info (12134): Parameter "lpm_hint" = "ONE_INPUT_IS_CONSTANT=NO,CIN_USED=NO"
     Info (12134): Parameter "lpm_representation" = "UNSIGNED"
     Info (12134): Parameter "lpm_type" = "LPM_ADD_SUB"
     Info (12134): Parameter "lpm_width" = "64"
 Info (12021): Found 1 design units, including 1 entities, in source file db/add_sub_fog.tdf
-    Info (12023): Found entity 1: add_sub_fog
-Info (12128): Elaborating entity "add_sub_fog" for hierarchy "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component|add_sub_fog:auto_generated"
-Info (12128): Elaborating entity "dds_ram" for hierarchy "dds_ram:ram1"
-Info (12128): Elaborating entity "altsyncram" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component"
-Info (12130): Elaborated megafunction instantiation "dds_ram:ram1|altsyncram:altsyncram_component"
-Info (12133): Instantiated megafunction "dds_ram:ram1|altsyncram:altsyncram_component" with the following parameter:
+    Info (12023): Found entity 1: add_sub_fog File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/add_sub_fog.tdf Line: 23
+Info (12128): Elaborating entity "add_sub_fog" for hierarchy "dds_add_subtract:adder|lpm_add_sub:LPM_ADD_SUB_component|add_sub_fog:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/lpm_add_sub.tdf Line: 119
+Info (12128): Elaborating entity "dds_ram" for hierarchy "dds_ram:ram1" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 443
+Info (12128): Elaborating entity "altsyncram" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd Line: 64
+Info (12130): Elaborated megafunction instantiation "dds_ram:ram1|altsyncram:altsyncram_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd Line: 64
+Info (12133): Instantiated megafunction "dds_ram:ram1|altsyncram:altsyncram_component" with the following parameter: File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_ram.vhd Line: 64
     Info (12134): Parameter "address_aclr_a" = "UNUSED"
     Info (12134): Parameter "address_aclr_b" = "NONE"
     Info (12134): Parameter "address_reg_b" = "CLOCK1"
@@ -1302,76 +1295,76 @@ Info (12133): Instantiated megafunction "dds_ram:ram1|altsyncram:altsyncram_comp
     Info (12134): Parameter "lpm_hint" = "UNUSED"
     Info (12134): Parameter "lpm_type" = "altsyncram"
 Info (12021): Found 1 design units, including 1 entities, in source file db/altsyncram_kip3.tdf
-    Info (12023): Found entity 1: altsyncram_kip3
-Info (12128): Elaborating entity "altsyncram_kip3" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated"
+    Info (12023): Found entity 1: altsyncram_kip3 File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 34
+Info (12128): Elaborating entity "altsyncram_kip3" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated" File: c:/altera_lite/15.1/quartus/libraries/megafunctions/altsyncram.tdf Line: 792
 Info (12021): Found 1 design units, including 1 entities, in source file db/decode_msa.tdf
-    Info (12023): Found entity 1: decode_msa
-Info (12128): Elaborating entity "decode_msa" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_msa:decode2"
+    Info (12023): Found entity 1: decode_msa File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/decode_msa.tdf Line: 23
+Info (12128): Elaborating entity "decode_msa" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_msa:decode2" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 46
 Info (12021): Found 1 design units, including 1 entities, in source file db/decode_f8a.tdf
-    Info (12023): Found entity 1: decode_f8a
-Info (12128): Elaborating entity "decode_f8a" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_f8a:rden_decode_b"
+    Info (12023): Found entity 1: decode_f8a File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/decode_f8a.tdf Line: 23
+Info (12128): Elaborating entity "decode_f8a" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|decode_f8a:rden_decode_b" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 47
 Info (12021): Found 1 design units, including 1 entities, in source file db/mux_9qb.tdf
-    Info (12023): Found entity 1: mux_9qb
-Info (12128): Elaborating entity "mux_9qb" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|mux_9qb:mux3"
-Warning (13012): Latch previous_operating_mode[0] has unsafe behavior
-    Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a16~PORTBDATAOUT1
-Warning (13012): Latch previous_operating_mode[1] has unsafe behavior
-    Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a33~PORTBDATAOUT1
-Info (13000): Registers with preset signals will power-up high
+    Info (12023): Found entity 1: mux_9qb File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/mux_9qb.tdf Line: 23
+Info (12128): Elaborating entity "mux_9qb" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|mux_9qb:mux3" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 49
+Warning (13012): Latch previous_operating_mode[0] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 595
+    Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a32~PORTBDATAOUT1 File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 1106
+Warning (13012): Latch previous_operating_mode[1] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 595
+    Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a17~PORTBDATAOUT1 File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 611
+Info (13000): Registers with preset signals will power-up high File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 21
 Info (13003): DEV_CLRn pin will set, and not reset, register with preset signal due to NOT Gate Push-Back
 Warning (13024): Output pins are stuck at VCC or GND
-    Warning (13410): Pin "LED_OE" is stuck at GND
-    Warning (13410): Pin "dds_port[0]" is stuck at VCC
-    Warning (13410): Pin "dds_port[1]" is stuck at GND
-    Warning (13410): Pin "dds_port[3]" is stuck at GND
-    Warning (13410): Pin "dds_port[4]" is stuck at GND
-    Warning (13410): Pin "dds_port[5]" is stuck at GND
-    Warning (13410): Pin "dds_port[6]" is stuck at GND
-    Warning (13410): Pin "dds_port[7]" is stuck at GND
-    Warning (13410): Pin "dds_port[14]" is stuck at GND
-    Warning (13410): Pin "dds_port[15]" is stuck at GND
-    Warning (13410): Pin "dds_osk" is stuck at GND
-    Warning (13410): Pin "dds_drhold" is stuck at GND
-    Warning (13410): Pin "dds_drctl" is stuck at GND
-    Warning (13410): Pin "f_pin[0]" is stuck at GND
-    Warning (13410): Pin "f_pin[1]" is stuck at GND
-    Warning (13410): Pin "f_pin[2]" is stuck at GND
-    Warning (13410): Pin "f_pin[3]" is stuck at GND
-    Warning (13410): Pin "ps[0]" is stuck at GND
-    Warning (13410): Pin "ps[1]" is stuck at GND
-    Warning (13410): Pin "ps[2]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[2]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[3]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[4]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[5]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[6]" is stuck at GND
-    Warning (13410): Pin "dds_bus_out[7]" is stuck at GND
+    Warning (13410): Pin "LED_OE" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 17
+    Warning (13410): Pin "dds_port[0]" is stuck at VCC File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[1]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[3]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[4]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[5]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[6]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[7]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[14]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_port[15]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 20
+    Warning (13410): Pin "dds_osk" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 22
+    Warning (13410): Pin "dds_drhold" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 25
+    Warning (13410): Pin "dds_drctl" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 26
+    Warning (13410): Pin "f_pin[0]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 29
+    Warning (13410): Pin "f_pin[1]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 29
+    Warning (13410): Pin "f_pin[2]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 29
+    Warning (13410): Pin "f_pin[3]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 29
+    Warning (13410): Pin "ps[0]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 31
+    Warning (13410): Pin "ps[1]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 31
+    Warning (13410): Pin "ps[2]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 31
+    Warning (13410): Pin "dds_bus_out[2]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+    Warning (13410): Pin "dds_bus_out[3]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+    Warning (13410): Pin "dds_bus_out[4]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+    Warning (13410): Pin "dds_bus_out[5]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+    Warning (13410): Pin "dds_bus_out[6]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
+    Warning (13410): Pin "dds_bus_out[7]" is stuck at GND File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
 Info (286030): Timing-Driven Synthesis is running
 Info (16010): Generating hard_block partition "hard_block:auto_generated_inst"
     Info (16011): Adding 1 node(s), including 0 DDIO, 1 PLL, 0 transceiver and 0 LCELL
-Warning (15899): PLL "dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated|pll1" has parameters clk1_multiply_by and clk1_divide_by specified but port CLK[1] is not connected
+Warning (15899): PLL "dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated|pll1" has parameters clk1_multiply_by and clk1_divide_by specified but port CLK[1] is not connected File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/dds_pll_altpll.v Line: 44
 Warning (21074): Design contains 11 input pin(s) that do not drive logic
-    Warning (15610): No output dependent on input pin "clk_in0"
-    Warning (15610): No output dependent on input pin "dds_drover"
-    Warning (15610): No output dependent on input pin "dds_bus_in[16]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[17]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[18]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[19]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[20]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[21]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[22]"
-    Warning (15610): No output dependent on input pin "dds_bus_in[23]"
-    Warning (15610): No output dependent on input pin "external_trigger"
-Info (21057): Implemented 2424 device resources after synthesis - the final resource count might be different
+    Warning (15610): No output dependent on input pin "clk_in0" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 11
+    Warning (15610): No output dependent on input pin "dds_drover" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 24
+    Warning (15610): No output dependent on input pin "dds_bus_in[16]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[17]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[18]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[19]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[20]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[21]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[22]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "dds_bus_in[23]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
+    Warning (15610): No output dependent on input pin "external_trigger" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 46
+Info (21057): Implemented 2445 device resources after synthesis - the final resource count might be different
     Info (21058): Implemented 40 input pins
     Info (21059): Implemented 73 output pins
-    Info (21061): Implemented 2246 logic cells
+    Info (21061): Implemented 2267 logic cells
     Info (21064): Implemented 64 RAM segments
     Info (21065): Implemented 1 PLLs
-Info: Quartus II 64-Bit Analysis & Synthesis was successful. 0 errors, 61 warnings
-    Info: Peak virtual memory: 755 megabytes
-    Info: Processing ended: Mon Jun 13 17:50:45 2016
-    Info: Elapsed time: 00:00:30
-    Info: Total CPU time (on all processors): 00:00:32
+Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 61 warnings
+    Info: Peak virtual memory: 908 megabytes
+    Info: Processing ended: Wed Jun 22 12:32:19 2016
+    Info: Elapsed time: 00:00:32
+    Info: Total CPU time (on all processors): 00:00:54
 
 

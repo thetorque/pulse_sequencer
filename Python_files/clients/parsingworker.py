@@ -165,29 +165,16 @@ class ParsingWorker(QObject):
     
     def get_binary_repres(self):
         #tic = time.clock()
-        #import labrad
-        #try:
-        #    print 'got here super last!'
-        #    p = labrad.connect().pulser
-        #except Exeption, e:
-        #    parsermessages.emit('Parser \nDEBUG:\n'+repr(e))
-        #else:
-        #    cont = p.context()
-        #    p.new_sequence(context = cont)
-        #    p.add_dds_standard_pulses(self.sequence,context = cont)
-        #    binary = p.get_dds_program_representation(context = cont)
         seqObject = Sequence()
         seqObject.addDDSStandardPulses(self.sequence)
         binary,ttl = seqObject.progRepresentation()
-        binary = (bytearray([0]*4) + bytearray([255]*1) + bytearray([0]*13))#*100+ bytearray([0]*120)# + bytearray([255]*4)
-        #binary = (bytearray([0]*17) + bytearray([255]) + bytearray([0])*0)
         import binascii
+        binary = bytearray([0,0]) + bytearray([0]*7) + bytearray([0]*1) + bytearray([0]*8)
         for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
             print '------------------lol'
             print binascii.hexlify(abyte),len(abyte)
         self.mutex.lock()
         try:
-            #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
             self.sequencestorage = [(str(binary),str(ttl),self.ParameterID)]
         except Exception,e:
             print e
@@ -197,25 +184,22 @@ class ParsingWorker(QObject):
         #print 'Binary compilation time:       ',toc-tic
         print 'compiling done'
         self.new_sequence_trigger.emit()
-        
+    
     def testing(self):
         string = self.text
         binary = eval(string)
         import binascii
         for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
             print '------------------'
-            print binascii.hexlify(abyte),len(abyte)
+            print binascii.hexlify(abyte)
+            
         self.mutex.lock()
         try:
-            #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
-            self.sequencestorage = [(str(binary),'12',0)]
+            self.sequencestorage = [(str(binary),str(2),0)]
         except Exception,e:
             print e
         finally:
             self.mutex.unlock()
-        #toc = time.clock()
-        #print 'Binary compilation time:       ',toc-tic
-        print 'compiling done'
         self.new_sequence_trigger.emit()
         
     def get_sequence(self):
@@ -293,9 +277,9 @@ class Sequence():
                 addresse = self.ddsDict[name].channelnumber
                 for ablock in [pulsebinary[i:i+16] for i in range(0, len(pulsebinary), 16)]:
                     if fullbinary is None:
-                        fullbinary =  bytearray([0,addresse]) + ablock
+                        fullbinary =  bytearray([addresse,0]) + ablock
                     else:   
-                        fullbinary += bytearray([0,addresse]) + ablock
+                        fullbinary += bytearray([addresse,0]) + ablock
 
         return fullbinary, self.ttlProgram
         

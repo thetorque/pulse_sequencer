@@ -43,6 +43,7 @@ class PulserWorker(QObject):
         #tic = time.clock()
         p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
+        p.stop_sequence()
         '''p.start_number(1)
         #toc = time.clock()
         #print 'Programming and starting time: ',toc-tic

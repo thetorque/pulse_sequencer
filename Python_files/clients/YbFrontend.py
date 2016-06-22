@@ -138,7 +138,7 @@ class mainwindow(QtGui.QMainWindow):
         splitterwidget = QtGui.QSplitter()
         #string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
         #string = "Channel Raman_rad do 360  MHz with -10 dBm for 1000 ms at 40 ms in mode Normal\n"
-        string = 'bytearray([0]*4) + bytearray([255]*1) + bytearray([0]*13)'
+        string = "bytearray([0,0]) + bytearray([0]*7) + bytearray([0]*1) + bytearray([0]*8)"
         #string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
         
         self.graphingwidget = graphingwidget(self.reactor,self.connection)

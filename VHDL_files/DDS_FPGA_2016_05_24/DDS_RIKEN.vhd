@@ -220,9 +220,19 @@ begin
 	
 	operating_mode             <= dds_ram_data_out(17 downto 16);
 	
-	led_VALUE (2 downto 0) 		<= dds_ram_rdaddress(2 downto 0);
-	led_VALUE (5 downto 3) 		<= bus_in_address(2 downto 0);
-	led_VALUE (6) 					<= bus_in_fifo_empty;
+	
+	led_value (0)                 <= dds_ram_data_out(0);
+	led_value (1)                 <= dds_ram_data_out(16);
+	led_value (2)                 <= dds_ram_data_out(32);
+	led_value (3)                 <= dds_ram_data_out(48);
+	led_value (4)                 <= dds_ram_data_out(64);
+	led_value (5)                 <= dds_ram_data_out(80);
+	led_value (6)                 <= dds_ram_data_out(96);
+	led_value (7)                 <= dds_ram_data_out(112);
+	
+	--led_VALUE (5 downto 4) 		<= dds_ram_data_out(1 downto 0);
+	--led_VALUE (5 downto 3) 		<= bus_in_address(2 downto 0);
+	--led_VALUE (6) 					<= bus_in_fifo_empty;
 	
 	
 	---- Frequency modulation mode
@@ -457,9 +467,9 @@ begin
 		variable dds_step_count: integer range 0 to 4095:=0;
 		
 	begin
-			if (dds_ram_reset = '1' or dds_step_count = (number_lines_in_ram/8)) then
+			if (dds_ram_reset = '1') then
 				dds_step_count:=0;
-			elsif (rising_edge(dds_step_to_next_freq_sampled)) then	
+			elsif (rising_edge(dds_step_to_next_freq_sampled)) then
 				dds_step_count := dds_step_count+1;
 			end if;
 			dds_ram_rdaddress<=std_LOGIC_vector(to_unsigned(dds_step_count,12));
@@ -469,6 +479,9 @@ begin
 	process (clk_system,dds_ram_reset)
 		variable write_ram_address: integer range 0 to 32767:=0;
 		variable ram_process_count: integer range 0 to 9:=0;
+		variable temp_var         : std_logic := '0';
+		variable subcount         : integer range 0 to 50000 := 0;
+
 	begin
 		----- reset ram -----
 		----- This doesn't really reset the ram but only put the address to zero so that the next writing 
@@ -477,24 +490,37 @@ begin
 		if (dds_ram_reset = '1') then
 			write_ram_address := 0;
 			ram_process_count := 0;
+			temp_var := '0';
+			subcount := 0;
+			--led_value (6) <= '1';
+			--led_value(2 downto 0) <= "000";
 		elsif rising_edge(clk_system) then
 			case ram_process_count is
 				--------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
 				--------- fifo_pulser empty. 
 				when 0 => fifo_dds_rd_clk <='1';
-							 fifo_dds_rd_en <= '0';
 							 dds_ram_wren <='0';
-							 ram_process_count := 1;
+							 if subcount = 0 then
+   							 ram_process_count := 1;
+								 subcount := 0;
+							 else
+							    subcount := subcount +1;
+							 end if;
 
 				when 1 => fifo_dds_rd_clk <='0';
-							 ram_process_count := 2;
+				          if subcount = 0 then
+   							 ram_process_count := 2;
+								 subcount := 0;
+							 else
+							    subcount := subcount +1;
+							 end if;
 
 				when 2 => if (bus_in_address = dds_address) then
 								if (fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
-									ram_process_count:=0; 
+									ram_process_count:=0;
+								   temp_var := '1';	
 								else 
 									ram_process_count := 3; --2 ---- if there's anything in the fifo, go to the next case
-									number_lines_in_ram := 0;
 								end if;
 							 else 
 								ram_process_count:=0;
@@ -503,11 +529,19 @@ begin
 				-------- there's sth in the fifo ---------
 				when 3 => fifo_dds_rd_en <= '1';
 							 ram_process_count:=4;
-				when 4 => fifo_dds_rd_clk <= '1'; ------------- read from fifo --------------
+							 
+				when 4 => if (temp_var = '0') then
+    				          fifo_dds_rd_clk <= '1'; ------------- read from fifo --------------
+							 end if;
 							 dds_ram_wren <='1';
-							 dds_ram_wrclock <= '1';
-							 ram_process_count:=5;
-				when 5 => fifo_dds_rd_clk <= '0';
+							 if subcount = 500 then
+							    subcount :=0;
+								 ram_process_count:=5;
+							 else
+							    subcount := subcount + 1;
+							 end if;
+							 
+				when 5 => dds_ram_wrclock <= '0';
 							 ram_process_count:=6;
 				
 				---------- prepare data and address that are about to be written to the ram------
@@ -516,17 +550,25 @@ begin
 							 dds_ram_data_in <= fifo_dds_dout;
 							 ram_process_count:=7;
 
-				when 7 => dds_ram_wrclock <= '0'; ----------write to ram
+				when 7 => dds_ram_wrclock <= '1'; ----------write to ram
 							 ram_process_count:=8;
 				when 8 => write_ram_address:=write_ram_address+1; ----- increase address by one
-							 number_lines_in_ram:= write_ram_address;
 							 ram_process_count:=9;
 				----- check again if the fifo is empty or not. Basically this whole process will
 				----- keep writing to ram until fifo is empty.
 				when 9 => if (fifo_dds_empty = '1') then 
 								ram_process_count:=0;
+								fifo_dds_rd_en <= '0';
 							 else 
-								ram_process_count:=3; 
+								ram_process_count:=3;
+								fifo_dds_rd_clk <= '0';
+								if subcount = 50 then
+								   subcount := 0;
+								   ram_process_count:=3;
+								else
+								   subcount := subcount + 1;
+								end if;
+								temp_var := '0';
 							 end if;
 			end case;
 		end if;
