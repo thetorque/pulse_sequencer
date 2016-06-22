@@ -97,7 +97,6 @@ ARCHITECTURE simulation_arch OF usb_dds_fifo_synth IS
     -- FIFO interface signal declarations
     SIGNAL wr_clk_i                       :   STD_LOGIC;
     SIGNAL rd_clk_i                       :   STD_LOGIC;
-    SIGNAL wr_data_count                  :   STD_LOGIC_VECTOR(11-1 DOWNTO 0);
     SIGNAL rst	                          :   STD_LOGIC;
     SIGNAL wr_en                          :   STD_LOGIC;
     SIGNAL rd_en                          :   STD_LOGIC;
@@ -252,8 +251,8 @@ ARCHITECTURE simulation_arch OF usb_dds_fifo_synth IS
               C_APPLICATION_TYPE  => 0,
 	      C_DOUT_WIDTH        => 16,
 	      C_DIN_WIDTH         => 16,
-	      C_WR_PNTR_WIDTH     => 11,
-    	      C_RD_PNTR_WIDTH     => 11,
+	      C_WR_PNTR_WIDTH     => 15,
+    	      C_RD_PNTR_WIDTH     => 15,
  	      C_CH_TYPE           => 0,
               FREEZEON_ERROR      => FREEZEON_ERROR,
 	      TB_SEED             => TB_SEED, 
@@ -286,7 +285,6 @@ ARCHITECTURE simulation_arch OF usb_dds_fifo_synth IS
     PORT MAP (
            WR_CLK                    => wr_clk_i,
            RD_CLK                    => rd_clk_i,
-           WR_DATA_COUNT             => wr_data_count,
            RST                       => rst,
            WR_EN 		     => wr_en,
            RD_EN                     => rd_en,

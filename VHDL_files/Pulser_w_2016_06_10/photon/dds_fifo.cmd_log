@@ -1,0 +1,1 @@
+vhdtdtfi -prj photon -o C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/dds_fifo.vhi -module dds_fifo -template C:/Xilinx/14.7/ISE_DS/ISE//data/vhdlinst.tft -deleteonerror -lib work dds_fifo.vhd 

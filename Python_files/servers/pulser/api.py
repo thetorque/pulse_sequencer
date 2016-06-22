@@ -1,4 +1,5 @@
 import ok
+import time
 from hardwareConfiguration import hardwareConfiguration
 
 class api(object):
@@ -263,6 +264,8 @@ class api(object):
         ### pad to a multiple of 16 bytes
  #       prog_padded = self.padTo16(prog)
         print self.xem.WriteToBlockPipeIn(0x81, 2 , prog)  # very important !!! second argument need to be 16. Don't change this.
+        #time.sleep(3)
+        #print self.xem.WriteToBlockPipeIn(0x81, 2 , prog)
         #print "program DDS"
     
     def initializeDDS(self):

@@ -65,8 +65,7 @@ COMPONENT usb_dds_fifo
     rd_en : IN STD_LOGIC;
     dout : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
     full : OUT STD_LOGIC;
-    empty : OUT STD_LOGIC;
-    wr_data_count : OUT STD_LOGIC_VECTOR(10 DOWNTO 0)
+    empty : OUT STD_LOGIC
   );
 END COMPONENT;
 -- COMP_TAG_END ------ End COMPONENT Declaration ------------
@@ -85,8 +84,7 @@ your_instance_name : usb_dds_fifo
     rd_en => rd_en,
     dout => dout,
     full => full,
-    empty => empty,
-    wr_data_count => wr_data_count
+    empty => empty
   );
 -- INST_TAG_END ------ End INSTANTIATION Template ------------
 

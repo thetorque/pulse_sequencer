@@ -77,8 +77,7 @@ architecture arch of photon is
         rd_en : IN STD_LOGIC;
         dout : OUT STD_LOGIC_VECTOR(15 DOWNTO 0);
         full : OUT STD_LOGIC;
-        empty : OUT STD_LOGIC;
-        wr_data_count: OUT STD_LOGIC_VECTOR(10 downto 0));
+        empty : OUT STD_LOGIC);
     end component;
     
     
@@ -252,7 +251,6 @@ architecture arch of photon is
     signal    usb_fifo_dds_dout        : STD_LOGIC_VECTOR(15 downto 0);
     signal    usb_fifo_dds_full        : STD_LOGIC;
     signal    usb_fifo_dds_empty        : STD_LOGIC;
-    signal    usb_fifo_dds_wr_data_count        : STD_LOGIC_vector(10 downto 0);
     signal  dds_addresse : STD_LOGIC_vector (3 downto 0);
     
     signal   fifo_dds_wr_clk   : STD_LOGIC;
@@ -367,8 +365,7 @@ fifo6: usb_dds_fifo port map(
         rd_en=> usb_fifo_dds_rd_en, 
         dout=> usb_fifo_dds_dout,
         full=> usb_fifo_dds_full,
-        empty=> usb_fifo_dds_empty,
-        wr_data_count=>usb_fifo_dds_wr_data_count);
+        empty=> usb_fifo_dds_empty);
         
 pipe_in_ready_dds <= '1'; ---- enable pipe in. The only pipe in used in this design is writing of the pulse into this fifo.
 usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
@@ -376,19 +373,49 @@ usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if 
 ---------------------------------------------------------
 ---------------- usb fifo to dds fifo -------------------
 process (clk_100,pulser_ram_reset)
-        variable main_count: integer range 0 to 7:=0;
+        variable main_count: integer range 0 to 8:=0;
         variable blocks_read: integer range 0 to 15 :=0;
         variable var_dds_addresse: STD_LOGIC_VECTOR (3 downto 0):="1111";
+        variable var_int_debug : integer range 0 to 15 := 0;
+        variable var_debug : std_LOGIC_VECTOR (3 downto 0) := "1111";
+        variable subcount : integer range 0 to 3 := 0;
+        variable var_dds_rst : std_logic := '0';
+
     begin
 
-        dds_addresse <= var_dds_addresse;
         if (pulser_ram_reset = '1') then
             main_count := 0;
             blocks_read := 0;
             led(6) <= '1';
             led(4) <= '1';
             led(7) <= '1';
+            var_debug := "1111";
+            fifo_dds_rst <= '1';
+            var_dds_rst := '1';
+            subcount := 0;
+
         elsif rising_edge(clk_100) then
+            if var_dds_rst = '1' then
+                case subcount is
+                    when 0 => fifo_dds_wr_clk <= '1';
+                              subcount := 1;
+                              
+                    when 1 => fifo_dds_wr_clk <= '0';
+                              subcount := 2;
+                    
+                    when 2 =>  if fifo_dds_rst = '1' then
+                                   fifo_dds_rst <= '0';
+                               end if;
+                               subcount := 3;
+
+                    when 3 => if fifo_dds_full = '0' then
+                                 var_dds_rst := '0';
+                               else                                 
+                                subcount := 0;   
+                               end if;
+                    end case;                               
+            else
+        
             case main_count is
                 --------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
                 --------- fifo_pulser empty. 
@@ -398,6 +425,7 @@ process (clk_100,pulser_ram_reset)
                           fifo_dds_wr_en <= '0';
                           main_count := 1;
                 when 1 => usb_fifo_dds_rd_clk <= '0';
+                          fifo_dds_wr_clk <= '1';
                           if (usb_fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
                               main_count:=0;
                           else
@@ -409,48 +437,59 @@ process (clk_100,pulser_ram_reset)
                           fifo_dds_wr_en <= '1';
                           main_count := 3;
                           
-                when 3 => if (blocks_read /= 0) then
+                when 3 => if (blocks_read > 0) then
                               fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
+                              fifo_dds_din <= usb_fifo_dds_dout;
                           end if;
                           main_count := 4;
                           
-                when 4 => if (blocks_read /= 0) then
+                when 4 => if (blocks_read > 0) then
                               fifo_dds_wr_clk <= '1'; -- write to dds fifo
                           end if;
                           
                           if (blocks_read = 0) then
-                              var_dds_addresse := not usb_fifo_dds_dout (3 downto 0);
-                              led(3 downto 0) <= var_dds_addresse;
-                              led(6) <= '0';
-                              dds_addresse <= var_dds_addresse;
-                              
-                          end if;
-
-                          if (blocks_read = 8) then
-                              blocks_read := 0;
+                              if (fifo_dds_empty = '1') and (fifo_dds_rd_clk = '0') then
+                                  var_dds_addresse := usb_fifo_dds_dout (3 downto 0);
+                                  dds_addresse <= var_dds_addresse;
+                                  var_int_debug := conv_integer(unsigned(usb_fifo_dds_dout(11 downto 8)));
+                                  main_count := 5;
+                              else
+                                  main_count := 4;
+                              end if;
                           else
-                              blocks_read := blocks_read + 1;
+                              main_count := 5;
                           end if;
                           
+                          
+                when 5 => blocks_read := blocks_read + 1;
+                          if (blocks_read = 9) then
+                              blocks_read := 0;
+                          end if;
+                          
+                          if blocks_read = var_int_debug then
+                              var_debug := usb_fifo_dds_dout(3 downto 0);
+                              --led(3 downto 0) <= var_debug;
+                          end if;
                           
                           if (blocks_read > 8) then
                               led(7) <= '0';
                           end if;
-                          main_count := 5;
-                                                  
-                when 5 => usb_fifo_dds_rd_clk <= '0'; -- arm to read from usb fifo
-                          
                           main_count := 6;
+                                                  
+                when 6 => usb_fifo_dds_rd_clk <= '0'; -- arm to read from usb fifo
                           
-                when 6 => usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
                           main_count := 7;
+                          
+                when 7 => usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+                          main_count := 8;
                 
-                when 7 => if (usb_fifo_dds_empty = '1') then
+                when 8 => if (usb_fifo_dds_empty = '1') then
                               main_count := 0;
                           else
                               main_count := 2;
                           end if;    
             end case;
+         end if;
         end if;
 end process;
 
@@ -459,7 +498,7 @@ fifo4: dds_fifo port map(
         rst=>fifo_dds_rst,
         wr_clk=>fifo_dds_wr_clk,
         rd_clk=>fifo_dds_rd_clk,
-        din=> usb_fifo_dds_dout,
+        din=> fifo_dds_din,
         wr_en=> fifo_dds_wr_en,
         rd_en=> fifo_dds_rd_en, 
         dout=> fifo_dds_dout,
@@ -467,7 +506,7 @@ fifo4: dds_fifo port map(
         empty=> fifo_dds_empty,
         wr_data_count=>fifo_dds_wr_data_count);
         
-fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
+--fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
 led(5) <= not usb_fifo_dds_empty;
 --led(4) <= not logic_out(4);
 --led(7 downto 4) <= not ep04wire(3 downto 0);
@@ -496,7 +535,7 @@ led(5) <= not usb_fifo_dds_empty;
 
 ---============= DDS stuff ==============================
 ---------------------------------------------------------
-
+led(3 downto 0) <= not fifo_dds_dout (3 downto 0);
 dds_logic_data_out <= not fifo_dds_dout;
 fifo_dds_rd_clk_temp <= not dds_logic_fifo_rd_clk;
 fifo_dds_rd_en <= not dds_logic_fifo_rd_en;
@@ -504,7 +543,7 @@ dds_logic_fifo_empty <= not fifo_dds_empty;
 dds_logic_ram_reset <= not (master_logic(19) or ep40wire(4)); -----------dds reset----------
 dds_logic_step_to_next_value <= not (master_logic(18) or ep40wire(5));
 dds_logic_reset_dds_chip <= not (ep40wire(6));
-dds_logic_address <= dds_addresse;
+dds_logic_address <= not dds_addresse;
 --dds_logic_address <= not (ep04wire(3 downto 0)); ---------------set dds channel
 
 ----------------------------------------------------------
