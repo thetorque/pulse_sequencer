@@ -1,0 +1,33 @@
+#:C0     
+#Xilinx FPGA Editor Command Log File
+#Editor Version:
+#:V   NT M2.1 P.20131013
+#Current Working Directory:
+#:D   C:\Users\katori\Desktop\pulse_sequencer\VHDL_files\Pulser_w_2016_06_10\photon
+#Date/Time:
+#:T   Wed Jun 22 23:07:34 2016
+#------------------------------
+	#Reading photon_map.ncd...
+	#Loading device for application Rf_Device from file '6slx45.nph' in environment C:\Xilinx\14.7\ISE_DS\ISE\.
+	#   "photon" is an NCD, version 3.2, device xc6slx45, package fgg484, speed -2
+	#Design creation date: 2016.06.22.12.51.22
+	#Building chip graphics...
+	#Loading speed info...
+	#1
+setattr main edit-mode no-logic-changes
+	#2
+select -k comp 'dds_logic_fifo_rd_en'
+	#3
+unselect comp 'dds_logic_fifo_rd_en'
+	#4
+select -k comp 'dds_logic_ram_reset'
+	#5
+unselect comp 'dds_logic_ram_reset'
+	#6
+select -k comp 'dds_logic_fifo_rd_en'
+	#7
+unselect comp 'dds_logic_fifo_rd_en'
+	#8
+select -k comp 'dds_logic_fifo_rd_clk'
+	#9
+unselect -all

@@ -373,19 +373,22 @@ usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if 
 ---------------------------------------------------------
 ---------------- usb fifo to dds fifo -------------------
 process (clk_100,pulser_ram_reset)
-        variable main_count: integer range 0 to 5:=0;
-        variable blocks_read: integer range 0 to 15 :=0;
+        variable main_count: integer range 0 to 6
+        :=0;
+        variable blocks_written: integer range 0 to 15 :=0;
         variable var_dds_addresse: STD_LOGIC_VECTOR (3 downto 0):="1111";
         variable var_int_debug : integer range 0 to 15 := 0;
         variable var_debug : std_LOGIC_VECTOR (3 downto 0) := "1111";
         variable subcount : integer range 0 to 3 := 0;
         variable var_dds_rst : std_logic := '0';
+        variable var_counter : integer range 0 to 10000 := 0;
+        variable var_debug_old_rd_clk : std_logic := '0';
 
     begin
 
         if (pulser_ram_reset = '1') then
             main_count := 0;
-            blocks_read := 0;
+            blocks_written := 0;
             led(6) <= '1';
             led(4) <= '1';
             led(7) <= '1';
@@ -393,6 +396,8 @@ process (clk_100,pulser_ram_reset)
             fifo_dds_rst <= '1';
             var_dds_rst := '1';
             subcount := 0;
+            var_counter := 0;
+            var_debug_old_rd_clk := '0';
 
         elsif rising_edge(clk_100) then
             if var_dds_rst = '1' then
@@ -433,50 +438,48 @@ process (clk_100,pulser_ram_reset)
                               main_count:= 2;  ---- if there's anything in the fifo, go to the next case
                           end if;                 
                             
-                         
-                when 2 => if (blocks_read > 0) then
-                              fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
-                              fifo_dds_din <= usb_fifo_dds_dout;
-                          end if;
-                          usb_fifo_dds_rd_en <= '1';
-                          fifo_dds_wr_en <= '1';  
-                          main_count := 3;
-                          
-                when 3 => if (blocks_read > 0) then
-                              fifo_dds_wr_clk <= '1'; -- write to dds fifo
-                          end if;
-                          usb_fifo_dds_rd_clk <= '0'; -- arm to read from usb fifo
-                          if (blocks_read = 0) then
-                              if (fifo_dds_empty = '1') and (fifo_dds_rd_clk = '0') then
+                when 2 => if (blocks_written = 0) then
+                              if (fifo_dds_rd_en = '0') then
                                   var_dds_addresse := usb_fifo_dds_dout (3 downto 0);
                                   dds_addresse <= var_dds_addresse;
                                   var_int_debug := conv_integer(unsigned(usb_fifo_dds_dout(11 downto 8)));
-                                  main_count := 4;
-                              else
                                   main_count := 3;
                               end if;
                           else
-                              main_count := 4;
+                              main_count := 3;
+                          end if;
+                
+                
+                when 3 => fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
+                          usb_fifo_dds_rd_clk <= '0'; -- arm to read from usb fifo
+                          
+                          fifo_dds_din <= usb_fifo_dds_dout;
+                          
+                          usb_fifo_dds_rd_en <= '1';
+                          fifo_dds_wr_en <= '1';  
+                          main_count := 4;
+                          
+                          
+                when 4=>  fifo_dds_wr_clk <= '1'; -- write to dds fifo 
+                          blocks_written := blocks_written + 1;
+                          if (blocks_written = 9) then
+                              blocks_written := 0;
                           end if;
                           
-                          
-                when 4=> blocks_read := blocks_read + 1;
-                          if (blocks_read = 9) then
-                              blocks_read := 0;
-                          end if;
-                          
-                          if blocks_read = var_int_debug then
+                          if blocks_written = var_int_debug then
                               var_debug := usb_fifo_dds_dout(3 downto 0);
                               --led(3 downto 0) <= var_debug;
                           end if;
                           
-                          if (blocks_read > 8) then
+                          if (blocks_written > 8) then
                               led(7) <= '0';
                           end if;
-                          usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+                          
                           main_count := 5;
-                                                  
-                when 5 => if (usb_fifo_dds_empty = '1') then
+                                            
+                when 5 => usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+                          main_count := 6;                
+                when 6 => if (usb_fifo_dds_empty = '1') then
                               main_count := 0;
                           else
                               main_count := 2;
