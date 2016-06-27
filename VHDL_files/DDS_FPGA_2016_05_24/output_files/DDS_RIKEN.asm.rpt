@@ -1,5 +1,5 @@
 Assembler report for DDS_RIKEN
-Wed Jun 22 20:10:35 2016
+Thu Jun 23 21:56:33 2016
 Quartus Prime Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 
 
@@ -40,7 +40,7 @@ agreement for further details.
 +---------------------------------------------------------------+
 ; Assembler Summary                                             ;
 +-----------------------+---------------------------------------+
-; Assembler Status      ; Successful - Wed Jun 22 20:10:35 2016 ;
+; Assembler Status      ; Successful - Thu Jun 23 21:56:33 2016 ;
 ; Revision Name         ; DDS_RIKEN                             ;
 ; Top-level Entity Name ; DDS_RIKEN                             ;
 ; Family                ; Cyclone IV E                          ;
@@ -72,8 +72,8 @@ agreement for further details.
 ; Option         ; Setting                                                                                           ;
 +----------------+---------------------------------------------------------------------------------------------------+
 ; Device         ; EP4CE22F17C8                                                                                      ;
-; JTAG usercode  ; 0x002CD7FF                                                                                        ;
-; Checksum       ; 0x002CD7FF                                                                                        ;
+; JTAG usercode  ; 0x002D1B46                                                                                        ;
+; Checksum       ; 0x002D1B46                                                                                        ;
 +----------------+---------------------------------------------------------------------------------------------------+
 
 
@@ -84,7 +84,7 @@ agreement for further details.
 +--------------------+-----------------------------------------------------------------------------------------------+
 ; Device             ; EPCS16                                                                                        ;
 ; JTAG usercode      ; 0x00000000                                                                                    ;
-; Checksum           ; 0x1CCCE668                                                                                    ;
+; Checksum           ; 0x1CCA9696                                                                                    ;
 ; Compression Ratio  ; 3                                                                                             ;
 +--------------------+-----------------------------------------------------------------------------------------------+
 
@@ -105,13 +105,13 @@ agreement for further details.
 Info: *******************************************************************
 Info: Running Quartus Prime Assembler
     Info: Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
-    Info: Processing started: Wed Jun 22 20:10:33 2016
+    Info: Processing started: Thu Jun 23 21:56:31 2016
 Info: Command: quartus_asm --read_settings_files=off --write_settings_files=off DDS_RIKEN -c DDS_RIKEN
 Info (115031): Writing out detailed assembly data for power analysis
 Info (115030): Assembler is generating device programming files
 Info: Quartus Prime Assembler was successful. 0 errors, 0 warnings
-    Info: Peak virtual memory: 744 megabytes
-    Info: Processing ended: Wed Jun 22 20:10:35 2016
+    Info: Peak virtual memory: 739 megabytes
+    Info: Processing ended: Thu Jun 23 21:56:33 2016
     Info: Elapsed time: 00:00:02
     Info: Total CPU time (on all processors): 00:00:02
 

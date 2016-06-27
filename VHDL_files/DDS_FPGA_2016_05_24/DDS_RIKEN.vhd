@@ -228,7 +228,7 @@ begin
 	led_value (5)                 <= dds_ram_data_out(80);
 	led_value (6)                 <= dds_ram_data_out(96);
 	led_value (7)                 <= dds_ram_data_out(112);
-	
+	--led_value (7 downto 0)          <= fifo_dds_dout(7 downto 0);
 	--led_VALUE (5 downto 4) 		<= dds_ram_data_out(1 downto 0);
 	--led_VALUE (5 downto 3) 		<= bus_in_address(2 downto 0);
 	--led_VALUE (6) 					<= bus_in_fifo_empty;
@@ -479,6 +479,9 @@ begin
 		variable write_ram_address: integer range 0 to 32767:=0;
 		variable ram_process_count: integer range 0 to 9:=0;
 		variable subcount         : integer range 0 to 50000 := 0;
+		variable counter          : integer range 0 to 100;
+		variable blocks_read      : integer range 0 to 16;
+		variable read_length      : integer range 0 to 16;
 
 	begin
 		----- reset ram -----
@@ -489,6 +492,9 @@ begin
 			write_ram_address := 0;
 			ram_process_count := 0;
 			subcount := 0;
+			blocks_read := 0;
+			read_length := 0;
+			--led_value(7 downto 0) <= "00000000";
 			--led_value (6) <= '1';
 			--led_value(2 downto 0) <= "000";
 		elsif rising_edge(clk_system) then
@@ -507,15 +513,30 @@ begin
 									ram_process_count:=0;
 								else 
 									ram_process_count := 3; --2 ---- if there's anything in the fifo, go to the next case
+									fifo_dds_rd_en <= '1';
 								end if;
 							 else 
 								ram_process_count:=0;
 							 end if;
 
 				-------- there's data in the fifo ---------
-				when 3 => fifo_dds_rd_en <= '1';
-				          dds_ram_wren <='1';
-							 ram_process_count:=4;
+				when 3 => if (blocks_read = 0) then
+				              if (fifo_dds_dout(3 downto 0) = dds_address) then
+   							      read_length := to_integer(unsigned(fifo_dds_dout(15 downto 12)));
+								      --led_value (3 downto 0) <= std_logic_vector(to_unsigned(read_length,4));
+								      
+										--led_value(5) <= '1';
+								      dds_ram_wren <='1';
+		 							   ram_process_count := 4;	
+									else
+									    fifo_dds_rd_en <= '0';
+									    ram_process_count := 0;
+									end if;
+							  else
+							      dds_ram_wren <= '1';
+								   ram_process_count := 4;
+							  end if;
+							  
 							 
 				when 4 => dds_ram_wrclock <= '0';
 				          ram_process_count := 5;
@@ -527,17 +548,35 @@ begin
 				
 				---------- prepare data and address that are about to be written to the ram------
 				
-				when 6 => dds_ram_wrclock <= '1';
-							 ram_process_count:=7;
- 
-
-				when 7 => fifo_dds_rd_clk <= '1';
-			             write_ram_address:=write_ram_address+1; ----- increase address by one	
-							 ram_process_count:=8;
+				when 6 => if (blocks_read > 0) then
+				              --led_value(0) <= '1';
+				              dds_ram_wrclock <= '1';
+								  if (dds_ram_wren = '1') then
+    								  counter := counter + 1;
+								  end if;
+							 end if;
 							 
-				when 8 => fifo_dds_rd_clk <= '0';
-				          dds_ram_wrclock <= '0';
-		  					 ram_process_count:=9;
+				          fifo_dds_rd_clk <= '0';
+							 ram_process_count:=7;
+							 
+				when 7 => fifo_dds_rd_clk <= '1';
+                      ram_process_count := 8;
+
+				when 8 => if (blocks_read > 0) then
+							     write_ram_address:=write_ram_address+1; ----- increase address by one	
+								  
+							 end if;
+							 
+							 
+							 blocks_read := blocks_read + 1;
+						    if (blocks_read = read_length) then
+							        fifo_dds_rd_en <= '0';
+									  --dds_ram_wren <= '0';
+								     blocks_read := 0;
+			             end if;
+							 --led_value (7 downto 4) <= std_logic_vector(to_unsigned(counter,4));
+							 ram_process_count := 9;
+
 								
 				----- check again if the fifo is empty or not. Basically this whole process will
 				----- keep writing to ram until fifo is empty.
@@ -545,7 +584,10 @@ begin
 			               --dds_ram_wrclock <= '1';
 								ram_process_count:=0;
 								fifo_dds_rd_en <= '0';
-							 else 
+								dds_ram_wren <= '0';
+								--led_value(4) <= '1';
+							 else
+							 
 								ram_process_count:=3;
 							 end if;
 			end case;

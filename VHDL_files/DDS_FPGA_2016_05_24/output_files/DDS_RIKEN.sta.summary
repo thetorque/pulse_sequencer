@@ -3,32 +3,36 @@ TimeQuest Timing Analyzer Summary
 ------------------------------------------------------------
 
 Type  : Slow 1200mV 85C Model Setup 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -11.088
-TNS   : -22.121
+Slack : -12.276
+TNS   : -23.849
 
 Type  : Slow 1200mV 85C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : -10.872
-TNS   : -5582.006
+Slack : -9.492
+TNS   : -5515.687
 
 Type  : Slow 1200mV 85C Model Setup 'clk_system'
-Slack : -9.040
-TNS   : -111.847
-
-Type  : Slow 1200mV 85C Model Setup 'dds_ram_wrclock'
-Slack : -3.467
-TNS   : -572.012
+Slack : -8.628
+TNS   : -143.598
 
 Type  : Slow 1200mV 85C Model Setup 'clk_dds'
-Slack : -3.096
-TNS   : -164.086
+Slack : -3.156
+TNS   : -168.365
+
+Type  : Slow 1200mV 85C Model Setup 'dds_ram_wrclock'
+Slack : -2.681
+TNS   : -420.505
 
 Type  : Slow 1200mV 85C Model Setup 'dds_step_to_next_freq_sampled'
-Slack : -1.783
-TNS   : -15.327
+Slack : -1.631
+TNS   : -13.188
 
 Type  : Slow 1200mV 85C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : -0.263
-TNS   : -0.263
+Slack : -0.291
+TNS   : -0.291
+
+Type  : Slow 1200mV 85C Model Hold 'dds_ram_wrclock'
+Slack : 0.413
+TNS   : 0.000
 
 Type  : Slow 1200mV 85C Model Hold 'clk_system'
 Slack : 0.454
@@ -38,16 +42,12 @@ Type  : Slow 1200mV 85C Model Hold 'dds_step_to_next_freq_sampled'
 Slack : 0.466
 TNS   : 0.000
 
-Type  : Slow 1200mV 85C Model Hold 'dds_ram_wrclock'
-Slack : 0.644
-TNS   : 0.000
-
 Type  : Slow 1200mV 85C Model Hold 'clk_dds'
-Slack : 0.655
+Slack : 0.751
 TNS   : 0.000
 
 Type  : Slow 1200mV 85C Model Hold 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : 1.180
+Slack : 1.373
 TNS   : 0.000
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'dds_ram_wrclock'
@@ -56,70 +56,70 @@ TNS   : -614.592
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clk_system'
 Slack : -1.487
-TNS   : -92.194
+TNS   : -105.577
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
 Slack : -1.487
 TNS   : -17.844
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -0.452
-TNS   : -4.949
+Slack : -0.496
+TNS   : -4.175
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clk_dds'
-Slack : 3.460
+Slack : 3.482
 TNS   : 0.000
 
 Type  : Slow 1200mV 85C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : 15.662
+Slack : 15.660
 TNS   : 0.000
 
 Type  : Slow 1200mV 0C Model Setup 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -10.609
-TNS   : -21.188
+Slack : -11.845
+TNS   : -22.978
 
 Type  : Slow 1200mV 0C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : -9.957
-TNS   : -4974.372
+Slack : -8.851
+TNS   : -4930.926
 
 Type  : Slow 1200mV 0C Model Setup 'clk_system'
-Slack : -8.404
-TNS   : -100.415
-
-Type  : Slow 1200mV 0C Model Setup 'dds_ram_wrclock'
-Slack : -3.267
-TNS   : -540.077
+Slack : -8.032
+TNS   : -128.162
 
 Type  : Slow 1200mV 0C Model Setup 'clk_dds'
-Slack : -2.816
-TNS   : -149.221
+Slack : -2.881
+TNS   : -152.977
+
+Type  : Slow 1200mV 0C Model Setup 'dds_ram_wrclock'
+Slack : -2.511
+TNS   : -393.795
 
 Type  : Slow 1200mV 0C Model Setup 'dds_step_to_next_freq_sampled'
-Slack : -1.535
-TNS   : -13.059
+Slack : -1.342
+TNS   : -10.740
 
 Type  : Slow 1200mV 0C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : -0.353
-TNS   : -0.353
+Slack : -0.382
+TNS   : -0.382
 
 Type  : Slow 1200mV 0C Model Hold 'clk_system'
-Slack : 0.402
+Slack : 0.403
 TNS   : 0.000
 
 Type  : Slow 1200mV 0C Model Hold 'dds_step_to_next_freq_sampled'
 Slack : 0.419
 TNS   : 0.000
 
-Type  : Slow 1200mV 0C Model Hold 'clk_dds'
-Slack : 0.572
+Type  : Slow 1200mV 0C Model Hold 'dds_ram_wrclock'
+Slack : 0.449
 TNS   : 0.000
 
-Type  : Slow 1200mV 0C Model Hold 'dds_ram_wrclock'
-Slack : 0.702
+Type  : Slow 1200mV 0C Model Hold 'clk_dds'
+Slack : 0.675
 TNS   : 0.000
 
 Type  : Slow 1200mV 0C Model Hold 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : 1.066
+Slack : 1.252
 TNS   : 0.000
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'dds_ram_wrclock'
@@ -128,70 +128,70 @@ TNS   : -614.592
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clk_system'
 Slack : -1.487
-TNS   : -92.194
+TNS   : -105.577
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
 Slack : -1.487
 TNS   : -17.844
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -0.471
-TNS   : -3.898
+Slack : -0.714
+TNS   : -4.833
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clk_dds'
-Slack : 3.351
+Slack : 3.422
 TNS   : 0.000
 
 Type  : Slow 1200mV 0C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : 15.639
+Slack : 15.634
 TNS   : 0.000
 
-Type  : Fast 1200mV 0C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : -4.814
-TNS   : -2382.470
-
 Type  : Fast 1200mV 0C Model Setup 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -4.456
-TNS   : -8.801
+Slack : -4.841
+TNS   : -9.468
+
+Type  : Fast 1200mV 0C Model Setup 'pll|altpll_component|auto_generated|pll1|clk[0]'
+Slack : -4.092
+TNS   : -2419.086
 
 Type  : Fast 1200mV 0C Model Setup 'clk_system'
-Slack : -3.155
-TNS   : -16.013
+Slack : -2.986
+TNS   : -22.197
 
 Type  : Fast 1200mV 0C Model Setup 'clk_dds'
-Slack : -1.157
-TNS   : -51.364
+Slack : -1.148
+TNS   : -51.846
 
 Type  : Fast 1200mV 0C Model Setup 'dds_ram_wrclock'
-Slack : -1.143
-TNS   : -181.896
+Slack : -0.909
+TNS   : -117.099
 
 Type  : Fast 1200mV 0C Model Setup 'dds_step_to_next_freq_sampled'
-Slack : -0.200
-TNS   : -0.693
+Slack : -0.156
+TNS   : -0.380
 
 Type  : Fast 1200mV 0C Model Hold 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : 0.022
+Slack : 0.007
 TNS   : 0.000
 
 Type  : Fast 1200mV 0C Model Hold 'clk_system'
-Slack : 0.186
+Slack : 0.121
 TNS   : 0.000
 
 Type  : Fast 1200mV 0C Model Hold 'dds_step_to_next_freq_sampled'
 Slack : 0.195
 TNS   : 0.000
 
-Type  : Fast 1200mV 0C Model Hold 'clk_dds'
-Slack : 0.326
+Type  : Fast 1200mV 0C Model Hold 'dds_ram_wrclock'
+Slack : 0.318
 TNS   : 0.000
 
-Type  : Fast 1200mV 0C Model Hold 'dds_ram_wrclock'
-Slack : 0.391
+Type  : Fast 1200mV 0C Model Hold 'clk_dds'
+Slack : 0.413
 TNS   : 0.000
 
 Type  : Fast 1200mV 0C Model Hold 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : 0.432
+Slack : 0.468
 TNS   : 0.000
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'dds_ram_wrclock'
@@ -200,22 +200,22 @@ TNS   : -192.000
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clk_system'
 Slack : -1.000
-TNS   : -62.000
+TNS   : -71.000
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'dds_step_to_next_freq_sampled'
 Slack : -1.000
 TNS   : -12.000
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|address_reg_b[0]'
-Slack : -0.069
-TNS   : -0.336
+Slack : -0.062
+TNS   : -0.300
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clk_dds'
 Slack : 3.209
 TNS   : 0.000
 
 Type  : Fast 1200mV 0C Model Minimum Pulse Width 'pll|altpll_component|auto_generated|pll1|clk[0]'
-Slack : 15.746
+Slack : 15.743
 TNS   : 0.000
 
 ------------------------------------------------------------

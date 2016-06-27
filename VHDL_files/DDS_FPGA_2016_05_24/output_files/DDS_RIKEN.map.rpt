@@ -1,5 +1,5 @@
 Analysis & Synthesis report for DDS_RIKEN
-Wed Jun 22 20:08:00 2016
+Thu Jun 23 21:50:55 2016
 Quartus Prime Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 
 
@@ -62,15 +62,15 @@ agreement for further details.
 +----------------------------------------------------------------------------------+
 ; Analysis & Synthesis Summary                                                     ;
 +------------------------------------+---------------------------------------------+
-; Analysis & Synthesis Status        ; Successful - Wed Jun 22 20:08:00 2016       ;
+; Analysis & Synthesis Status        ; Successful - Thu Jun 23 21:50:55 2016       ;
 ; Quartus Prime Version              ; 15.1.0 Build 185 10/21/2015 SJ Lite Edition ;
 ; Revision Name                      ; DDS_RIKEN                                   ;
 ; Top-level Entity Name              ; DDS_RIKEN                                   ;
 ; Family                             ; Cyclone IV E                                ;
-; Total logic elements               ; 2,038                                       ;
-;     Total combinational functions  ; 1,582                                       ;
-;     Dedicated logic registers      ; 1,005                                       ;
-; Total registers                    ; 1005                                        ;
+; Total logic elements               ; 2,062                                       ;
+;     Total combinational functions  ; 1,602                                       ;
+;     Dedicated logic registers      ; 1,014                                       ;
+; Total registers                    ; 1014                                        ;
 ; Total pins                         ; 113                                         ;
 ; Total virtual pins                 ; 0                                           ;
 ; Total memory bits                  ; 524,288                                     ;
@@ -227,20 +227,20 @@ Parallel compilation was disabled, but you have multiple processors available. E
 +---------------------------------------------+------------------------------------------------------------------------------------+
 ; Resource                                    ; Usage                                                                              ;
 +---------------------------------------------+------------------------------------------------------------------------------------+
-; Estimated Total logic elements              ; 2,038                                                                              ;
+; Estimated Total logic elements              ; 2,062                                                                              ;
 ;                                             ;                                                                                    ;
-; Total combinational functions               ; 1582                                                                               ;
+; Total combinational functions               ; 1602                                                                               ;
 ; Logic element usage by number of LUT inputs ;                                                                                    ;
-;     -- 4 input functions                    ; 939                                                                                ;
-;     -- 3 input functions                    ; 505                                                                                ;
-;     -- <=2 input functions                  ; 138                                                                                ;
+;     -- 4 input functions                    ; 958                                                                                ;
+;     -- 3 input functions                    ; 509                                                                                ;
+;     -- <=2 input functions                  ; 135                                                                                ;
 ;                                             ;                                                                                    ;
 ; Logic elements by mode                      ;                                                                                    ;
-;     -- normal mode                          ; 1306                                                                               ;
+;     -- normal mode                          ; 1326                                                                               ;
 ;     -- arithmetic mode                      ; 276                                                                                ;
 ;                                             ;                                                                                    ;
-; Total registers                             ; 1005                                                                               ;
-;     -- Dedicated logic registers            ; 1005                                                                               ;
+; Total registers                             ; 1014                                                                               ;
+;     -- Dedicated logic registers            ; 1014                                                                               ;
 ;     -- I/O registers                        ; 0                                                                                  ;
 ;                                             ;                                                                                    ;
 ; I/O pins                                    ; 113                                                                                ;
@@ -253,8 +253,8 @@ Parallel compilation was disabled, but you have multiple processors available. E
 ;                                             ;                                                                                    ;
 ; Maximum fan-out node                        ; dds_pll:pll|altpll:altpll_component|dds_pll_altpll:auto_generated|wire_pll1_clk[0] ;
 ; Maximum fan-out                             ; 929                                                                                ;
-; Total fan-out                               ; 10575                                                                              ;
-; Average fan-out                             ; 3.67                                                                               ;
+; Total fan-out                               ; 10693                                                                              ;
+; Average fan-out                             ; 3.68                                                                               ;
 +---------------------------------------------+------------------------------------------------------------------------------------+
 
 
@@ -263,7 +263,7 @@ Parallel compilation was disabled, but you have multiple processors available. E
 +-------------------------------------------+-------------------+--------------+-------------+--------------+---------+-----------+------+--------------+-----------------------------------------------------------------------------------------------------------------+--------------+
 ; Compilation Hierarchy Node                ; LC Combinationals ; LC Registers ; Memory Bits ; DSP Elements ; DSP 9x9 ; DSP 18x18 ; Pins ; Virtual Pins ; Full Hierarchy Name                                                                                             ; Library Name ;
 +-------------------------------------------+-------------------+--------------+-------------+--------------+---------+-----------+------+--------------+-----------------------------------------------------------------------------------------------------------------+--------------+
-; |DDS_RIKEN                                ; 1582 (1010)       ; 1005 (1003)  ; 524288      ; 0            ; 0       ; 0         ; 113  ; 0            ; |DDS_RIKEN                                                                                                      ; work         ;
+; |DDS_RIKEN                                ; 1602 (1030)       ; 1014 (1012)  ; 524288      ; 0            ; 0       ; 0         ; 113  ; 0            ; |DDS_RIKEN                                                                                                      ; work         ;
 ;    |dds_14bit_compare:comparer_14bit_1|   ; 14 (0)            ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1                                                                   ; work         ;
 ;       |lpm_compare:LPM_COMPARE_component| ; 14 (0)            ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component                                 ; work         ;
 ;          |cmpr_eng:auto_generated|        ; 14 (14)           ; 0 (0)        ; 0           ; 0            ; 0       ; 0         ; 0    ; 0            ; |DDS_RIKEN|dds_14bit_compare:comparer_14bit_1|lpm_compare:LPM_COMPARE_component|cmpr_eng:auto_generated         ; work         ;
@@ -319,8 +319,8 @@ Note: For table entries with two numbers listed, the numbers in parentheses indi
 ; Latch Name                                         ; Latch Enable Signal ; Free of Timing Hazards ;
 +----------------------------------------------------+---------------------+------------------------+
 ; operating_mode_changed                             ; GND                 ; yes                    ;
-; previous_operating_mode[0]                         ; Equal8              ; yes                    ;
-; previous_operating_mode[1]                         ; Equal8              ; yes                    ;
+; previous_operating_mode[0]                         ; Equal11             ; yes                    ;
+; previous_operating_mode[1]                         ; Equal11             ; yes                    ;
 ; Number of user-specified and inferred latches = 3  ;                     ;                        ;
 +----------------------------------------------------+---------------------+------------------------+
 Note: All latches listed above may not be present at the end of synthesis due to various synthesis optimizations.
@@ -332,11 +332,12 @@ Note: All latches listed above may not be present at the end of synthesis due to
 ; Register name                          ; Reason for Removal                     ;
 +----------------------------------------+----------------------------------------+
 ; adder_step[1..26,43..63]               ; Merged with adder_step[0]              ;
+; read_length[4]                         ; Stuck at GND due to stuck port data_in ;
 ; adder_step[0]                          ; Stuck at GND due to stuck port data_in ;
 ; par_add[6,7]                           ; Stuck at GND due to stuck port data_in ;
 ; LED_OE~reg0                            ; Stuck at GND due to stuck port data_in ;
 ; ramp_up                                ; Merged with adder_direction            ;
-; Total Number of Removed Registers = 52 ;                                        ;
+; Total Number of Removed Registers = 53 ;                                        ;
 +----------------------------------------+----------------------------------------+
 
 
@@ -345,12 +346,12 @@ Note: All latches listed above may not be present at the end of synthesis due to
 +----------------------------------------------+-------+
 ; Statistic                                    ; Value ;
 +----------------------------------------------+-------+
-; Total registers                              ; 1005  ;
+; Total registers                              ; 1014  ;
 ; Number of registers using Synchronous Clear  ; 18    ;
 ; Number of registers using Synchronous Load   ; 24    ;
-; Number of registers using Asynchronous Clear ; 54    ;
+; Number of registers using Asynchronous Clear ; 63    ;
 ; Number of registers using Asynchronous Load  ; 0     ;
-; Number of registers using Clock Enable       ; 951   ;
+; Number of registers using Clock Enable       ; 960   ;
 ; Number of registers using Preset             ; 0     ;
 +----------------------------------------------+-------+
 
@@ -366,35 +367,38 @@ Note: All latches listed above may not be present at the end of synthesis due to
 +----------------------------------------+---------+
 
 
-+------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; Multiplexer Restructuring Statistics (Restructuring Performed)                                                                                             ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
-; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                   ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
-; 3:1                ; 64 bits   ; 128 LEs       ; 0 LEs                ; 128 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_frequency_var[40] ;
-; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|high_ramp_limit_var[29]           ;
-; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|low_ramp_limit_var[16]            ;
-; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|freq_step_size_var[12]            ;
-; 3:1                ; 16 bits   ; 32 LEs        ; 0 LEs                ; 32 LEs                 ; Yes        ; |DDS_RIKEN|main_phase_var[12]                ;
-; 3:1                ; 14 bits   ; 28 LEs        ; 0 LEs                ; 28 LEs                 ; Yes        ; |DDS_RIKEN|\process_6:main_amplitude_var[6]  ;
-; 3:1                ; 14 bits   ; 28 LEs        ; 14 LEs               ; 14 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude_var[13]            ;
-; 5:1                ; 2 bits    ; 6 LEs         ; 4 LEs                ; 2 LEs                  ; Yes        ; |DDS_RIKEN|\process_6:main_count[1]          ;
-; 4:1                ; 16 bits   ; 32 LEs        ; 16 LEs               ; 16 LEs                 ; Yes        ; |DDS_RIKEN|sub_count[4]                      ;
-; 6:1                ; 14 bits   ; 56 LEs        ; 14 LEs               ; 42 LEs                 ; Yes        ; |DDS_RIKEN|old_amp[2]                        ;
-; 5:1                ; 14 bits   ; 42 LEs        ; 14 LEs               ; 28 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude[9]                 ;
-; 6:1                ; 64 bits   ; 256 LEs       ; 64 LEs               ; 192 LEs                ; Yes        ; |DDS_RIKEN|old_freq[18]                      ;
-; 5:1                ; 64 bits   ; 192 LEs       ; 64 LEs               ; 128 LEs                ; Yes        ; |DDS_RIKEN|main_frequency[58]                ;
-; 20:1               ; 2 bits    ; 26 LEs        ; 4 LEs                ; 22 LEs                 ; Yes        ; |DDS_RIKEN|LED_LE~reg0                       ;
-; 11:1               ; 2 bits    ; 14 LEs        ; 6 LEs                ; 8 LEs                  ; Yes        ; |DDS_RIKEN|\process_1:count[1]               ;
-; 38:1               ; 16 bits   ; 400 LEs       ; 16 LEs               ; 384 LEs                ; Yes        ; |DDS_RIKEN|count_delay[0]                    ;
-; 12:1               ; 2 bits    ; 16 LEs        ; 6 LEs                ; 10 LEs                 ; Yes        ; |DDS_RIKEN|count[1]                          ;
-; 12:1               ; 2 bits    ; 16 LEs        ; 0 LEs                ; 16 LEs                 ; Yes        ; |DDS_RIKEN|par_add[6]                        ;
-; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |DDS_RIKEN|ram_process_count[0]              ;
-; 39:1               ; 14 bits   ; 364 LEs       ; 0 LEs                ; 364 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_amplitude_var[13] ;
-; 35:1               ; 3 bits    ; 69 LEs        ; 24 LEs               ; 45 LEs                 ; Yes        ; |DDS_RIKEN|par_data[13]                      ;
-; 37:1               ; 6 bits    ; 144 LEs       ; 48 LEs               ; 96 LEs                 ; Yes        ; |DDS_RIKEN|par_data[9]                       ;
-; 18:1               ; 5 bits    ; 60 LEs        ; 30 LEs               ; 30 LEs                 ; Yes        ; |DDS_RIKEN|main_count[0]                     ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+----------------------------------------------+
++-----------------------------------------------------------------------------------------------------------------------------------------------------------+
+; Multiplexer Restructuring Statistics (Restructuring Performed)                                                                                            ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+---------------------------------------------+
+; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                  ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+---------------------------------------------+
+; 3:1                ; 64 bits   ; 128 LEs       ; 0 LEs                ; 128 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_frequency_var[5] ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|high_ramp_limit_var[19]          ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|low_ramp_limit_var[8]            ;
+; 3:1                ; 32 bits   ; 64 LEs        ; 0 LEs                ; 64 LEs                 ; Yes        ; |DDS_RIKEN|freq_step_size_var[17]           ;
+; 3:1                ; 16 bits   ; 32 LEs        ; 0 LEs                ; 32 LEs                 ; Yes        ; |DDS_RIKEN|main_phase_var[10]               ;
+; 3:1                ; 5 bits    ; 10 LEs        ; 5 LEs                ; 5 LEs                  ; Yes        ; |DDS_RIKEN|blocks_read[4]                   ;
+; 3:1                ; 14 bits   ; 28 LEs        ; 0 LEs                ; 28 LEs                 ; Yes        ; |DDS_RIKEN|\process_6:main_amplitude_var[6] ;
+; 3:1                ; 4 bits    ; 8 LEs         ; 0 LEs                ; 8 LEs                  ; Yes        ; |DDS_RIKEN|read_length[2]                   ;
+; 3:1                ; 14 bits   ; 28 LEs        ; 14 LEs               ; 14 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude_var[10]           ;
+; 3:1                ; 15 bits   ; 30 LEs        ; 0 LEs                ; 30 LEs                 ; Yes        ; |DDS_RIKEN|write_ram_address[13]            ;
+; 5:1                ; 2 bits    ; 6 LEs         ; 4 LEs                ; 2 LEs                  ; Yes        ; |DDS_RIKEN|\process_6:main_count[1]         ;
+; 4:1                ; 16 bits   ; 32 LEs        ; 16 LEs               ; 16 LEs                 ; Yes        ; |DDS_RIKEN|sub_count[7]                     ;
+; 6:1                ; 14 bits   ; 56 LEs        ; 14 LEs               ; 42 LEs                 ; Yes        ; |DDS_RIKEN|old_amp[9]                       ;
+; 5:1                ; 14 bits   ; 42 LEs        ; 14 LEs               ; 28 LEs                 ; Yes        ; |DDS_RIKEN|main_amplitude[13]               ;
+; 6:1                ; 64 bits   ; 256 LEs       ; 64 LEs               ; 192 LEs                ; Yes        ; |DDS_RIKEN|old_freq[40]                     ;
+; 5:1                ; 64 bits   ; 192 LEs       ; 64 LEs               ; 128 LEs                ; Yes        ; |DDS_RIKEN|main_frequency[32]               ;
+; 20:1               ; 2 bits    ; 26 LEs        ; 4 LEs                ; 22 LEs                 ; Yes        ; |DDS_RIKEN|LED_LE~reg0                      ;
+; 11:1               ; 2 bits    ; 14 LEs        ; 6 LEs                ; 8 LEs                  ; Yes        ; |DDS_RIKEN|\process_1:count[2]              ;
+; 38:1               ; 16 bits   ; 400 LEs       ; 16 LEs               ; 384 LEs                ; Yes        ; |DDS_RIKEN|count_delay[2]                   ;
+; 12:1               ; 2 bits    ; 16 LEs        ; 6 LEs                ; 10 LEs                 ; Yes        ; |DDS_RIKEN|count[2]                         ;
+; 12:1               ; 2 bits    ; 16 LEs        ; 0 LEs                ; 16 LEs                 ; Yes        ; |DDS_RIKEN|par_add[6]                       ;
+; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |DDS_RIKEN|ram_process_count[0]             ;
+; 39:1               ; 14 bits   ; 364 LEs       ; 0 LEs                ; 364 LEs                ; Yes        ; |DDS_RIKEN|\process_5:main_amplitude_var[2] ;
+; 35:1               ; 3 bits    ; 69 LEs        ; 24 LEs               ; 45 LEs                 ; Yes        ; |DDS_RIKEN|par_data[14]                     ;
+; 37:1               ; 6 bits    ; 144 LEs       ; 48 LEs               ; 96 LEs                 ; Yes        ; |DDS_RIKEN|par_data[10]                     ;
+; 18:1               ; 5 bits    ; 60 LEs        ; 30 LEs               ; 30 LEs                 ; Yes        ; |DDS_RIKEN|main_count[0]                    ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+---------------------------------------------+
 
 
 +----------------------------------------------------------------------------------------------------+
@@ -1041,31 +1045,31 @@ Note: In order to hide this table in the UI and the text report file, please set
 ; Type                  ; Count                       ;
 +-----------------------+-----------------------------+
 ; boundary_port         ; 113                         ;
-; cycloneiii_ff         ; 1005                        ;
+; cycloneiii_ff         ; 1014                        ;
 ;     CLR               ; 18                          ;
 ;     CLR SLD           ; 5                           ;
 ;     ENA               ; 885                         ;
-;     ENA CLR           ; 31                          ;
+;     ENA CLR           ; 40                          ;
 ;     ENA SCLR          ; 16                          ;
 ;     ENA SLD           ; 19                          ;
 ;     SCLR              ; 2                           ;
 ;     plain             ; 29                          ;
 ; cycloneiii_io_obuf    ; 2                           ;
-; cycloneiii_lcell_comb ; 1585                        ;
+; cycloneiii_lcell_comb ; 1605                        ;
 ;     arith             ; 276                         ;
 ;         2 data inputs ; 60                          ;
 ;         3 data inputs ; 216                         ;
-;     normal            ; 1309                        ;
+;     normal            ; 1329                        ;
 ;         0 data inputs ; 2                           ;
 ;         1 data inputs ; 10                          ;
-;         2 data inputs ; 69                          ;
-;         3 data inputs ; 289                         ;
-;         4 data inputs ; 939                         ;
+;         2 data inputs ; 66                          ;
+;         3 data inputs ; 293                         ;
+;         4 data inputs ; 958                         ;
 ; cycloneiii_pll        ; 1                           ;
 ; cycloneiii_ram_block  ; 64                          ;
 ;                       ;                             ;
 ; Max LUT depth         ; 11.30                       ;
-; Average LUT depth     ; 6.18                        ;
+; Average LUT depth     ; 6.16                        ;
 +-----------------------+-----------------------------+
 
 
@@ -1084,7 +1088,7 @@ Note: In order to hide this table in the UI and the text report file, please set
 Info: *******************************************************************
 Info: Running Quartus Prime Analysis & Synthesis
     Info: Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
-    Info: Processing started: Wed Jun 22 20:07:32 2016
+    Info: Processing started: Thu Jun 23 21:50:25 2016
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off DDS_RIKEN -c DDS_RIKEN
 Warning (20028): Parallel compilation is not licensed and has been disabled
 Info (12021): Found 2 design units, including 1 entities, in source file dds_riken.vhd
@@ -1118,17 +1122,17 @@ Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(164): object "ramp
 Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(165): object "amp_ramping_flag" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 165
 Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(273): object "amp_ramp_up" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 273
 Warning (10036): Verilog HDL or VHDL warning at DDS_RIKEN.vhd(481): object "subcount" assigned a value but never read File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 481
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(565): signal "high_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 565
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(566): signal "low_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 566
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(567): signal "freq_step_size" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 567
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(570): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 570
-Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(572): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 572
-Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(556): inferring latch(es) for signal or variable "previous_operating_mode", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 556
-Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(556): inferring latch(es) for signal or variable "operating_mode_changed", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 556
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(607): signal "high_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 607
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(608): signal "low_ramp_limit" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 608
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(609): signal "freq_step_size" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 609
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(612): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 612
+Warning (10492): VHDL Process Statement warning at DDS_RIKEN.vhd(614): signal "operating_mode" is read inside the Process Statement but isn't in the Process Statement's sensitivity list File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 614
+Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(598): inferring latch(es) for signal or variable "previous_operating_mode", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 598
+Warning (10631): VHDL Process Statement warning at DDS_RIKEN.vhd(598): inferring latch(es) for signal or variable "operating_mode_changed", which holds its previous value in one or more paths through the process File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 598
 Warning (10873): Using initial value X (don't care) for net "dds_bus_out[7..2]" at DDS_RIKEN.vhd(35) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 35
-Info (10041): Inferred latch for "operating_mode_changed" at DDS_RIKEN.vhd(556) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 556
-Info (10041): Inferred latch for "previous_operating_mode[0]" at DDS_RIKEN.vhd(573) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 573
-Info (10041): Inferred latch for "previous_operating_mode[1]" at DDS_RIKEN.vhd(573) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 573
+Info (10041): Inferred latch for "operating_mode_changed" at DDS_RIKEN.vhd(598) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 598
+Info (10041): Inferred latch for "previous_operating_mode[0]" at DDS_RIKEN.vhd(615) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 615
+Info (10041): Inferred latch for "previous_operating_mode[1]" at DDS_RIKEN.vhd(615) File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 615
 Info (12128): Elaborating entity "dds_pll" for hierarchy "dds_pll:pll" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 176
 Info (12128): Elaborating entity "altpll" for hierarchy "dds_pll:pll|altpll:altpll_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 142
 Info (12130): Elaborated megafunction instantiation "dds_pll:pll|altpll:altpll_component" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/dds_pll.vhd Line: 142
@@ -1304,9 +1308,9 @@ Info (12128): Elaborating entity "decode_f8a" for hierarchy "dds_ram:ram1|altsyn
 Info (12021): Found 1 design units, including 1 entities, in source file db/mux_9qb.tdf
     Info (12023): Found entity 1: mux_9qb File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/mux_9qb.tdf Line: 23
 Info (12128): Elaborating entity "mux_9qb" for hierarchy "dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|mux_9qb:mux3" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 49
-Warning (13012): Latch previous_operating_mode[0] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 573
+Warning (13012): Latch previous_operating_mode[0] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 615
     Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a32~PORTBDATAOUT1 File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 1106
-Warning (13012): Latch previous_operating_mode[1] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 573
+Warning (13012): Latch previous_operating_mode[1] has unsafe behavior File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 615
     Warning (13013): Ports D and ENA on the latch are fed by the same signal dds_ram:ram1|altsyncram:altsyncram_component|altsyncram_kip3:auto_generated|ram_block1a17~PORTBDATAOUT1 File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/db/altsyncram_kip3.tdf Line: 611
 Info (13000): Registers with preset signals will power-up high File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 21
 Info (13003): DEV_CLRn pin will set, and not reset, register with preset signal due to NOT Gate Push-Back
@@ -1353,16 +1357,16 @@ Warning (21074): Design contains 11 input pin(s) that do not drive logic
     Warning (15610): No output dependent on input pin "dds_bus_in[22]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
     Warning (15610): No output dependent on input pin "dds_bus_in[23]" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 34
     Warning (15610): No output dependent on input pin "external_trigger" File: C:/Users/Katori lab/DDS/Pulser/VHDL_files/DDS_FPGA_2016_05_24/DDS_RIKEN.vhd Line: 46
-Info (21057): Implemented 2408 device resources after synthesis - the final resource count might be different
+Info (21057): Implemented 2432 device resources after synthesis - the final resource count might be different
     Info (21058): Implemented 40 input pins
     Info (21059): Implemented 73 output pins
-    Info (21061): Implemented 2230 logic cells
+    Info (21061): Implemented 2254 logic cells
     Info (21064): Implemented 64 RAM segments
     Info (21065): Implemented 1 PLLs
 Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 62 warnings
-    Info: Peak virtual memory: 908 megabytes
-    Info: Processing ended: Wed Jun 22 20:08:00 2016
-    Info: Elapsed time: 00:00:28
-    Info: Total CPU time (on all processors): 00:00:52
+    Info: Peak virtual memory: 907 megabytes
+    Info: Processing ended: Thu Jun 23 21:50:55 2016
+    Info: Elapsed time: 00:00:30
+    Info: Total CPU time (on all processors): 00:00:55
 
 

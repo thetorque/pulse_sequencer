@@ -1,5 +1,5 @@
 Flow report for DDS_RIKEN
-Wed Jun 22 20:10:46 2016
+Thu Jun 23 21:56:45 2016
 Quartus Prime Version 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 
 
@@ -41,17 +41,17 @@ agreement for further details.
 +----------------------------------------------------------------------------------+
 ; Flow Summary                                                                     ;
 +------------------------------------+---------------------------------------------+
-; Flow Status                        ; Successful - Wed Jun 22 20:10:35 2016       ;
+; Flow Status                        ; Successful - Thu Jun 23 21:56:33 2016       ;
 ; Quartus Prime Version              ; 15.1.0 Build 185 10/21/2015 SJ Lite Edition ;
 ; Revision Name                      ; DDS_RIKEN                                   ;
 ; Top-level Entity Name              ; DDS_RIKEN                                   ;
 ; Family                             ; Cyclone IV E                                ;
 ; Device                             ; EP4CE22F17C8                                ;
 ; Timing Models                      ; Final                                       ;
-; Total logic elements               ; 1,831 / 22,320 ( 8 % )                      ;
-;     Total combinational functions  ; 1,582 / 22,320 ( 7 % )                      ;
-;     Dedicated logic registers      ; 1,005 / 22,320 ( 5 % )                      ;
-; Total registers                    ; 1005                                        ;
+; Total logic elements               ; 1,838 / 22,320 ( 8 % )                      ;
+;     Total combinational functions  ; 1,602 / 22,320 ( 7 % )                      ;
+;     Dedicated logic registers      ; 1,014 / 22,320 ( 5 % )                      ;
+; Total registers                    ; 1014                                        ;
 ; Total pins                         ; 113 / 154 ( 73 % )                          ;
 ; Total virtual pins                 ; 0                                           ;
 ; Total memory bits                  ; 524,288 / 608,256 ( 86 % )                  ;
@@ -65,7 +65,7 @@ agreement for further details.
 +-------------------+---------------------+
 ; Option            ; Setting             ;
 +-------------------+---------------------+
-; Start date & time ; 06/22/2016 20:07:32 ;
+; Start date & time ; 06/23/2016 21:50:26 ;
 ; Main task         ; Compilation         ;
 ; Revision Name     ; DDS_RIKEN           ;
 +-------------------+---------------------+
@@ -76,7 +76,7 @@ agreement for further details.
 +-------------------------------------+---------------------------------------+---------------+-------------+------------+
 ; Assignment Name                     ; Value                                 ; Default Value ; Entity Name ; Section Id ;
 +-------------------------------------+---------------------------------------+---------------+-------------+------------+
-; COMPILER_SIGNATURE_ID               ; 220964052467194.146659365207352       ; --            ; --          ; --         ;
+; COMPILER_SIGNATURE_ID               ; 220964052467194.146668622607084       ; --            ; --          ; --         ;
 ; MAX_CORE_JUNCTION_TEMP              ; 85                                    ; --            ; --          ; --         ;
 ; MIN_CORE_JUNCTION_TEMP              ; 0                                     ; --            ; --          ; --         ;
 ; MISC_FILE                           ; dds_ram.cmp                           ; --            ; --          ; --         ;
@@ -104,11 +104,11 @@ agreement for further details.
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
 ; Module Name               ; Elapsed Time ; Average Processors Used ; Peak Virtual Memory ; Total CPU Time (on all processors) ;
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
-; Analysis & Synthesis      ; 00:00:28     ; 1.0                     ; 908 MB              ; 00:00:52                           ;
-; Fitter                    ; 00:02:21     ; 1.0                     ; 1189 MB             ; 00:02:22                           ;
-; Assembler                 ; 00:00:02     ; 1.0                     ; 744 MB              ; 00:00:02                           ;
-; TimeQuest Timing Analyzer ; 00:00:06     ; 1.0                     ; 824 MB              ; 00:00:06                           ;
-; Total                     ; 00:02:57     ; --                      ; --                  ; 00:03:22                           ;
+; Analysis & Synthesis      ; 00:00:29     ; 1.0                     ; 907 MB              ; 00:00:54                           ;
+; Fitter                    ; 00:05:25     ; 1.0                     ; 1189 MB             ; 00:05:27                           ;
+; Assembler                 ; 00:00:02     ; 1.0                     ; 739 MB              ; 00:00:02                           ;
+; TimeQuest Timing Analyzer ; 00:00:07     ; 1.0                     ; 827 MB              ; 00:00:06                           ;
+; Total                     ; 00:06:03     ; --                      ; --                  ; 00:06:29                           ;
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
 
 
