@@ -26,10 +26,11 @@ class DDS(LabradServer):
             bin = yield self.settings_to_buf(channel,freq,ampl,mode)
             addresse = channel.channelnumber
             for ablock in [bin[i:i+16] for i in range(0, len(bin), 16)]:
+                sequencelength = 9 # at some point this might change, but for now all pulses are 9 blocks of 16 bits
                 if fullbinary is None:
-                    fullbinary =  bytearray([addresse,0]) + ablock
+                    fullbinary =  bytearray([addresse,0]) + ablock 
                 else:   
-                    fullbinary += bytearray([addresse,0]) + ablock
+                    fullbinary += bytearray([addresse,0]) + ablock 
         import binascii
         for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
             print '------------------initialization'
@@ -38,7 +39,7 @@ class DDS(LabradServer):
             print "Moving Lattice channel found"
             #yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
         else:
-            yield self.inCommunication.run(self._programDDSSequenceBurst, fullbinary)
+            pass#yield self.inCommunication.run(self._programDDSSequenceBurst, fullbinary)
         
     @setting(41, "Get DDS Channels", returns = '*s')
     def getDDSChannels(self, c):

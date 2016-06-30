@@ -1,14 +1,14 @@
-Analysis & Synthesis Status : Successful - Thu Jun 30 16:49:44 2016
+Partition Merge Status : Successful - Tue Jun 28 00:18:03 2016
 Quartus Prime Version : 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 Revision Name : DDS_RIKEN
 Top-level Entity Name : DDS_RIKEN
 Family : Cyclone IV E
-Total logic elements : 3,550
-    Total combinational functions : 2,396
-    Dedicated logic registers : 2,165
-Total registers : 2165
+Total logic elements : 3,709
+    Total combinational functions : 2,360
+    Dedicated logic registers : 2,316
+Total registers : 2316
 Total pins : 113
 Total virtual pins : 0
-Total memory bits : 535,040
+Total memory bits : 540,672
 Embedded Multiplier 9-bit elements : 0
 Total PLLs : 1

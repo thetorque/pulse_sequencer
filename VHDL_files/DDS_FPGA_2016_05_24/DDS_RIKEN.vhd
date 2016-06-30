@@ -90,6 +90,7 @@ architecture behaviour of DDS_RIKEN is
 	signal bus_in_fifo_rd_clk: std_logic;
 	signal bus_in_fifo_rd_en: std_logic;
 	signal bus_in_fifo_empty: std_logic;
+    signal bus_in_fifo_rd_done: std_logic;
 	signal bus_in_ram_reset: std_logic;
 	signal bus_in_step_to_next_value: std_logic;
 	signal bus_in_reset_dds_chip: std_logic;
@@ -101,6 +102,7 @@ architecture behaviour of DDS_RIKEN is
 	signal 	fifo_dds_empty			: STD_LOGIC;
 	signal	fifo_dds_rd_clk      : STD_LOGIC;
 	signal	fifo_dds_rd_en			: STD_LOGIC;
+    signal  fifo_dds_rd_done        : STD_LOGIC;
 	
 	---- ram stuff
 	signal	dds_ram_data_in		: STD_LOGIC_VECTOR (15 DOWNTO 0);
@@ -183,9 +185,11 @@ begin
 	bus_in_reset_dds_chip 		<= dds_bus_in(24);
 	dds_bus_out(0) 				<= bus_in_fifo_rd_en;
 	dds_bus_out(1) 				<= bus_in_fifo_rd_clk;
+    dds_bus_out(2) 				<= bus_in_fifo_rd_done;
 	
 	bus_in_fifo_rd_clk			<= fifo_dds_rd_clk WHEN bus_in_address = dds_address else 'Z';
 	bus_in_fifo_rd_en				<= fifo_dds_rd_en WHEN bus_in_address = dds_address else 'Z';
+    bus_in_fifo_rd_done             <= fifo_dds_rd_done WHEN bus_in_address = dds_address else 'Z';
 	tx_enable 						<= "11" WHEN bus_in_address = dds_address else "00";
 	reset_fpga						<= bus_in_reset_dds_chip;
 	fifo_dds_dout 					<= dds_bus_in(15 downto 0);
@@ -480,8 +484,13 @@ begin
 		variable ram_process_count: integer range 0 to 9:=0;
 		variable subcount         : integer range 0 to 50000 := 0;
 		variable counter          : integer range 0 to 100;
-		variable blocks_read      : integer range 0 to 16;
-		variable read_length      : integer range 0 to 16;
+		variable blocks_read      : integer range 0 to 15;
+		variable read_length      : integer range 0 to 15;
+		variable repeat_number    : integer range 0 to 255;
+		variable repeat_counter   : integer range 0 to 255;
+		variable oldsequence      : std_logic_vector(127 downto 0);
+        variable end_flag          : std_logic;
+        variable datamode         : integer range 0 to 6;
 
 	begin
 		----- reset ram -----
@@ -494,23 +503,23 @@ begin
 			subcount := 0;
 			blocks_read := 0;
 			read_length := 0;
-			--led_value(7 downto 0) <= "00000000";
-			--led_value (6) <= '1';
-			--led_value(2 downto 0) <= "000";
+			repeat_number := 0;
+			repeat_counter := 0;
+            fifo_dds_rd_done <= '0';
 		elsif rising_edge(clk_system) then
 			case ram_process_count is
 				--------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
 				--------- fifo_pulser empty. 
-				when 0 => fifo_dds_rd_clk <='1';
-							 dds_ram_wren <='0';
-							 ram_process_count := 1;
+				when 0 =>   fifo_dds_rd_clk <='1';
+                                dds_ram_wren <='0';
+                                ram_process_count := 1;
 
-				when 1 => fifo_dds_rd_clk <='0';
-							 ram_process_count := 2;
+				when 1 =>   fifo_dds_rd_clk <='0';
+                                ram_process_count := 2;
 
-				when 2 => if (bus_in_address = dds_address) then
-								if (fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
-									ram_process_count:=0;
+				when 2 =>   if (bus_in_address = dds_address) then
+                                if (fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
+                                    ram_process_count:=0;
 								else 
 									ram_process_count := 3; --2 ---- if there's anything in the fifo, go to the next case
 									fifo_dds_rd_en <= '1';
@@ -520,77 +529,90 @@ begin
 							 end if;
 
 				-------- there's data in the fifo ---------
-				when 3 => if (blocks_read = 0) then
-				              if (fifo_dds_dout(3 downto 0) = dds_address) then
-   							      read_length := to_integer(unsigned(fifo_dds_dout(15 downto 12)));
-								      --led_value (3 downto 0) <= std_logic_vector(to_unsigned(read_length,4));
-								      
-										--led_value(5) <= '1';
-								      dds_ram_wren <='1';
-		 							   ram_process_count := 4;	
-									else
-									    fifo_dds_rd_en <= '0';
-									    ram_process_count := 0;
-									end if;
-							  else
-							      dds_ram_wren <= '1';
-								   ram_process_count := 4;
-							  end if;
+				when 3 =>   if (blocks_read = 0) then
+                                if (repeat_counter = 0) then
+                                    if (dds_address = fifo_dds_dout(3 downto 0)) then
+                                        datamode := to_integer(unsigned(fifo_dds_dout(6 downto 4)));
+                                        repeat_number := to_integer(unsigned(fifo_dds_dout(15 downto 8)));
+                                        end_flag      := fifo_dds_dout(7);
+                                        fifo_dds_rd_done <= '0';
+                                        
+                                        --case datamode:
+                                        read_length := 9;
+                                        ram_process_count := 4;    
+                                    else
+                                        ram_process_count := 0;
+                                        fifo_dds_rd_en <= '0';
+                                    end if;
+                                else
+                                    ram_process_count := 4;
+                                end if;
+                            else
+                                dds_ram_wren <= '1';
+                                ram_process_count := 4;
+                            end if;
 							  
 							 
-				when 4 => dds_ram_wrclock <= '0';
-				          ram_process_count := 5;
+				when 4 =>   dds_ram_wrclock <= '0';
+                            ram_process_count := 5;
 							 
-				when 5 => dds_ram_wraddress <= std_LOGIC_vector(to_unsigned(write_ram_address,15));
-							 dds_ram_data_in <= fifo_dds_dout;
-							 ram_process_count:=6;
+				when 5 =>   dds_ram_wraddress <= std_LOGIC_vector(to_unsigned(write_ram_address,15));
+                            if (repeat_counter = 0) then
+                                dds_ram_data_in <= fifo_dds_dout;
+                            else
+                                dds_ram_data_in <= oldsequence((16*blocks_read-1) downto (16*(blocks_read-1)));
+                            end if;
+                            ram_process_count:=6;
 				
 				
 				---------- prepare data and address that are about to be written to the ram------
 				
-				when 6 => if (blocks_read > 0) then
-				              --led_value(0) <= '1';
-				              dds_ram_wrclock <= '1';
-								  if (dds_ram_wren = '1') then
-    								  counter := counter + 1;
-								  end if;
-							 end if;
+				when 6 =>   if (blocks_read > 0) then
+                                if (repeat_counter = 0) then
+                                    oldsequence((16*blocks_read-1) downto (16*(blocks_read-1))) := fifo_dds_dout;
+                                end if;
+                                dds_ram_wrclock <= '1';
+                            end if;
 							 
-				          fifo_dds_rd_clk <= '0';
-							 ram_process_count:=7;
+                            fifo_dds_rd_clk <= '0';
+                            ram_process_count:=7;
 							 
-				when 7 => fifo_dds_rd_clk <= '1';
-                      ram_process_count := 8;
+				when 7 =>   fifo_dds_rd_clk <= '1';
+                            ram_process_count := 8;
+                            
 
-				when 8 => if (blocks_read > 0) then
-							     write_ram_address:=write_ram_address+1; ----- increase address by one	
+				when 8 =>   if (blocks_read > 0) then
+                                write_ram_address:=write_ram_address+1; ----- increase address by one	
 								  
-							 end if;
-							 
-							 
-							 blocks_read := blocks_read + 1;
+                            end if;
+                            blocks_read := blocks_read + 1;
 						    if (blocks_read = read_length) then
-							        fifo_dds_rd_en <= '0';
-									  --dds_ram_wren <= '0';
-								     blocks_read := 0;
-			             end if;
-							 --led_value (7 downto 4) <= std_logic_vector(to_unsigned(counter,4));
-							 ram_process_count := 9;
+                                blocks_read := 0;
+                                repeat_counter := repeat_counter +1;
+                            end if;
+                            ram_process_count := 9;
 
 								
 				----- check again if the fifo is empty or not. Basically this whole process will
 				----- keep writing to ram until fifo is empty.
-				when 9 => if (fifo_dds_empty = '1') then
-			               --dds_ram_wrclock <= '1';
-								ram_process_count:=0;
-								fifo_dds_rd_en <= '0';
-								dds_ram_wren <= '0';
-								--led_value(4) <= '1';
-							 else
-							 
-								ram_process_count:=3;
-							 end if;
-			end case;
+                
+				when 9 =>   if (repeat_counter > 0) then
+                                fifo_dds_rd_en <= '0';
+                                if (end_flag = '1') then
+                                    fifo_dds_rd_done <= '1';
+                                end if;
+                            end if;
+
+                            if (repeat_counter = repeat_number or (fifo_dds_empty = '1' and repeat_counter = 0)) then
+                                ram_process_count := 0;
+                                dds_ram_wren <= '0';
+                                fifo_dds_rd_en <= '0';
+                                repeat_counter := 0;
+                            else
+                                ram_process_count := 3;
+                            end if;
+                            
+            end case;
 		end if;
 	end process;
 	
