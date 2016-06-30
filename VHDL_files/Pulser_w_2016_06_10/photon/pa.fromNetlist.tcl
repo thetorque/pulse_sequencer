@@ -1,7 +1,7 @@
 
 # PlanAhead Launch Script for Post-Synthesis pin planning, created by Project Navigator
 
-create_project -name photon -dir "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_2" -part xc6slx45fgg484-2
+create_project -name photon -dir "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5" -part xc6slx45fgg484-2
 set_property design_mode GateLvl [get_property srcset [current_run -impl]]
 set_property edif_top_file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.ngc" [ get_property srcset [ current_run ] ]
 add_files -norecurse { {C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon} {ipcore_dir} }

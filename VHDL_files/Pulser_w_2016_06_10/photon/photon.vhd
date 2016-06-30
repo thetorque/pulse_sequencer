@@ -30,11 +30,13 @@ entity photon is
         dds_logic_data_out : out STD_LOGIC_VECTOR (15 downto 0);
         dds_logic_fifo_rd_clk: in STD_LOGIC;
         dds_logic_fifo_rd_en: in STD_LOGIC;
+        dds_logic_fifo_rd_done: in STD_LOGIC;
         dds_logic_fifo_empty: out STD_LOGIC;
         dds_logic_ram_reset: out STD_LOGIC;
         dds_logic_step_to_next_value: out STD_LOGIC;
         dds_logic_reset_dds_chip: out STD_LOGIC;
-        dds_logic_address : out STD_LOGIC_VECTOR (3 downto 0)
+        dds_logic_address : out STD_LOGIC_VECTOR (3 downto 0);
+        dds_logic_debug_out : out STD_LOGIC_VECTOR (7 downto 0)
         
         --dds_logic : inout   STD_LOGIC_VECTOR(31 downto 0)
     );
@@ -259,6 +261,7 @@ architecture arch of photon is
     signal    fifo_dds_rd_clk    : STD_LOGIC;
     signal   fifo_dds_rd_clk_temp: STD_LOGIC;
     signal    fifo_dds_rd_en        : STD_LOGIC;
+    signal    fifo_dds_rd_done      : STD_LOGIC;
     signal    fifo_dds_dout        : STD_LOGIC_VECTOR(15 downto 0);
     signal    fifo_dds_din        : STD_LOGIC_VECTOR(15 downto 0);
     signal    fifo_dds_full        : STD_LOGIC;
@@ -373,16 +376,16 @@ usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if 
 ---------------------------------------------------------
 ---------------- usb fifo to dds fifo -------------------
 process (clk_100,pulser_ram_reset)
-        variable main_count: integer range 0 to 6
-        :=0;
+        variable main_count: integer range 0 to 6 :=0;
         variable blocks_written: integer range 0 to 15 :=0;
-        variable var_dds_addresse: STD_LOGIC_VECTOR (3 downto 0):="1111";
+        variable var_dds_address: STD_LOGIC_VECTOR (3 downto 0):="1111";
         variable var_int_debug : integer range 0 to 15 := 0;
         variable var_debug : std_LOGIC_VECTOR (3 downto 0) := "1111";
         variable subcount : integer range 0 to 3 := 0;
         variable var_dds_rst : std_logic := '0';
         variable var_counter : integer range 0 to 10000 := 0;
         variable var_debug_old_rd_clk : std_logic := '0';
+        variable last_address: std_logic_vector (3 downto 0) := "1111";      
 
     begin
 
@@ -398,6 +401,7 @@ process (clk_100,pulser_ram_reset)
             subcount := 0;
             var_counter := 0;
             var_debug_old_rd_clk := '0';
+            last_address := "1111";
 
         elsif rising_edge(clk_100) then
             if var_dds_rst = '1' then
@@ -415,6 +419,7 @@ process (clk_100,pulser_ram_reset)
 
                     when 3 => if fifo_dds_full = '0' then
                                  var_dds_rst := '0';
+                                 subcount := 0;
                                else                                 
                                 subcount := 0;   
                                end if;
@@ -438,16 +443,31 @@ process (clk_100,pulser_ram_reset)
                               main_count:= 2;  ---- if there's anything in the fifo, go to the next case
                           end if;                 
                             
-                when 2 => if (blocks_written = 0) then
-                              if (fifo_dds_rd_en = '0') then
-                                  var_dds_addresse := usb_fifo_dds_dout (3 downto 0);
-                                  dds_addresse <= var_dds_addresse;
-                                  var_int_debug := conv_integer(unsigned(usb_fifo_dds_dout(11 downto 8)));
-                                  main_count := 3;
-                              end if;
-                          else
-                              main_count := 3;
-                          end if;
+                when 2 => case subcount is
+                              when 0 => if (blocks_written = 0) and
+                                             ((last_address /= usb_fifo_dds_dout(3 downto 0)) or 
+                                               last_address = "1111") then
+                                            subcount := 1;
+                                        else
+                                            subcount := 3;
+                                        end if;
+                                            
+                              when 1 => if (fifo_dds_rd_done = '1' or last_address = "1111") then
+                                            var_dds_address := usb_fifo_dds_dout (3 downto 0);
+                                            last_address := var_dds_address;
+                                            dds_addresse <= var_dds_address;
+                                            subcount := 2;
+                                        else
+                                            fifo_dds_wr_clk <= fifo_dds_wr_clk xor '1';
+                                        end if;
+                                            
+                              when 2 => if (fifo_dds_rd_done = '0') then
+                                            subcount := 3;
+                                        end if;
+                                        
+                              when 3 => main_count := 3;
+                                        subcount := 0;
+                          end case;
                 
                 
                 when 3 => fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
@@ -465,12 +485,7 @@ process (clk_100,pulser_ram_reset)
                           if (blocks_written = 9) then
                               blocks_written := 0;
                           end if;
-                          
-                          if blocks_written = var_int_debug then
-                              var_debug := usb_fifo_dds_dout(3 downto 0);
-                              --led(3 downto 0) <= var_debug;
-                          end if;
-                          
+                          dds_logic_debug_out (3 downto 0) <= not conv_std_logic_vector(blocks_written,4);
                           if (blocks_written > 8) then
                               led(7) <= '0';
                           end if;
@@ -478,6 +493,8 @@ process (clk_100,pulser_ram_reset)
                           main_count := 5;
                                             
                 when 5 => usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+                          led (4 downto 0) <= not conv_std_logic_vector(blocks_written,5);
+                          fifo_dds_wr_en <= '0';
                           main_count := 6;                
                 when 6 => if (usb_fifo_dds_empty = '1') then
                               main_count := 0;
@@ -531,15 +548,20 @@ led(5) <= not usb_fifo_dds_empty;
 
 ---============= DDS stuff ==============================
 ---------------------------------------------------------
-led(3 downto 0) <= not fifo_dds_dout (3 downto 0);
 dds_logic_data_out <= not fifo_dds_dout;
 fifo_dds_rd_clk_temp <= not dds_logic_fifo_rd_clk;
 fifo_dds_rd_en <= not dds_logic_fifo_rd_en;
+fifo_dds_rd_done <= not dds_logic_fifo_rd_done;
 dds_logic_fifo_empty <= not fifo_dds_empty;
 dds_logic_ram_reset <= not (master_logic(19) or ep40wire(4)); -----------dds reset----------
 dds_logic_step_to_next_value <= not (master_logic(18) or ep40wire(5));
 dds_logic_reset_dds_chip <= not (ep40wire(6));
 dds_logic_address <= not dds_addresse;
+dds_logic_debug_out(7) <= not usb_fifo_dds_rd_clk;
+dds_logic_debug_out(6) <= not usb_fifo_dds_rd_en;
+dds_logic_debug_out(5) <= not usb_fifo_dds_empty;
+dds_logic_debug_out (4) <= not fifo_dds_din(0);
+--dds_logic_debug_out (3 downto 0) <= not usb_fifo_dds_dout(3 downto 0);
 --dds_logic_address <= not (ep04wire(3 downto 0)); ---------------set dds channel
 
 ----------------------------------------------------------
