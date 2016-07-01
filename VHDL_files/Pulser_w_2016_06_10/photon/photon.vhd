@@ -382,7 +382,9 @@ process (clk_100,pulser_ram_reset)
         variable subcount : integer range 0 to 2 := 0;
         variable var_dds_rst : std_logic := '0';
         variable end_flag : std_logic := '0';
-        variable first_time: std_logic:= '0';      
+        variable first_time: std_logic:= '0';
+        variable datamode: std_logic_vector (2 downto 0) := "000";
+        variable block_length: integer range 0 to 9 := 9;
 
     begin
         if (pulser_ram_reset = '1') then
@@ -393,6 +395,8 @@ process (clk_100,pulser_ram_reset)
             subcount := 0;
             end_flag := '0';
             first_time := '1';
+            datamode := "000";
+            block_length := 9;
 
         elsif rising_edge(clk_100) then
             if var_dds_rst = '1' then
@@ -445,6 +449,7 @@ process (clk_100,pulser_ram_reset)
                                                     first_time := '0';
                                                     var_dds_address := usb_fifo_dds_dout (3 downto 0);
                                                     dds_addresse <= var_dds_address;
+                                                    datamode := usb_fifo_dds_dout(6 downto 4);
                                                     end_flag := usb_fifo_dds_dout(7);
                                                     subcount := 2;
                                                 else
@@ -456,6 +461,11 @@ process (clk_100,pulser_ram_reset)
                                     when 2 =>   if (fifo_dds_rd_done = '0') then
                                                     main_count := 3;
                                                     subcount := 0;
+                                                    if (datamode = "001") then
+                                                        block_length := 1;
+                                                    else
+                                                        block_length := 9;
+                                                    end if;
                                                 end if;
                                 end case;
                 
@@ -469,7 +479,7 @@ process (clk_100,pulser_ram_reset)
                               
                     when 4=>    fifo_dds_wr_clk <= '1'; -- write to dds fifo 
                                 blocks_written := blocks_written + 1;
-                                if (blocks_written = 9) then
+                                if (blocks_written = block_length) then
                                     blocks_written := 0;
                                 end if;
                                 dds_logic_debug_out (3 downto 0) <= not conv_std_logic_vector(blocks_written,4);
