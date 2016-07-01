@@ -163,7 +163,7 @@ architecture arch of photon is
     signal ti_clk    : STD_LOGIC;
     signal ok1       : STD_LOGIC_VECTOR(30 downto 0);
     signal ok2       : STD_LOGIC_VECTOR(16 downto 0);
-    signal ok2s      : STD_LOGIC_VECTOR(17*7-1 downto 0);
+    signal ok2s      : STD_LOGIC_VECTOR(17*8-1 downto 0);
 
   -- Endpoint connections:
     ------ configuration register ------
@@ -188,6 +188,7 @@ architecture arch of photon is
     ------ output data to PC ------
     signal ep21wire          : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
     signal ep22wire          : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
+    signal ep23wire          : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
     ------ Trigger in ------
     signal ep40wire        : STD_LOGIC_VECTOR(15 downto 0);
 
@@ -254,6 +255,7 @@ architecture arch of photon is
     signal    usb_fifo_dds_full        : STD_LOGIC;
     signal    usb_fifo_dds_empty        : STD_LOGIC;
     signal  dds_addresse : STD_LOGIC_vector (3 downto 0);
+    signal metablock_counter_data     : STD_LOGIC_VECTOR(15 downto 0) := "0000000000000000";
     
     signal   fifo_dds_wr_clk   : STD_LOGIC;
     signal   fifo_dds_wr_en    : STD_LOGIC;
@@ -371,12 +373,12 @@ fifo6: usb_dds_fifo port map(
         empty=> usb_fifo_dds_empty);
         
 pipe_in_ready_dds <= '1'; ---- enable pipe in. The only pipe in used in this design is writing of the pulse into this fifo.
-usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
-
+--usb_fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
+ep23wire <= metablock_counter_data;
 ---------------------------------------------------------
 ---------------- usb fifo to dds fifo -------------------
 process (clk_100,pulser_ram_reset)
-        variable main_count: integer range 0 to 6 :=0;
+        variable main_count: integer range 0 to 7 :=0;
         variable blocks_written: integer range 0 to 15 :=0;
         variable var_dds_address: STD_LOGIC_VECTOR (3 downto 0):="1111";
         variable subcount : integer range 0 to 2 := 0;
@@ -385,6 +387,9 @@ process (clk_100,pulser_ram_reset)
         variable first_time: std_logic:= '0';
         variable datamode: std_logic_vector (2 downto 0) := "000";
         variable block_length: integer range 0 to 9 := 9;
+        variable metablock_counter : integer range 0 to 16383 := 0;
+        variable beginning_of_pattern : std_logic := '0';
+        variable end_of_pattern : std_logic := '0';
 
     begin
         if (pulser_ram_reset = '1') then
@@ -397,6 +402,12 @@ process (clk_100,pulser_ram_reset)
             first_time := '1';
             datamode := "000";
             block_length := 9;
+            metablock_counter := 0;
+            metablock_counter_data <= "0000000000000000";
+            usb_fifo_dds_rst <= '1';
+            beginning_of_pattern := '0';
+            end_of_pattern := '0';
+            
 
         elsif rising_edge(clk_100) then
             if var_dds_rst = '1' then
@@ -410,7 +421,8 @@ process (clk_100,pulser_ram_reset)
                                 subcount := 2;
 
                     when 2 =>   fifo_dds_rst <= '0';
-                                if fifo_dds_full = '0' then
+                                usb_fifo_dds_rst <= '0';
+                                if fifo_dds_full = '0' and usb_fifo_dds_full = '0' then
                                     var_dds_rst := '0';
                                 end if;
                                 subcount := 0;   
@@ -437,7 +449,21 @@ process (clk_100,pulser_ram_reset)
                                                 --if 9 blocks have been written, and the endflag was detected on 
                                                 --the last metadata block, then an address change is incoming
                                     when 0 =>   if ((blocks_written = 0) and ((end_flag = '1') or (first_time = '1'))) then
+                                                    datamode := usb_fifo_dds_dout(6 downto 4);
                                                     subcount := 1;
+                                                    if (datamode = "001") then
+                                                        block_length := 1;
+                                                    elsif (datamode = "110") then
+                                                        beginning_of_pattern := '1';
+                                                        subcount := 0;
+                                                        main_count := 7;
+                                                    elsif (datamode = "111") then
+                                                        end_of_pattern := '1';
+                                                        subcount := 0;
+                                                        main_count := 7;
+                                                    else
+                                                        block_length := 9;
+                                                    end if;
                                                 else
                                                     subcount := 2;
                                                 end if;
@@ -449,9 +475,11 @@ process (clk_100,pulser_ram_reset)
                                                     first_time := '0';
                                                     var_dds_address := usb_fifo_dds_dout (3 downto 0);
                                                     dds_addresse <= var_dds_address;
-                                                    datamode := usb_fifo_dds_dout(6 downto 4);
+                                                    
                                                     end_flag := usb_fifo_dds_dout(7);
                                                     subcount := 2;
+                                                    metablock_counter := metablock_counter + 1;
+                                                    metablock_counter_data(13 downto 0) <= conv_std_logic_vector(metablock_counter,14);
                                                 else
                                                     fifo_dds_wr_clk <= fifo_dds_wr_clk xor '1';
                                                 end if;
@@ -461,11 +489,7 @@ process (clk_100,pulser_ram_reset)
                                     when 2 =>   if (fifo_dds_rd_done = '0') then
                                                     main_count := 3;
                                                     subcount := 0;
-                                                    if (datamode = "001") then
-                                                        block_length := 1;
-                                                    else
-                                                        block_length := 9;
-                                                    end if;
+                                                    
                                                 end if;
                                 end case;
                 
@@ -494,7 +518,18 @@ process (clk_100,pulser_ram_reset)
                                     main_count := 0;
                                 else
                                     main_count := 2;
-                                end if;    
+                                end if;
+                                
+                    when 7 =>   if (beginning_of_pattern = '1') then
+                                    metablock_counter_data(14) <= '1';
+                                end if;
+                                if (end_of_pattern = '1') then
+                                    metablock_counter_data(15) <= '1';
+                                end if;
+                                usb_fifo_dds_rd_en <= '1';  
+                                usb_fifo_dds_rd_clk <= '0';
+                                main_count := 5;
+
             end case;
         end if;
     end if;
@@ -512,7 +547,7 @@ fifo4: dds_fifo port map(
         full=> fifo_dds_full,
         empty=> fifo_dds_empty,
         wr_data_count=>fifo_dds_wr_data_count);
-        
+
 --fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
 led(5) <= not usb_fifo_dds_empty;
 led(4) <= not logic_out(4);
@@ -1204,7 +1239,7 @@ fifo5: readout_count_fifo port map (rst => readout_count_fifo_reset,
 
 -- Instantiate the okHost and connect endpoints.
 okHI : okHost port map (hi_in=>hi_in, hi_out=>hi_out, hi_inout=>hi_inout, hi_aa=>hi_aa, ti_clk=>ti_clk, ok1=>ok1, ok2=>ok2);
-okWO : okWireOR    generic map (N=>7) port map (ok2=>ok2, ok2s=>ok2s);
+okWO : okWireOR    generic map (N=>8) port map (ok2=>ok2, ok2s=>ok2s);
 wi00 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"00", ep_dataout=>ep00wire);
 wi01 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"01", ep_dataout=>ep01wire);
 wi02 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"02", ep_dataout=>ep02wire);
@@ -1215,6 +1250,7 @@ wi06 : okWireIn    port map (ok1=>ok1,                                  ep_addr=
 ep40 : okTriggerIn  port map (ok1=>ok1,                                  ep_addr=>x"40", ep_clk=>clk_1, ep_trigger=>ep40wire);
 wo21 : okWireOut   port map (ok1=>ok1, ok2=>ok2s( 1*17-1 downto 0*17 ), ep_addr=>x"21", ep_datain=>ep21wire);
 wo22 : okWireOut   port map (ok1=>ok1, ok2=>ok2s( 4*17-1 downto 3*17 ), ep_addr=>x"22", ep_datain=>ep22wire);
+wo23 : okWireOut   port map (ok1=>ok1, ok2=>ok2s( 8*17-1 downto 7*17 ), ep_addr=>x"23", ep_datain=>ep23wire);
 ep80 : okBTPipeIn  port map (ok1=>ok1, ok2=>ok2s( 2*17-1 downto 1*17 ), ep_addr=>x"80", 
                              ep_write=>pipe_in_write, ep_blockstrobe=>bs_in, ep_dataout=>pipe_in_data, ep_ready=>pipe_in_ready);
 ep81 : okBTPipeIn  port map (ok1=>ok1, ok2=>ok2s( 6*17-1 downto 5*17 ), ep_addr=>x"81", 
