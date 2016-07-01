@@ -108,6 +108,7 @@ architecture behaviour of DDS_RIKEN is
 	signal	dds_ram_data_in		: STD_LOGIC_VECTOR (15 DOWNTO 0);
 	signal	dds_ram_rdaddress		: STD_LOGIC_VECTOR (11 DOWNTO 0);
 	signal	dds_ram_rdclock		: STD_LOGIC;
+    signal dds_ram_rden         : STD_LOGIC;
 	signal	dds_ram_wraddress		: STD_LOGIC_VECTOR (14 DOWNTO 0);
 	signal	dds_ram_wrclock		: STD_LOGIC := '1';
 	signal	dds_ram_wren		   : STD_LOGIC;
@@ -445,7 +446,8 @@ begin
 	
 	ram1: dds_ram port map (data=>dds_ram_data_in,
 									rdaddress=>dds_ram_rdaddress, 
-									rdclock=>dds_ram_rdclock, 
+									rdclock=>dds_ram_rdclock,
+                                    rden=>dds_ram_rden, 
 									wraddress=>dds_ram_wraddress, 
 									wrclock=>dds_ram_wrclock,
 									wren=>dds_ram_wren,
@@ -486,11 +488,12 @@ begin
 		variable counter          : integer range 0 to 100;
 		variable blocks_read      : integer range 0 to 15;
 		variable read_length      : integer range 0 to 15;
-		variable repeat_number    : integer range 0 to 255;
+		variable repeat_number    : integer range 0 to 256;
 		variable repeat_counter   : integer range 0 to 255;
 		variable oldsequence      : std_logic_vector(127 downto 0);
         variable end_flag          : std_logic;
-        variable datamode         : integer range 0 to 6;
+        variable datamode         : std_logic_vector (2 downto 0) := "000";
+        variable timeout_counter  : integer range 0 to 7;
 
 	begin
 		----- reset ram -----
@@ -506,6 +509,9 @@ begin
 			repeat_number := 0;
 			repeat_counter := 0;
             fifo_dds_rd_done <= '0';
+            dds_ram_rden <= '1';
+            timeout_counter := 0;
+            datamode := "000";
 		elsif rising_edge(clk_system) then
 			case ram_process_count is
 				--------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
@@ -515,7 +521,15 @@ begin
                                 ram_process_count := 1;
 
 				when 1 =>   fifo_dds_rd_clk <='0';
-                                ram_process_count := 2;
+                            if (fifo_dds_rd_done = '1') then --purely to catch the case where two pulses are sent
+                                if (timeout_counter = 7) then--to the same board, and the endflag was wrongly set on the first
+                                    fifo_dds_rd_done <= '0';
+                                    timeout_counter := 0;
+                                else
+                                    timeout_counter := timeout_counter + 1;
+                                end if;
+                            end if;
+                            ram_process_count := 2;
 
 				when 2 =>   if (bus_in_address = dds_address) then
                                 if (fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
@@ -523,8 +537,11 @@ begin
 								else 
 									ram_process_count := 3; --2 ---- if there's anything in the fifo, go to the next case
 									fifo_dds_rd_en <= '1';
+                                    dds_ram_rden <= '0';
+                                    timeout_counter := 0;
 								end if;
 							 else 
+                                fifo_dds_rd_done <= '0';
 								ram_process_count:=0;
 							 end if;
 
@@ -532,19 +549,23 @@ begin
 				when 3 =>   if (blocks_read = 0) then
                                 if (repeat_counter = 0) then
                                     if (dds_address = fifo_dds_dout(3 downto 0)) then
-                                        datamode := to_integer(unsigned(fifo_dds_dout(6 downto 4)));
-                                        repeat_number := to_integer(unsigned(fifo_dds_dout(15 downto 8)));
+                                        datamode := fifo_dds_dout(6 downto 4);
+                                        repeat_number := to_integer(unsigned(fifo_dds_dout(15 downto 8))) + 1;
                                         end_flag      := fifo_dds_dout(7);
                                         fifo_dds_rd_done <= '0';
                                         
-                                        --case datamode:
-                                        read_length := 9;
+                                        if (datamode = "001") then
+                                            read_length := 1;
+                                        else
+                                            read_length := 9;
+                                        end if;
                                         ram_process_count := 4;    
                                     else
                                         ram_process_count := 0;
                                         fifo_dds_rd_en <= '0';
                                     end if;
                                 else
+                                    --fifo_dds_rd_done <= '0';
                                     ram_process_count := 4;
                                 end if;
                             else
@@ -600,6 +621,7 @@ begin
                                 fifo_dds_rd_en <= '0';
                                 if (end_flag = '1') then
                                     fifo_dds_rd_done <= '1';
+                                    end_flag := '0';
                                 end if;
                             end if;
 
@@ -607,6 +629,7 @@ begin
                                 ram_process_count := 0;
                                 dds_ram_wren <= '0';
                                 fifo_dds_rd_en <= '0';
+                                dds_ram_rden <= '1';
                                 repeat_counter := 0;
                             else
                                 ram_process_count := 3;

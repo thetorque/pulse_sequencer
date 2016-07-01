@@ -1,16 +1,16 @@
-Fitter Status : Successful - Thu Jun 30 16:50:11 2016
+Fitter Status : Successful - Fri Jul 01 17:10:00 2016
 Quartus Prime Version : 15.1.0 Build 185 10/21/2015 SJ Lite Edition
 Revision Name : DDS_RIKEN
 Top-level Entity Name : DDS_RIKEN
 Family : Cyclone IV E
 Device : EP4CE22F17C8
 Timing Models : Final
-Total logic elements : 3,233 / 22,320 ( 14 % )
-    Total combinational functions : 2,398 / 22,320 ( 11 % )
-    Dedicated logic registers : 2,165 / 22,320 ( 10 % )
-Total registers : 2165
+Total logic elements : 3,054 / 22,320 ( 14 % )
+    Total combinational functions : 2,349 / 22,320 ( 11 % )
+    Dedicated logic registers : 1,965 / 22,320 ( 9 % )
+Total registers : 1965
 Total pins : 113 / 154 ( 73 % )
 Total virtual pins : 0
-Total memory bits : 535,040 / 608,256 ( 88 % )
+Total memory bits : 538,112 / 608,256 ( 88 % )
 Embedded Multiplier 9-bit elements : 0 / 132 ( 0 % )
 Total PLLs : 1 / 4 ( 25 % )

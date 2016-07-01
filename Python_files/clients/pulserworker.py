@@ -45,6 +45,9 @@ class PulserWorker(QObject):
         
         p.program_dds_and_ttl(currentsequence,currentttl)
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
+        counts = p.get_metablock_counts()
+        print counts
+        self.pulsermessages.emit('Metablock counts: '+ str(counts[0]))
         
         '''p.start_number(1)
         #toc = time.clock()

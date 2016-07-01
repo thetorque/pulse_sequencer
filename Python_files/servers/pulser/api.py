@@ -128,6 +128,14 @@ class api(object):
         done = self.xem.GetWireOutValue(0x21)
         return done
     
+    def getMetablockCounts(self):
+        '''
+        Gets the number of metablocks programmed
+        '''
+        self.xem.UpdateWireOuts()
+        counts = self.xem.GetWireOutValue(0x23)
+        return counts
+    
     def getResolvedTotal(self):
         '''
         Get the number of photons counted in the FIFO for the time-resolved photon counter.

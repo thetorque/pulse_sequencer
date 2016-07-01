@@ -412,6 +412,19 @@ class Pulser(DDS, LineTrigger):
         yield deferToThread(self.api.resetFIFOReadout)
         self.inCommunication.release()
 
+    @setting(39, 'Get Metablock Counts')
+    def getMetablockCounts(self, c):
+        yield self.inCommunication.acquire()
+        counts = yield deferToThread(self.api.getMetablockCounts)
+        self.inCommunication.release()
+        string = bin(counts)
+        print string
+        string = string[2:] #remove the leading '0b'
+        started_programming = int(string[0],2)
+        ended_programming = int(string[1],2)
+        counts = int(string[2:],2)
+        returnValue([counts,started_programming,ended_programming])
+        
     #debugging settings
     @setting(90, 'Internal Reset DDS', returns = '')
     def internal_reset_dds(self, c):
