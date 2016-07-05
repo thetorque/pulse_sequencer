@@ -28,6 +28,8 @@ from dds import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
+import os
+import inspect
 
 class Pulser(DDS, LineTrigger):
     
@@ -52,11 +54,14 @@ class Pulser(DDS, LineTrigger):
         self.haveDAC = hardwareConfiguration.DAC
         self.inCommunication = DeferredLock()
         self.clear_next_pmt_counts = 0
+        self.hwconfigpath = os.path.dirname(inspect.getfile(hardwareConfiguration))
+        print self.hwconfigpath
         #LineTrigger.initialize(self)
         #self.initializeBoard()
         #yield self.initializeRemote()
         #self.initializeSettings()
         #yield self.initializeDDS()
+        self.ddsLock = True
         self.listeners = set()
 
     def initializeBoard(self):
@@ -91,7 +96,6 @@ class Pulser(DDS, LineTrigger):
         """
         Create New Pulse Sequence
         """
-        #print "new sequence"
         c['sequence'] = Sequence(self)
     
     @setting(1, "Program Sequence", returns = '')
@@ -110,6 +114,28 @@ class Pulser(DDS, LineTrigger):
         self.isProgrammed = True
         #self.api.resetAllDDS()
         #print "done programming"
+
+    @setting(37, 'Get dds program representation', returns = '*(ss)')
+    def get_dds_program_representation(self,c):   
+        sequence = c.get('sequence')
+        dds, ttl = sequence.progRepresentation()
+        # As labrad cannot handle returnig the bytearray, we convert it to string first
+        for key, value in dds.iteritems():
+            dds[key] = str(value)
+        # It also cannot handle dictionaries, so we recreate it as a list of tuples
+        passable = dds.items()
+        return passable
+
+    @setting(38, 'Program dds and ttl')
+    def program_dds_and_ttl(self,c,dds,ttl):
+        dds = bytearray(dds)
+        ttl = bytearray(ttl)
+        yield self.inCommunication.acquire()
+        yield deferToThread(self.api.programBoard, ttl)
+        yield self._programDDSSequenceBurst(dds)
+        yield self.inCommunication.release()
+        self.isProgrammed = True
+        returnValue(self.isProgrammed)
     
     @setting(2, "Start Infinite", returns = '')
     def startInfinite(self,c):
@@ -290,7 +316,7 @@ class Pulser(DDS, LineTrigger):
     @setting(16, 'Wait Sequence Done', timeout = 'v', returns = 'b')
     def waitSequenceDone(self, c, timeout = None):
         """
-        Returns true if the sequence has completed within a timeout period
+        Returns true if the sequence has completed within a timeout period (in seconds)
         """
         if timeout is None: timeout = self.sequenceTimeRange[1]
         #print timeout
@@ -391,6 +417,26 @@ class Pulser(DDS, LineTrigger):
         yield deferToThread(self.api.resetFIFOReadout)
         self.inCommunication.release()
 
+    @setting(39, 'Get Metablock Counts')
+    def getMetablockCounts(self, c):
+        yield self.inCommunication.acquire()
+        counts = yield deferToThread(self.api.getMetablockCounts)
+        self.inCommunication.release()
+        string = bin(counts)
+        print string
+        string = string[2:] #remove the leading '0b'
+        started_programming = int(string[0],2)
+        ended_programming = int(string[1],2)
+        counts = int(string[2:],2)
+        returnValue([counts,started_programming,ended_programming])
+
+    @setting(40, 'Get hardwareconfiguration Path', returns = 's')
+    def getHardwareconfigurationPath(self,c):
+        ''' 
+        Returns the path where the hwconfigurationfile is placed
+        '''
+        return self.hwconfigpath
+        
     #debugging settings
     @setting(90, 'Internal Reset DDS', returns = '')
     def internal_reset_dds(self, c):

@@ -32,7 +32,7 @@ class mainwindow(QtGui.QMainWindow):
         yield self.create_layout()
         self.messageout('Layout done')
         yield self.get_parameters()
-        self.start_parserthread()
+        yield self.start_parserthread()
         self.start_pulserthread()
         self.messageout('Parserthread started')
         self.fill_parameterstree()
@@ -107,8 +107,9 @@ class mainwindow(QtGui.QMainWindow):
 
         layout = QtGui.QVBoxLayout()
         try:
-            layout.addWidget(switchWidget(self.reactor,self.connection))
-            layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
+            pass
+            #layout.addWidget(switchWidget(self.reactor,self.connection))
+            #layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
             #layout.addWidget(linetriggerWidget(self.reactor,self.connection))
         except AttributeError, e:
             print e
@@ -212,9 +213,13 @@ class mainwindow(QtGui.QMainWindow):
 #########                and connect signals                   #########
 #########                                                      #########
 ########################################################################
+    @inlineCallbacks
     def start_parserthread(self):
+        p = yield self.connection.get_server('Pulser')
+        hwconfigpath = yield p.get_hardwareconfiguration_path()
+        print hwconfigpath
         self.parsingthread = QThread()
-        self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.reactor,self.connection,self.context)
+        self.parsingworker = ParsingWorker(hwconfigpath,str(self.writingwidget.toPlainText()),self.reactor,self.connection,self.context)
         self.parsingworker.moveToThread(self.parsingthread)
         self.parsingworker.busy_trigger.connect(self.ledparsing.setState)
         self.parsingworker.trackingparameterserver.connect(self.ledtracking.setState)

@@ -4,8 +4,10 @@ import re
 import time
 import numpy as np
 import array
-from hardwareConfiguration import hardwareConfiguration
 from decimal import Decimal
+import sys
+
+global harwareConfiguration
 
 class ParsingWorker(QObject):
     parsing_done_trigger = pyqtSignal(list,int)
@@ -17,7 +19,7 @@ class ParsingWorker(QObject):
     new_sequence_trigger = pyqtSignal()
 
 
-    def __init__(self,text,reactor,connection,cntx):
+    def __init__(self,hwconfigpath,text,reactor,connection,cntx):
         super(ParsingWorker,self).__init__()
         self.text = text
         self.reactor = reactor
@@ -32,7 +34,9 @@ class ParsingWorker(QObject):
         self.Busy = False
         self.sequencestorage = []
         self.mutex = QMutex()
-
+        sys.path.append(hwconfigpath)
+        global hardwareConfiguration
+        from hardwareConfiguration import hardwareConfiguration
 
     def set_parameters(self,paramdict):
         self.parameters = paramdict
@@ -164,15 +168,14 @@ class ParsingWorker(QObject):
     
     
     def get_binary_repres(self):
-        #tic = time.clock()
+        tic = time.clock()
         seqObject = Sequence()
         seqObject.addDDSStandardPulses(self.sequence)
         binary,ttl = seqObject.progRepresentation()
-        import binascii
-        binary = bytearray([0,0]) + bytearray([0]*7) + bytearray([0]*1) + bytearray([0]*8)
-        for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
-            print '------------------lol'
-            print binascii.hexlify(abyte),len(abyte)
+        #import binascii
+        #for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
+        #    print '------------------lol'
+        #    print binascii.hexlify(abyte),len(abyte)
         self.mutex.lock()
         try:
             self.sequencestorage = [(str(binary),str(ttl),self.ParameterID)]
@@ -180,28 +183,11 @@ class ParsingWorker(QObject):
             print e
         finally:
             self.mutex.unlock()
-        #toc = time.clock()
-        #print 'Binary compilation time:       ',toc-tic
+        toc = time.clock()
+        print 'Binary compilation time:       ',toc-tic
         print 'compiling done'
-        self.new_sequence_trigger.emit()
-    
-    def testing(self):
-        string = self.text
-        binary = eval(string)
-        import binascii
-        for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
-            print '------------------'
-            print binascii.hexlify(abyte)
-            
-        self.mutex.lock()
-        try:
-            self.sequencestorage = [(str(binary),str(2),0)]
-        except Exception,e:
-            print e
-        finally:
-            self.mutex.unlock()
-        self.new_sequence_trigger.emit()
-        
+        #self.new_sequence_trigger.emit()
+
     def get_sequence(self):
         if self.mutex.tryLock(1):
             try:
@@ -228,8 +214,7 @@ class ParsingWorker(QObject):
     def run(self):
         self.Busy = True
         self.busy_trigger.emit(self.Busy)
-        #self.parse_text()
-        self.testing()
+        self.parse_text()
         self.parsermessages.emit('Parser: Parsing done')
         self.Busy = False
         self.busy_trigger.emit(self.Busy)            
@@ -242,6 +227,7 @@ class Sequence():
         self.MAX_SWITCHES = hardwareConfiguration.maxSwitches
         self.resetstepDuration = hardwareConfiguration.resetstepDuration
         self.ddsDict = hardwareConfiguration.ddsDict
+
         #dictionary in the form time:which channels to switch
         #time is expressed as timestep with the given resolution
         #which channels to switch is a channelTotal-long array with 1 to switch ON, -1 to switch OFF, 0 to do nothing
@@ -253,6 +239,7 @@ class Sequence():
         self.sequenceTimeRange = hardwareConfiguration.sequenceTimeRange
         self.advanceDDS = hardwareConfiguration.channelDict['AdvanceDDS'].channelnumber
         self.resetDDS = hardwareConfiguration.channelDict['ResetDDS'].channelnumber
+
         
     def addDDS(self, name, start, num, typ):
         timeStep = self.secToStep(start)
@@ -280,7 +267,40 @@ class Sequence():
                         fullbinary =  bytearray([addresse,0]) + ablock
                     else:   
                         fullbinary += bytearray([addresse,0]) + ablock
+            print "old binary pattern ", len(fullbinary)
+            
 
+            tempdict = {}
+
+            fullbinary = None
+            for name, pulsebinary in self.ddsSettings.iteritems():
+                addresse = self.ddsDict[name].channelnumber
+                blocklist = [pulsebinary[i:i+16] for i in range(0, len(pulsebinary), 16)]
+                i = 0
+                while i < len(blocklist):
+                    repeat = 0
+                    currentblock = blocklist[i]
+                    j = i+1
+                    try:
+                        while blocklist[j] == currentblock and repeat < 250:
+                            repeat += 1
+                            j += 1
+                    except IndexError ,e:
+                        pass
+                    i = j
+                    if fullbinary is None:
+                        fullbinary = bytearray([addresse,repeat]) + currentblock
+                    else:
+                        fullbinary += bytearray([addresse,repeat]) + currentblock
+            tempdict[name] = fullbinary
+
+            #import binascii
+            #for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
+            #    print '------------------'
+            #    print binascii.hexlify(abyte),len(abyte)
+            print "Smart repetition ",len(fullbinary)
+            
+            
         return fullbinary, self.ttlProgram
         
     def userAddedDDS(self):
@@ -357,7 +377,7 @@ class Sequence():
 
     def addToProgram(self, prog, state):
         for name,num in state.iteritems():
-            if not hardwareConfiguration.ddsDict[name].phase_coherent_model:
+            if not self.ddsDict[name].phase_coherent_model:
                 buf = self._intToBuf(num)
             else:  
                 buf = self._intToBuf_coherent(num)
