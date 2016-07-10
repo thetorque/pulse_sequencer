@@ -28,6 +28,7 @@ from dds import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
+import os
 
 class Pulser(DDS, LineTrigger):
     
@@ -37,6 +38,7 @@ class Pulser(DDS, LineTrigger):
     @inlineCallbacks
     def initServer(self):
         self.api  = api()
+        self.hwconfigpath = os.getcwd()
         self.channelDict = hardwareConfiguration.channelDict
         self.collectionTime = hardwareConfiguration.collectionTime
         self.collectionMode = hardwareConfiguration.collectionMode
@@ -424,6 +426,13 @@ class Pulser(DDS, LineTrigger):
         ended_programming = int(string[1],2)
         counts = int(string[2:],2)
         returnValue([counts,started_programming,ended_programming])
+
+     @setting(40, 'Get hardwareconfiguration Path', returns = 's')
+    def getHardwareconfigurationPath(self,c):
+        ''' 
+        Returns the path where the hwconfigurationfile is placed
+        '''
+        return self.hwconfigpath
         
     #debugging settings
     @setting(90, 'Internal Reset DDS', returns = '')
