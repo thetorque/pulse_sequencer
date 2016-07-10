@@ -127,10 +127,13 @@ class Pulser(DDS, LineTrigger):
     def program_dds_and_ttl(self,c,dds,ttl):
         dds = bytearray(dds)
         ttl = bytearray(ttl)
+        tic = time.clock()
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.programBoard, ttl)
         yield self._programDDSSequenceBurst(dds)
         yield self.inCommunication.release()
+        toc = time.clock()
+        print "Time in progam_dds_ttl ",toc-tic
         self.isProgrammed = True
         returnValue(self.isProgrammed)
     
@@ -427,7 +430,7 @@ class Pulser(DDS, LineTrigger):
         counts = int(string[2:],2)
         returnValue([counts,started_programming,ended_programming])
 
-     @setting(40, 'Get hardwareconfiguration Path', returns = 's')
+    @setting(40, 'Get hardwareconfiguration Path', returns = 's')
     def getHardwareconfigurationPath(self,c):
         ''' 
         Returns the path where the hwconfigurationfile is placed

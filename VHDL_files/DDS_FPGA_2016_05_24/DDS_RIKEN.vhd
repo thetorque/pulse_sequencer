@@ -542,7 +542,7 @@ begin
 								end if;
 							 else 
                                 fifo_dds_rd_done <= '0';
-								ram_process_count:=0;
+								ram_process_count:=0;                                               
 							 end if;
 
 				-------- there's data in the fifo ---------

@@ -176,6 +176,7 @@ class ParsingWorker(QObject):
         #for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
         #    print '------------------lol'
         #    print binascii.hexlify(abyte),len(abyte)
+        
         self.mutex.lock()
         try:
             self.sequencestorage = [(str(binary),str(ttl),self.ParameterID)]
@@ -186,7 +187,7 @@ class ParsingWorker(QObject):
         toc = time.clock()
         print 'Binary compilation time:       ',toc-tic
         print 'compiling done'
-        #self.new_sequence_trigger.emit()
+        self.new_sequence_trigger.emit()
 
     def get_sequence(self):
         if self.mutex.tryLock(1):
@@ -286,20 +287,22 @@ class Sequence():
                             repeat += 1
                             j += 1
                     except IndexError ,e:
+                    
                         pass
                     i = j
                     if fullbinary is None:
                         fullbinary = bytearray([addresse,repeat]) + currentblock
                     else:
                         fullbinary += bytearray([addresse,repeat]) + currentblock
-            tempdict[name] = fullbinary
-
-            #import binascii
-            #for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
-            #    print '------------------'
-            #    print binascii.hexlify(abyte),len(abyte)
-            print "Smart repetition ",len(fullbinary)
-            
+                fullbinary[-18] = 128 + addresse
+        import binascii
+        for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
+            print '------------------'
+            print binascii.hexlify(abyte),len(abyte)
+        fullbinary = bytearray('e000'.decode('hex'))  + fullbinary + bytearray('F000'.decode('hex'))
+        #print binascii.hexlify(fullbinary)
+        print "Smart repetition ",len(fullbinary)
+        #fullbinary = bytearray('E000'.decode('hex')) + bytearray('04000000000000000000c0726891ed7c3f05'.decode('hex'))+  bytearray('840000002ca100000000c0726891ed7c3f05'.decode('hex')) + bytearray('830000002ca100000000c0726891ed7c3f05'.decode('hex')) + bytearray('F000'.decode('hex'))
             
         return fullbinary, self.ttlProgram
         

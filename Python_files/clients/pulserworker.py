@@ -39,17 +39,18 @@ class PulserWorker(QObject):
         import labrad
         p = labrad.connect().pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
-        p.stop_sequence()
         p.new_sequence()
-        #tic = time.clock()
-        
+        tic = time.clock()
+        #p.stop_sequence()
         p.program_dds_and_ttl(currentsequence,currentttl)
+        toc = time.clock()
+        print "programmed ", toc-tic
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
+        time.sleep(1)
         counts = p.get_metablock_counts()
-        print counts
         self.pulsermessages.emit('Metablock counts: '+ str(counts[0]))
         
-        '''p.start_number(1)
+        p.start_number(1)
         #toc = time.clock()
         #print 'Programming and starting time: ',toc-tic
         try:
@@ -64,9 +65,9 @@ class PulserWorker(QObject):
             self.pulsermessages.emit('Pulser: Timed out')
         else:
             #print 'time done:       ',time.time()
-            #self.sequence_done_trigger.emit(currentID)
+            self.sequence_done_trigger.emit(counts[0])
             pass
-        '''
+        
     
     @pyqtSlot()
     def run(self):
