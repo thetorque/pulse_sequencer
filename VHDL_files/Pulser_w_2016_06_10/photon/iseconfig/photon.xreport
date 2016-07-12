@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <report-views version="2.0" >
  <header>
-  <DateModified>2016-07-10T18:34:20</DateModified>
+  <DateModified>2016-07-12T17:31:52</DateModified>
   <ModuleName>photon</ModuleName>
-  <SummaryTimeStamp>2016-07-10T18:20:29</SummaryTimeStamp>
+  <SummaryTimeStamp>2016-07-11T21:43:04</SummaryTimeStamp>
   <SavedFilePath>C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/iseconfig/photon.xreport</SavedFilePath>
   <ImplementationReportsDirectory>C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon\</ImplementationReportsDirectory>
   <DateInitialized>2012-02-15T16:27:09</DateInitialized>
