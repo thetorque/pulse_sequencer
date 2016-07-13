@@ -123,7 +123,7 @@ class Pulser(DDS, LineTrigger):
         passable = dds.items()
         return passable
 
-    @setting(38, 'Program dds and ttl')
+    @setting(38, 'Program dds and ttl', dds= 's', ttl = 's',returns = 'b' )
     def program_dds_and_ttl(self,c,dds,ttl):
         dds = bytearray(dds)
         ttl = bytearray(ttl)
@@ -131,10 +131,11 @@ class Pulser(DDS, LineTrigger):
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.programBoard, ttl)
         yield self._programDDSSequenceBurst(dds)
-        yield self.inCommunication.release()
+        self.inCommunication.release()
         toc = time.clock()
         print "Time in progam_dds_ttl ",toc-tic
         self.isProgrammed = True
+        print 'lol'
         returnValue(self.isProgrammed)
     
     @setting(2, "Start Infinite", returns = '')
@@ -417,7 +418,7 @@ class Pulser(DDS, LineTrigger):
         yield deferToThread(self.api.resetFIFOReadout)
         self.inCommunication.release()
 
-    @setting(39, 'Get Metablock Counts')
+    @setting(39, 'Get Metablock Counts', returns = '(i,i,i)')
     def getMetablockCounts(self, c):
         yield self.inCommunication.acquire()
         counts = yield deferToThread(self.api.getMetablockCounts)

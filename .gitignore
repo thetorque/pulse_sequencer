@@ -51,3 +51,4 @@ Python_files/servers/dummyLABVIEW.py
 Python_files/LaunchServers.bat
 Python_files/clients/plottingtext.py
 Python_files/clients/hardwareConfiguration.py
+Python_files/servers/hist.py

@@ -271,7 +271,13 @@ class api(object):
 #             print "prog dds",i,"=", prog[i]
         ### pad to a multiple of 16 bytes
  #       prog_padded = self.padTo16(prog)
-        print self.xem.WriteToBlockPipeIn(0x81, 2 , prog)  # very important !!! second argument need to be 16. Don't change this.
+        bs = 2
+        for i in range(1024,2,-2):
+            if len(prog)%i == 0:
+                bs = i
+                break
+        print bs
+        print self.xem.WriteToBlockPipeIn(0x81, bs , prog)  # very important !!! second argument need to be 16. Don't change this.
         #time.sleep(3)
         #print self.xem.WriteToBlockPipeIn(0x81, 2 , prog)
         #print "program DDS"
