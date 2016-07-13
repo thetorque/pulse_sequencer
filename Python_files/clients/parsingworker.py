@@ -295,10 +295,10 @@ class Sequence():
                     else:
                         fullbinary += bytearray([addresse,repeat]) + currentblock
                 fullbinary[-18] = 128 + addresse
-        import binascii
-        for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
-            print '------------------'
-            print binascii.hexlify(abyte),len(abyte)
+        # import binascii
+        # for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
+            # print '------------------'
+            # print binascii.hexlify(abyte),len(abyte)
         fullbinary = bytearray('e000'.decode('hex'))  + fullbinary + bytearray('F000'.decode('hex'))
         #print binascii.hexlify(fullbinary)
         print "Smart repetition ",len(fullbinary)

@@ -37,7 +37,8 @@ class PulserWorker(QObject):
         
     def do_sequence(self,currentsequence,currentttl,currentID):
         import labrad
-        p = labrad.connect().pulser
+        cnx = labrad.connect()
+        p = cnx.pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
         p.new_sequence()
         tic = time.clock()
@@ -67,6 +68,7 @@ class PulserWorker(QObject):
             #print 'time done:       ',time.time()
             self.sequence_done_trigger.emit(counts[0])
             pass
+        cnx.disconnect()
         
     
     @pyqtSlot()
