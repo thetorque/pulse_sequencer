@@ -118,7 +118,7 @@ begin
   dcm_sp_inst: DCM_SP
   generic map
    (CLKDV_DIVIDE          => 5.000,
-    CLKFX_DIVIDE          => 20,
+    CLKFX_DIVIDE          => 10,
     CLKFX_MULTIPLY        => 2,
     CLKIN_DIVIDE_BY_2     => FALSE,
     CLKIN_PERIOD          => 10.0,
