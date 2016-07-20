@@ -271,8 +271,7 @@ architecture arch of photon is
     signal    fifo_dds_empty        : STD_LOGIC;
     signal    fifo_dds_wr_data_count        : STD_LOGIC_vector(10 downto 0);
     signal   dds_ram_reset     : STD_LOGIC;
-    signal main_count : integer range 0 to 15;
-    signal subcount : integer range 0 to 2;
+
     
     ----- main signal route -----
     signal     master_counter_hi_bit: STD_LOGIC_VECTOR (29 downto 0); ---- this one is the counter for the pulser
@@ -382,10 +381,10 @@ ep23wire <= metablock_counter_data;
 ---------------------------------------------------------
 ---------------- usb fifo to dds fifo -------------------
 process (clk_100,pulser_ram_reset)
-        --variable main_count: integer range 0 to 11 :=0;
-        variable blocks_written: integer range 0 to 15 :=0;
+        variable main_count: integer range 0 to 11 :=0;
+        variable blocks_written: integer range 0 to 11 :=0;
         variable var_dds_address: STD_LOGIC_VECTOR (3 downto 0):="1111";
-        --variable subcount : integer range 0 to 2 := 0;
+        variable subcount : integer range 0 to 2 := 0;
         variable var_dds_rst : std_logic := '0';
         variable end_flag : std_logic := '0';
         variable first_time: std_logic:= '0';
@@ -397,11 +396,11 @@ process (clk_100,pulser_ram_reset)
         variable counter : integer range 0 to 1000 := 0;
     begin
         if (pulser_ram_reset = '1') then
-            main_count <= 0;
+            main_count := 0;
             blocks_written := 0;
             fifo_dds_rst <= '1';
             var_dds_rst := '1';
-            subcount <= 0;
+            subcount := 0;
             end_flag := '0';
             first_time := '1';
             datamode := "000";
@@ -424,10 +423,10 @@ process (clk_100,pulser_ram_reset)
                 --------------- read and write cylces are according to manual
                 case subcount is
                     when 0 =>   fifo_dds_wr_clk <= fifo_dds_wr_clk xor '1';
-                                subcount <= 1;
+                                subcount := 1;
                               
                     when 1 =>   fifo_dds_wr_clk <= fifo_dds_wr_clk xor '1';
-                                subcount <= 2;
+                                subcount := 2;
 
                     when 2 =>   fifo_dds_rst <= '0';
                                 usb_fifo_dds_rst <= '0';
@@ -435,59 +434,53 @@ process (clk_100,pulser_ram_reset)
                                     var_dds_rst := '0';
                                     led(4) <= '1';
                                 end if;
-                                subcount <= 0;   
+                                subcount := 0;   
                 end case;                               
             else
                 case main_count is
                 --------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
                 --------- fifo_pulser empty. 
                     when 0 =>   led(0) <= '0';
+                                usb_fifo_dds_rd_clk <= '0';
+                                fifo_dds_wr_clk <= '0';
                                 usb_fifo_dds_rd_en <= '0';
                                 fifo_dds_wr_en <= '0';
-                                main_count <= 1;
+                                main_count := 1;
                                     
                     when 1 =>   usb_fifo_dds_rd_clk <= '1';
-                                main_count <= 2;
+                                fifo_dds_wr_clk <= '1';
+                                main_count := 2;
                                 
-                    when 2 =>   fifo_dds_wr_clk <= '1';
-                                main_count <= 3;
-                                
-                    when 3 =>   usb_fifo_dds_rd_clk <= '0';
-                                main_count <= 4;
-                                
-                    when 4 =>   fifo_dds_wr_clk <= '0';
-                                main_count<= 5;
-                                
-                    when 5 =>   if (usb_fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
-                                    main_count<=1;
+                    when 2 =>   if (usb_fifo_dds_empty = '1') then ---- '1' is empty. Go back to case 0 
+                                    main_count:=0;
                                 else
-                                    main_count<= 6;  ---- if there's anything in the fifo, go to the next case
+                                    main_count:= 3;  ---- if there's anything in the fifo, go to the next case
                                 end if;
                                     
                                 ----------- metablock handling -------
                                 ---- only indented for readability----
-                                when 6 =>   if blocks_written = 0 then
+                                when 3 =>   if blocks_written = 0 then
                                                 led(0) <= '1';
                                                 datamode := usb_fifo_dds_dout(6 downto 4);
                                                 var_dds_address := usb_fifo_dds_dout (3 downto 0);
-                                                main_count <= 7;
+                                                main_count := 4;
+                                                
+                                                if (datamode = "110") then
+                                                    beginning_of_pattern := '1';
+                                                    main_count := 4;
+                                                elsif (datamode = "111") then
+                                                    end_of_pattern := '1';
+                                                    main_count := 4;
+                                                else
+                                                    block_length := 9;
+                                                    main_count := 5;
+                                                end if;
                                             else
-                                                main_count <= 12;
+                                                main_count := 8;
                                             end if;
-                                            
-                                when 7 =>   if (datamode = "110") then
-                                                beginning_of_pattern := '1';
-                                                main_count <= 8;
-                                            elsif (datamode = "111") then
-                                                end_of_pattern := '1';
-                                                main_count <= 8;
-                                            else
-                                                block_length := 9;
-                                                main_count <= 9;
-                                            end if;
-                                           
-                                           -- if beginning or end of sequence, else skip this block                               
-                                when 8 =>  if (beginning_of_pattern = '1') then
+                                
+                                -- if beginning or end of sequence, else skip this block                               
+                                when 4 =>  if (beginning_of_pattern = '1') then
                                                 metablock_counter_data(15) <= '1';
                                                 beginning_of_pattern := '0';
                                             end if;
@@ -497,7 +490,7 @@ process (clk_100,pulser_ram_reset)
                                             end if;
                                             usb_fifo_dds_rd_en <= '1';  
                                             usb_fifo_dds_rd_clk <= '0';
-                                            main_count <= 14;
+                                            main_count := 10;
                                             
                                             -- count metablocks and check if the previous metablock indicated 
                                             -- an address change coming up (by setting the end flag)
@@ -506,66 +499,66 @@ process (clk_100,pulser_ram_reset)
                                             -- the previous metablock
                                             -- maybe it would have been more logical to make this a begin flag instead of an
                                             -- end flag.
-                                when 9 =>   metablock_counter := metablock_counter + 1;
+                                when 5 =>   metablock_counter := metablock_counter + 1;
                                             metablock_counter_data(13 downto 0) <= conv_std_logic_vector(metablock_counter,14);
                                             
                                             if (end_flag = '1') or (first_time = '1') then
-                                                main_count <= 10;
+                                                main_count := 6;
                                             else
                                                 end_flag := usb_fifo_dds_dout(7);
-                                                main_count <= 11;
+                                                main_count := 7;
                                             end if;
                                             
                                             -- if an adress change is coming up, make sure the ddsboard is done first
-                                when 10 =>  led(1) <= '0';
+                                when 6 =>  led(1) <= '0';
                                             if ((fifo_dds_rd_done = '1') or (first_time = '1')) then
                                                 first_time := '0';
                                                 dds_addresse <= var_dds_address;
                                                 end_flag := usb_fifo_dds_dout(7);
-                                                main_count <= 11;
+                                                main_count := 7;
                                             else
                                                 fifo_dds_wr_clk <= fifo_dds_wr_clk xor '1';
                                             end if;
                                             
                                             -- do not proceed after an adress change before the new dds board has registered
                                             -- the address change (and it is now the new boards 'done' signal that is on the bus)
-                                when 11 =>  led(1) <= '1';
+                                when 7 =>  led(1) <= '1';
                                             led(2) <= '0';
                                             if (fifo_dds_rd_done = '0') then
-                                                main_count <= 12;
+                                                main_count := 8;
                                             end if;               
                                
                      ----------- reading and writing of common blocks -------
                      --------------------------------------------------------
-                    when 12 =>  fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
+                    when 8 =>  fifo_dds_wr_clk <= '0'; -- arm write to dds fifo
                                 led(2) <= '1';
                                 usb_fifo_dds_rd_clk <= '0'; -- arm to read from usb fifo
                                 fifo_dds_din <= usb_fifo_dds_dout;
                                 usb_fifo_dds_rd_en <= '1';
                                 fifo_dds_wr_en <= '1';
-                                main_count <= 13;
+                                main_count := 9;
                                  
                               
-                    when 13=>   fifo_dds_wr_clk <= '1'; -- write to dds fifo 
+                    when 9=>   fifo_dds_wr_clk <= '1'; -- write to dds fifo 
                                 blocks_written := blocks_written + 1;
                                 if (blocks_written = block_length) then
                                     blocks_written := 0;
                                 end if;
-                                main_count <= 14;
+                                main_count := 10;
                                 
                                                 
-                    when 14 =>  usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
+                    when 10 =>  usb_fifo_dds_rd_clk <= '1'; -- read from usb fifo
                                 fifo_dds_wr_en <= '0';
                                 --fifo_dds_wr_clk <= '0';
-                                main_count <= 15;
+                                main_count := 11;
                                
                                 
                                 --if fifo is empty, go back to initial step                            
-                    when 15 =>   --fifo_dds_wr_clk <= '1';
+                    when 11 =>   --fifo_dds_wr_clk <= '1';
                                 if (usb_fifo_dds_empty = '1') then
-                                    main_count <= 0;
+                                    main_count := 0;
                                 else
-                                    main_count <= 6;
+                                    main_count := 3;
                                 end if;
 
             end case;
@@ -577,7 +570,7 @@ end process;
 ----------------------------------------------------------------------
 process(clk_100, fifo_dds_rd_done_temp)
     begin
-        if (rising_edge(clk_20)) then
+        if (rising_edge(clk_100)) then
             if (fifo_dds_rd_done_temp = '1') then
                 fifo_dds_rd_done <= '1';
             else
