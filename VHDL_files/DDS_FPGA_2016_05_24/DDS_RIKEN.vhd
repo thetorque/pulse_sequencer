@@ -109,6 +109,8 @@ architecture behaviour of DDS_RIKEN is
 	signal	dds_ram_rdaddress		: STD_LOGIC_VECTOR (11 DOWNTO 0);
 	signal	dds_ram_rdclock		: STD_LOGIC;
     signal dds_ram_rden         : STD_LOGIC;
+    signal dds_ram_rden_block   : STD_LOGIC;
+    signal dds_ram_rden_unblock     : STD_LOGIC;
 	signal	dds_ram_wraddress		: STD_LOGIC_VECTOR (14 DOWNTO 0);
 	signal	dds_ram_wrclock		: STD_LOGIC := '1';
 	signal	dds_ram_wren		   : STD_LOGIC;
@@ -471,15 +473,31 @@ begin
 	process (dds_step_to_next_freq_sampled, dds_ram_reset)
 		variable dds_step_count: integer range 0 to 4095:=0;
 		
-	begin
+	begin 
 			if (dds_ram_reset = '1') then
 				dds_step_count:=0;
+                dds_ram_rden_unblock <= '0';
 			elsif (rising_edge(dds_step_to_next_freq_sampled)) then
 				dds_step_count := dds_step_count+1;
+                dds_ram_rden_unblock <= '1';
 			end if;
-			dds_ram_rdaddress<=std_LOGIC_vector(to_unsigned(dds_step_count,12));
+            dds_ram_rdaddress<=std_LOGIC_vector(to_unsigned(dds_step_count,12));
 	end process;
-	
+    
+    
+    process (clk_dds,dds_ram_reset)
+    begin
+        if dds_ram_reset = '1' then
+            dds_ram_rden <= '1';
+        elsif rising_edge(clk_dds) then
+            if (dds_ram_rden_block = '1' and dds_ram_rden_unblock = '1') or dds_ram_rden_block = '0' then
+                dds_ram_rden <= '1';
+            else
+                dds_ram_rden <= '0';
+            end if;
+        end if;
+    end process;
+    	
 	---- read from pulser and write to RAM ---
 	process (clk_system,dds_ram_reset)
 		variable write_ram_address: integer range 0 to 32767:=0;
@@ -509,9 +527,9 @@ begin
 			repeat_number := 0;
 			repeat_counter := 0;
             fifo_dds_rd_done <= '0';
-            dds_ram_rden <= '1';
             timeout_counter := 0;
             datamode := "000";
+            dds_ram_rden_block <= '0';
 		elsif rising_edge(clk_system) then
 			case ram_process_count is
 				--------- first two prepare and check whether there is anything in the fifo. This can be done by looking at the pin
@@ -537,7 +555,7 @@ begin
 								else 
 									ram_process_count := 3; --2 ---- if there's anything in the fifo, go to the next case
 									fifo_dds_rd_en <= '1';
-                                    dds_ram_rden <= '0';
+                                    dds_ram_rden_block <= '1';
                                     timeout_counter := 0;
 								end if;
 							 else 
@@ -629,7 +647,6 @@ begin
                                 ram_process_count := 0;
                                 dds_ram_wren <= '0';
                                 fifo_dds_rd_en <= '0';
-                                dds_ram_rden <= '1';
                                 repeat_counter := 0;
                             else
                                 ram_process_count := 3;
@@ -640,7 +657,7 @@ begin
 	end process;
 	
 	---- write instruction to DDS ---
-	PROCESS (clk_50, reset_fpga, operating_mode_changed)
+	PROCESS (clk_50, reset_fpga )
 		variable main_count: integer range 0 to 36:=0;
 		variable sub_count: integer range 0 to 3:=0;
 		variable main_frequency_var: std_LOGIC_VECTOR (63 downto 0);
@@ -667,11 +684,10 @@ begin
 				--	when 3 => led_VALUE (5 downto 2) <= "1000";
 				--end case;
 			end if;
-		IF (reset_fpga = '1' or operating_mode_changed = '1') then
+		IF (reset_fpga = '1') then
 			main_count := 0;
 			count_delay :=0;
 			dds_master_reset <= '1';
-			operating_mode_changed <= '0';
 		ELSIF (clk_50'event and clk_50='0') then
 			CASE main_count IS
 				---- initialization. DDS chip reset ----
@@ -720,9 +736,7 @@ begin
 												 sub_count:=0;
 												 main_count:=main_count+1;
 								END CASE;
-							   IF (operating_mode = "01") then --- If the mode is set to frequency modulation mode
-									main_count:= 19; -- go to frequency modulation mode
-								end if;				
+							   			
 				
 							 
 				---- set up modlus mode ---- 
@@ -904,6 +918,9 @@ begin
 									main_phase_var:=main_phase;
 									main_count:=10;
 								end if;
+                                if operating_mode = "01" then
+                                    main_count := 19;
+                                end if;
 								
 				--- Frequency modulation mode ---	
 					--- setup digital ramp mode
@@ -1132,6 +1149,10 @@ begin
 									high_ramp_limit_var := high_ramp_limit;
 									main_count:=24;
 								end if;
+                                if operating_mode = "00" then
+                                    main_count := 6;
+                                end if;
+
 								
 			end case;
 		END IF;

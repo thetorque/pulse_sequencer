@@ -17,30 +17,18 @@ class DDS(LabradServer):
     def initializeDDS(self):
         self.ddsLock = False
         self.api.initializeDDS()
-        fullbinary = None
         for name,channel in self.ddsDict.iteritems():
             channel.name = name
             freq,ampl,mode = (channel.frequency, channel.amplitude,channel.mode)
             self._checkRange('amplitude', channel, ampl)
             self._checkRange('frequency', channel, freq)         
-            bin = yield self.settings_to_buf(channel,freq,ampl,mode)
-            addresse = channel.channelnumber
-            for ablock in [bin[i:i+16] for i in range(0, len(bin), 16)]:
-                sequencelength = 9 # at some point this might change, but for now all pulses are 9 blocks of 16 bits
-                if fullbinary is None:
-                    fullbinary =  bytearray([addresse,0]) + ablock 
-                else:   
-                    fullbinary += bytearray([addresse,0]) + ablock 
-        import binascii
-        for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
-            print '------------------initialization'
-            print binascii.hexlify(abyte),len(abyte)
-        if name == "Moving Lattice":
-            print "Moving Lattice channel found"
-            #yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
-        else:
-            pass#yield self.inCommunication.run(self._programDDSSequenceBurst, fullbinary)
-        
+
+            if name == "Moving Lattice":
+                print "Moving Lattice channel found"
+                #yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
+            else:
+                yield self.inCommunication.run(self._setParameters, channel, freq, ampl, mode)
+            
     @setting(41, "Get DDS Channels", returns = '*s')
     def getDDSChannels(self, c):
         """get the list of available channels"""
@@ -347,15 +335,18 @@ class DDS(LabradServer):
     @inlineCallbacks
     def program_dds_chanel(self, channel, buf):
         addr = channel.channelnumber
+        binary = bytearray('e000'.decode('hex'))  + bytearray([128+addr,0]) + buf + bytearray('f000'.decode('hex')) 
+        import binascii
+        print binascii.hexlify(binary)
+        yield self.api.resetAllDDS()
+        yield self.api.resetRam()
         if not channel.remote:
-            yield deferToThread(self._setDDSLocal, addr, buf)
+            yield deferToThread(self.api.programDDSburst, binary)
         else:
             yield self._setDDSRemote(channel, addr, buf)
     
-    def _setDDSLocal(self, addr, buf):
-        self.api.resetAllDDS()
-        self.api.setDDSchannel(addr)
-        self.api.programDDS(buf)
+    def _setDDSLocal(self, buf):
+        self.api.programDDSburst(buf)
 
         
     @inlineCallbacks

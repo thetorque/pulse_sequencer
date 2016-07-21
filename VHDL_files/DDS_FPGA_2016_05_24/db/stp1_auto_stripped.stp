@@ -4,230 +4,129 @@
   </display_tree>
   <instance enabled="true" entity_name="sld_signaltap" is_auto_node="yes" is_expanded="false" name="auto_signaltap_0" source_file="sld_signaltap.vhd">
     <node_ip_info instance_id="0" mfg_id="110" node_id="0" version="6"/>
-    <signal_set global_temp="1" is_expanded="true" name="signal_set: 2016/07/08 15:30:06  #0">
-      <clock name="clk_system" polarity="posedge" tap_mode="classic"/>
-      <config is_hps_trigger_out_selected="false" ram_type="AUTO" reserved_data_nodes="0" reserved_storage_qualifier_nodes="0" reserved_trigger_nodes="0" sample_depth="512" trigger_in_enable="yes" trigger_in_node="fifo_dds_rd_en" trigger_in_tap_mode="classic" trigger_out_enable="no"/>
+    <signal_set global_temp="1" is_expanded="true" name="signal_set: 2016/07/21 21:24:13  #0">
+      <clock name="clk_dds" polarity="posedge" tap_mode="classic"/>
+      <config is_hps_trigger_out_selected="false" ram_type="AUTO" reserved_data_nodes="0" reserved_storage_qualifier_nodes="0" reserved_trigger_nodes="0" sample_depth="512" trigger_in_enable="yes" trigger_in_node="dds_master_reset" trigger_in_tap_mode="classic" trigger_out_enable="no"/>
       <top_entity/>
       <signal_vec>
         <trigger_input_vec>
-          <wire name="dds_bus_in[28]" tap_mode="classic"/>
-          <wire name="dds_bus_in[29]" tap_mode="classic"/>
-          <wire name="dds_bus_in[30]" tap_mode="classic"/>
-          <wire name="dds_bus_in[31]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[0]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[1]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[2]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[3]" tap_mode="classic"/>
-          <wire alias="write clock" name="dds_ram_wrclock" tap_mode="classic"/>
-          <wire name="dds_ram_wren" tap_mode="classic"/>
-          <wire name="fifo_dds_rd_done" tap_mode="classic"/>
-          <wire name="dds_bus_in[0]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[10]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[11]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[12]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[13]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[14]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[15]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[1]~input" tap_mode="probeonly"/>
-          <wire alias="fifo empty" name="dds_bus_in[27]" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[2]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[3]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[4]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[5]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[6]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[7]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[8]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[9]~input" tap_mode="probeonly"/>
-          <wire alias="read clk" name="fifo_dds_rd_clk" tap_mode="probeonly"/>
-          <wire alias="read enable" name="fifo_dds_rd_en" tap_mode="probeonly"/>
+          <wire name="current_operating_mode[0]" tap_mode="classic"/>
+          <wire name="current_operating_mode[1]" tap_mode="classic"/>
+          <wire name="main_count[0]" tap_mode="classic"/>
+          <wire name="main_count[1]" tap_mode="classic"/>
+          <wire name="main_count[2]" tap_mode="classic"/>
+          <wire name="main_count[3]" tap_mode="classic"/>
+          <wire name="main_count[4]" tap_mode="classic"/>
+          <wire name="main_count[5]" tap_mode="classic"/>
+          <wire name="operating_mode[0]" tap_mode="classic"/>
+          <wire name="operating_mode[1]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[0]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[1]" tap_mode="classic"/>
         </trigger_input_vec>
         <data_input_vec>
-          <wire name="dds_bus_in[28]" tap_mode="classic"/>
-          <wire name="dds_bus_in[29]" tap_mode="classic"/>
-          <wire name="dds_bus_in[30]" tap_mode="classic"/>
-          <wire name="dds_bus_in[31]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[0]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[1]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[2]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[3]" tap_mode="classic"/>
-          <wire alias="write clock" name="dds_ram_wrclock" tap_mode="classic"/>
-          <wire name="dds_ram_wren" tap_mode="classic"/>
-          <wire name="fifo_dds_rd_done" tap_mode="classic"/>
-          <wire name="dds_bus_in[0]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[10]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[11]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[12]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[13]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[14]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[15]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[1]~input" tap_mode="probeonly"/>
-          <wire alias="fifo empty" name="dds_bus_in[27]" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[2]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[3]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[4]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[5]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[6]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[7]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[8]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[9]~input" tap_mode="probeonly"/>
-          <wire alias="read clk" name="fifo_dds_rd_clk" tap_mode="probeonly"/>
-          <wire alias="read enable" name="fifo_dds_rd_en" tap_mode="probeonly"/>
+          <wire name="current_operating_mode[0]" tap_mode="classic"/>
+          <wire name="current_operating_mode[1]" tap_mode="classic"/>
+          <wire name="main_count[0]" tap_mode="classic"/>
+          <wire name="main_count[1]" tap_mode="classic"/>
+          <wire name="main_count[2]" tap_mode="classic"/>
+          <wire name="main_count[3]" tap_mode="classic"/>
+          <wire name="main_count[4]" tap_mode="classic"/>
+          <wire name="main_count[5]" tap_mode="classic"/>
+          <wire name="operating_mode[0]" tap_mode="classic"/>
+          <wire name="operating_mode[1]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[0]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[1]" tap_mode="classic"/>
         </data_input_vec>
         <storage_qualifier_input_vec>
-          <wire name="dds_bus_in[28]" tap_mode="classic"/>
-          <wire name="dds_bus_in[29]" tap_mode="classic"/>
-          <wire name="dds_bus_in[30]" tap_mode="classic"/>
-          <wire name="dds_bus_in[31]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[0]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[1]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[2]" tap_mode="classic"/>
-          <wire name="dds_ram_data_in[3]" tap_mode="classic"/>
-          <wire alias="write clock" name="dds_ram_wrclock" tap_mode="classic"/>
-          <wire name="dds_ram_wren" tap_mode="classic"/>
-          <wire name="fifo_dds_rd_done" tap_mode="classic"/>
-          <wire name="dds_bus_in[0]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[10]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[11]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[12]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[13]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[14]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[15]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[1]~input" tap_mode="probeonly"/>
-          <wire alias="fifo empty" name="dds_bus_in[27]" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[2]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[3]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[4]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[5]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[6]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[7]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[8]~input" tap_mode="probeonly"/>
-          <wire name="dds_bus_in[9]~input" tap_mode="probeonly"/>
-          <wire alias="read clk" name="fifo_dds_rd_clk" tap_mode="probeonly"/>
-          <wire alias="read enable" name="fifo_dds_rd_en" tap_mode="probeonly"/>
+          <wire name="current_operating_mode[0]" tap_mode="classic"/>
+          <wire name="current_operating_mode[1]" tap_mode="classic"/>
+          <wire name="main_count[0]" tap_mode="classic"/>
+          <wire name="main_count[1]" tap_mode="classic"/>
+          <wire name="main_count[2]" tap_mode="classic"/>
+          <wire name="main_count[3]" tap_mode="classic"/>
+          <wire name="main_count[4]" tap_mode="classic"/>
+          <wire name="main_count[5]" tap_mode="classic"/>
+          <wire name="operating_mode[0]" tap_mode="classic"/>
+          <wire name="operating_mode[1]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[0]" tap_mode="classic"/>
+          <wire name="previous_operating_mode[1]" tap_mode="classic"/>
         </storage_qualifier_input_vec>
       </signal_vec>
       <presentation>
         <unified_setup_data_view>
-          <node alias="read enable" data_index="29" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_signal_inverted="false" is_storage_input="true" is_transition_enabled="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_en" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="29" tap_mode="probeonly" trigger_index="29" type="unknown"/>
-          <node alias="read clk" data_index="28" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_clk" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="28" tap_mode="probeonly" trigger_index="28" type="unknown"/>
-          <node alias="fifo empty" data_index="19" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[27]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="19" tap_mode="probeonly" trigger_index="19" type="unknown"/>
-          <node alias="write clock" data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wrclock" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
-          <node data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wren" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
-          <node data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_done" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
-          <node is_selected="false" level-0="alt_or" level-1="alt_or" name="dds_bus_in[0..15]" order="lsb_to_msb" radix="hex" state="collapse" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="combinatorial">
-            <node data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[0]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="11" tap_mode="probeonly" trigger_index="11" type="unknown"/>
-            <node data_index="18" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[1]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="18" tap_mode="probeonly" trigger_index="18" type="unknown"/>
-            <node data_index="20" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[2]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="20" tap_mode="probeonly" trigger_index="20" type="unknown"/>
-            <node data_index="21" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[3]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="21" tap_mode="probeonly" trigger_index="21" type="unknown"/>
-            <node data_index="22" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[4]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="22" tap_mode="probeonly" trigger_index="22" type="unknown"/>
-            <node data_index="23" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[5]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="23" tap_mode="probeonly" trigger_index="23" type="unknown"/>
-            <node data_index="24" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[6]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="24" tap_mode="probeonly" trigger_index="24" type="unknown"/>
-            <node data_index="25" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[7]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="25" tap_mode="probeonly" trigger_index="25" type="unknown"/>
-            <node data_index="26" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[8]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="26" tap_mode="probeonly" trigger_index="26" type="unknown"/>
-            <node data_index="27" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[9]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="27" tap_mode="probeonly" trigger_index="27" type="unknown"/>
-            <node data_index="12" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[10]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="12" tap_mode="probeonly" trigger_index="12" type="unknown"/>
-            <node data_index="13" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[11]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="13" tap_mode="probeonly" trigger_index="13" type="unknown"/>
-            <node data_index="14" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[12]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="14" tap_mode="probeonly" trigger_index="14" type="unknown"/>
-            <node data_index="15" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[13]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="15" tap_mode="probeonly" trigger_index="15" type="unknown"/>
-            <node data_index="16" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[14]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="16" tap_mode="probeonly" trigger_index="16" type="unknown"/>
-            <node data_index="17" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[15]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="17" tap_mode="probeonly" trigger_index="17" type="unknown"/>
+          <node is_selected="false" level-0="alt_or" name="main_count[5..0]" order="msb_to_lsb" radix="unsigned_dec" type="register">
+            <node data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[5]" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+            <node data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[4]" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
+            <node data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[3]" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
+            <node data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[2]" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
+            <node data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[1]" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+            <node data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[0]" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
           </node>
-          <node is_selected="false" level-0="alt_or" name="dds_ram_data_in[0..3]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <node data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[0]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
-            <node data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[1]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
-            <node data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[2]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
-            <node data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[3]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+          <node is_selected="false" level-0="alt_or" name="operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <node data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[1]" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
+            <node data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[0]" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
           </node>
-          <node is_selected="false" level-0="alt_or" name="dds_bus_in[28..31]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <node data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[28]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
-            <node data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[29]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
-            <node data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[30]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
-            <node data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[31]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+          <node is_selected="false" level-0="alt_or" name="current_operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <node data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[1]" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
+            <node data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[0]" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
+          </node>
+          <node is_selected="false" level-0="alt_or" name="previous_operating_mode[1..0]" order="msb_to_lsb" type="register">
+            <node data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[1]" storage_index="11" tap_mode="classic" trigger_index="11" type="unknown"/>
+            <node data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[0]" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
           </node>
         </unified_setup_data_view>
         <data_view>
-          <net alias="read enable" data_index="29" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_signal_inverted="false" is_storage_input="true" is_transition_enabled="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_en" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="29" tap_mode="probeonly" trigger_index="29" type="unknown"/>
-          <net alias="read clk" data_index="28" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_clk" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="28" tap_mode="probeonly" trigger_index="28" type="unknown"/>
-          <net alias="fifo empty" data_index="19" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[27]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="19" tap_mode="probeonly" trigger_index="19" type="unknown"/>
-          <net alias="write clock" data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wrclock" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
-          <net data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wren" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
-          <net data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_done" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
-          <bus is_selected="false" level-0="alt_or" level-1="alt_or" name="dds_bus_in[0..15]" order="lsb_to_msb" radix="hex" state="collapse" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="combinatorial">
-            <net data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[0]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="11" tap_mode="probeonly" trigger_index="11" type="unknown"/>
-            <net data_index="18" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[1]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="18" tap_mode="probeonly" trigger_index="18" type="unknown"/>
-            <net data_index="20" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[2]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="20" tap_mode="probeonly" trigger_index="20" type="unknown"/>
-            <net data_index="21" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[3]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="21" tap_mode="probeonly" trigger_index="21" type="unknown"/>
-            <net data_index="22" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[4]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="22" tap_mode="probeonly" trigger_index="22" type="unknown"/>
-            <net data_index="23" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[5]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="23" tap_mode="probeonly" trigger_index="23" type="unknown"/>
-            <net data_index="24" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[6]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="24" tap_mode="probeonly" trigger_index="24" type="unknown"/>
-            <net data_index="25" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[7]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="25" tap_mode="probeonly" trigger_index="25" type="unknown"/>
-            <net data_index="26" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[8]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="26" tap_mode="probeonly" trigger_index="26" type="unknown"/>
-            <net data_index="27" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[9]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="27" tap_mode="probeonly" trigger_index="27" type="unknown"/>
-            <net data_index="12" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[10]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="12" tap_mode="probeonly" trigger_index="12" type="unknown"/>
-            <net data_index="13" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[11]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="13" tap_mode="probeonly" trigger_index="13" type="unknown"/>
-            <net data_index="14" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[12]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="14" tap_mode="probeonly" trigger_index="14" type="unknown"/>
-            <net data_index="15" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[13]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="15" tap_mode="probeonly" trigger_index="15" type="unknown"/>
-            <net data_index="16" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[14]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="16" tap_mode="probeonly" trigger_index="16" type="unknown"/>
-            <net data_index="17" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[15]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="17" tap_mode="probeonly" trigger_index="17" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="main_count[5..0]" order="msb_to_lsb" radix="unsigned_dec" type="register">
+            <net data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[5]" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+            <net data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[4]" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
+            <net data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[3]" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
+            <net data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[2]" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
+            <net data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[1]" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+            <net data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[0]" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
           </bus>
-          <bus is_selected="false" level-0="alt_or" name="dds_ram_data_in[0..3]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <net data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[0]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
-            <net data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[1]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
-            <net data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[2]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
-            <net data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[3]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <net data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[1]" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
+            <net data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[0]" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
           </bus>
-          <bus is_selected="false" level-0="alt_or" name="dds_bus_in[28..31]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <net data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[28]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
-            <net data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[29]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
-            <net data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[30]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
-            <net data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[31]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="current_operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <net data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[1]" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
+            <net data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[0]" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
+          </bus>
+          <bus is_selected="false" level-0="alt_or" name="previous_operating_mode[1..0]" order="msb_to_lsb" type="register">
+            <net data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[1]" storage_index="11" tap_mode="classic" trigger_index="11" type="unknown"/>
+            <net data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[0]" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
           </bus>
         </data_view>
         <setup_view>
-          <net alias="read enable" data_index="29" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_signal_inverted="false" is_storage_input="true" is_transition_enabled="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_en" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="29" tap_mode="probeonly" trigger_index="29" type="unknown"/>
-          <net alias="read clk" data_index="28" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_clk" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="28" tap_mode="probeonly" trigger_index="28" type="unknown"/>
-          <net alias="fifo empty" data_index="19" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[27]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="19" tap_mode="probeonly" trigger_index="19" type="unknown"/>
-          <net alias="write clock" data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wrclock" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
-          <net data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_wren" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
-          <net data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="fifo_dds_rd_done" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
-          <bus is_selected="false" level-0="alt_or" level-1="alt_or" name="dds_bus_in[0..15]" order="lsb_to_msb" radix="hex" state="collapse" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="combinatorial">
-            <net data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[0]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="11" tap_mode="probeonly" trigger_index="11" type="unknown"/>
-            <net data_index="18" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[1]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="18" tap_mode="probeonly" trigger_index="18" type="unknown"/>
-            <net data_index="20" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[2]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="20" tap_mode="probeonly" trigger_index="20" type="unknown"/>
-            <net data_index="21" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[3]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="21" tap_mode="probeonly" trigger_index="21" type="unknown"/>
-            <net data_index="22" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[4]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="22" tap_mode="probeonly" trigger_index="22" type="unknown"/>
-            <net data_index="23" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[5]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="23" tap_mode="probeonly" trigger_index="23" type="unknown"/>
-            <net data_index="24" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[6]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="24" tap_mode="probeonly" trigger_index="24" type="unknown"/>
-            <net data_index="25" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[7]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="25" tap_mode="probeonly" trigger_index="25" type="unknown"/>
-            <net data_index="26" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[8]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="26" tap_mode="probeonly" trigger_index="26" type="unknown"/>
-            <net data_index="27" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[9]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="27" tap_mode="probeonly" trigger_index="27" type="unknown"/>
-            <net data_index="12" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[10]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="12" tap_mode="probeonly" trigger_index="12" type="unknown"/>
-            <net data_index="13" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[11]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="13" tap_mode="probeonly" trigger_index="13" type="unknown"/>
-            <net data_index="14" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[12]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="14" tap_mode="probeonly" trigger_index="14" type="unknown"/>
-            <net data_index="15" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[13]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="15" tap_mode="probeonly" trigger_index="15" type="unknown"/>
-            <net data_index="16" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[14]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="16" tap_mode="probeonly" trigger_index="16" type="unknown"/>
-            <net data_index="17" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[15]~input" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="17" tap_mode="probeonly" trigger_index="17" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="main_count[5..0]" order="msb_to_lsb" radix="unsigned_dec" type="register">
+            <net data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[5]" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+            <net data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[4]" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
+            <net data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[3]" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
+            <net data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[2]" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
+            <net data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[1]" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+            <net data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="main_count[0]" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
           </bus>
-          <bus is_selected="false" level-0="alt_or" name="dds_ram_data_in[0..3]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <net data_index="4" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[0]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="4" tap_mode="classic" trigger_index="4" type="unknown"/>
-            <net data_index="5" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[1]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="5" tap_mode="classic" trigger_index="5" type="unknown"/>
-            <net data_index="6" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[2]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="6" tap_mode="classic" trigger_index="6" type="unknown"/>
-            <net data_index="7" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_ram_data_in[3]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="7" tap_mode="classic" trigger_index="7" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <net data_index="9" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[1]" storage_index="9" tap_mode="classic" trigger_index="9" type="unknown"/>
+            <net data_index="8" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="operating_mode[0]" storage_index="8" tap_mode="classic" trigger_index="8" type="unknown"/>
           </bus>
-          <bus is_selected="false" level-0="alt_or" name="dds_bus_in[28..31]" order="lsb_to_msb" storage-0="alt_or" storage-1="alt_or" storage-2="alt_or" type="unknown">
-            <net data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[28]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
-            <net data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[29]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
-            <net data_index="2" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[30]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="2" tap_mode="classic" trigger_index="2" type="unknown"/>
-            <net data_index="3" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" level-0="dont_care" name="dds_bus_in[31]" pwr_level-0="dont_care" pwr_storage-0="dont_care" pwr_storage-1="dont_care" pwr_storage-2="dont_care" storage-0="dont_care" storage-1="dont_care" storage-2="dont_care" storage_index="3" tap_mode="classic" trigger_index="3" type="unknown"/>
+          <bus is_selected="false" level-0="alt_or" name="current_operating_mode[1..0]" order="msb_to_lsb" type="combinatorial">
+            <net data_index="1" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[1]" storage_index="1" tap_mode="classic" trigger_index="1" type="unknown"/>
+            <net data_index="0" duplicate_name_allowed="false" is_data_input="true" is_node_valid="false" is_selected="false" is_storage_input="true" is_trigger_input="true" name="current_operating_mode[0]" storage_index="0" tap_mode="classic" trigger_index="0" type="unknown"/>
+          </bus>
+          <bus is_selected="false" level-0="alt_or" name="previous_operating_mode[1..0]" order="msb_to_lsb" type="register">
+            <net data_index="11" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[1]" storage_index="11" tap_mode="classic" trigger_index="11" type="unknown"/>
+            <net data_index="10" duplicate_name_allowed="false" is_data_input="true" is_node_valid="true" is_selected="false" is_storage_input="true" is_trigger_input="true" name="previous_operating_mode[0]" storage_index="10" tap_mode="classic" trigger_index="10" type="unknown"/>
           </bus>
         </setup_view>
-        <trigger_in_editor bit_condition="high" is_enabled="true" is_hps_event_selected="false" is_hps_trigger_in_selected="false" is_node_post_fitting="false" is_node_selected="true" is_pin_selected="false" node_name="fifo_dds_rd_en" pin_name="auto_stp_trigger_in_auto_signaltap_0"/>
+        <trigger_in_editor bit_condition="rising edge" is_enabled="true" is_hps_event_selected="false" is_hps_trigger_in_selected="false" is_node_post_fitting="false" is_node_selected="true" is_pin_selected="false" node_name="dds_master_reset" pin_name="auto_stp_trigger_in_auto_signaltap_0"/>
         <trigger_out_editor is_enabled="false" is_pin_selected="false" pin_name="auto_stp_trigger_out_auto_signaltap_0"/>
       </presentation>
-      <trigger CRC="2BEA15AD" attribute_mem_mode="false" gap_record="true" global_temp="1" is_expanded="true" name="trigger: 2016/07/08 15:30:06  #1" position="pre" power_up_trigger_mode="false" record_data_gap="true" segment_size="128" storage_mode="transitional" storage_qualifier_disabled="no" storage_qualifier_port_is_pin="true" storage_qualifier_port_name="auto_stp_external_storage_qualifier" storage_qualifier_port_tap_mode="classic" trigger_in="high" trigger_type="circular">
+      <trigger CRC="39D552FF" attribute_mem_mode="false" gap_record="true" global_temp="1" is_expanded="true" name="trigger: 2016/07/21 21:24:13  #1" position="pre" power_up_trigger_mode="false" record_data_gap="true" segment_size="128" storage_mode="transitional" storage_qualifier_disabled="no" storage_qualifier_port_is_pin="false" storage_qualifier_port_name="auto_stp_external_storage_qualifier" storage_qualifier_port_tap_mode="classic" trigger_in="rising edge" trigger_type="circular">
         <power_up_trigger position="pre" storage_qualifier_disabled="no" trigger_in="high"/>
         <events use_custom_flow_control="no">
-          <level enabled="yes" name="condition1" type="basic"><power_up enabled="yes">
+          <level enabled="yes" name="condition1" type="basic">
+            <power_up enabled="yes">
             </power_up>
             <op_node/>
           </level>
@@ -242,8 +141,8 @@ trigger;]]>
           </custom_flow_control>
         </events>
         <storage_qualifier_events>
-          <transitional>111111111111111111111111111111
-            <pwr_up_transitional>111111111111111111111111111111</pwr_up_transitional>
+          <transitional>111111111111
+            <pwr_up_transitional>111111111111</pwr_up_transitional>
           </transitional>
           <storage_qualifier_level type="basic">
             <power_up>
@@ -270,9 +169,9 @@ trigger;]]>
       <single attribute="setup horizontal scroll position" value="0"/>
       <single attribute="setup vertical scroll position" value="0"/>
       <single attribute="zoom level denominator" value="1"/>
-      <single attribute="zoom level numerator" value="1"/>
+      <single attribute="zoom level numerator" value="4096"/>
       <single attribute="zoom offset denominator" value="1"/>
-      <single attribute="zoom offset numerator" value="130560"/>
+      <single attribute="zoom offset numerator" value="8"/>
     </position_info>
   </instance>
   <mnemonics/>

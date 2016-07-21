@@ -206,6 +206,7 @@ class Pulser(DDS, LineTrigger):
         """Stops any currently running sequence"""
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.resetRam)
+        yield deferToThread(self.api.resetAllDDS)
         if self.sequenceType =='Infinite':
             yield deferToThread(self.api.stopLooped)
         elif self.sequenceType =='One':
@@ -438,6 +439,15 @@ class Pulser(DDS, LineTrigger):
         '''
         return self.hwconfigpath
         
+    @setting(42, 'Get DDSchannel state',returns = 's')
+    def getDDSchannelState(self,c):
+        ''' 
+        Returns the current state of the dds channels
+        '''
+        stringdict = str(self._getCurrentDDS())
+        print type(stringdict)
+        returnValue(stringdict)
+     
     #debugging settings
     @setting(90, 'Internal Reset DDS', returns = '')
     def internal_reset_dds(self, c):

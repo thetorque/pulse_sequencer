@@ -109,7 +109,7 @@ class mainwindow(QtGui.QMainWindow):
         try:
             pass
             #layout.addWidget(switchWidget(self.reactor,self.connection))
-            #layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
+            layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
             #layout.addWidget(linetriggerWidget(self.reactor,self.connection))
         except AttributeError, e:
             print e
