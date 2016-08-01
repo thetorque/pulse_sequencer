@@ -1,0 +1,18 @@
+#-----------------------------------------------------------
+# PlanAhead v14.7 (64-bit)
+# Build 321239 by xbuild on Fri Sep 27 19:29:51 MDT 2013
+# Start of session at: Tue Jul 26 10:45:35 2016
+# Process ID: 9180
+# Log file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5/planAhead.log
+# Journal file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5/planAhead.jou
+#-----------------------------------------------------------
+start_gui
+source C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pa.fromNetlist.tcl
+startgroup
+set_property package_pin C22 [get_ports {logic_in[0]}]
+endgroup
+refresh_design
+startgroup
+set_property package_pin C22 [get_ports {logic_in[0]}]
+endgroup
+save_constraints

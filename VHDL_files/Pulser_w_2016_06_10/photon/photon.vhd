@@ -593,16 +593,17 @@ fifo4: dds_fifo port map(
         wr_data_count=>fifo_dds_wr_data_count);
 
 --fifo_dds_rst <= ep40wire(7); -------- this fifo never gets reset because if there's anything in the fifo, it will get written into the ram right away
-led(5) <= not usb_fifo_dds_empty;
+led(5) <= not logic_in(0);--not usb_fifo_dds_empty;
 --led(4) <= not logic_out(4);
 --led(6) <= not usb_fifo_dds_rd_en;
 --led(7 downto 4) <= not ep04wire(3 downto 0);
 --led(3 downto 2) <= ep00wire(7 downto 6);
---led(1) <= not line_triggering_pulse;
---led(0) <= not logic_in(0);
+--led(7) <= not line_triggering_pulse;
+led(6) <= not logic_in(1);
+led(7) <= not logic_in(2);
 --led <= not master_logic(7 downto 0);
 dds_logic_debug_out(0) <= usb_fifo_dds_rd_clk;
-led(7 downto 6) <= not ep04wire(1 downto 0);
+--led(7 downto 6) <= not ep04wire(1 downto 0);
 --led(7) <= '1';
 --led(6) <= ti_clk;
 

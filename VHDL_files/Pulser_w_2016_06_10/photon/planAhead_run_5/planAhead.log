@@ -1,0 +1,573 @@
+#-----------------------------------------------------------
+# PlanAhead v14.7 (64-bit)
+# Build 321239 by xbuild on Fri Sep 27 19:29:51 MDT 2013
+# Start of session at: Tue Jul 26 10:45:35 2016
+# Process ID: 9180
+# Log file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5/planAhead.log
+# Journal file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5/planAhead.jou
+#-----------------------------------------------------------
+INFO: [Common 17-78] Attempting to get a license: PlanAhead
+INFO: [Common 17-290] Got license for PlanAhead
+INFO: [Common 17-86] Your PlanAhead license expires in -148 day(s)
+INFO: [Device 21-36] Loading parts and site information from C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/arch.xml
+Parsing RTL primitives file [C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+Finished parsing RTL primitives file [C:/Xilinx/14.7/ISE_DS/PlanAhead/data/parts/xilinx/rtl/prims/rtl_prims.xml]
+start_gui
+source C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pa.fromNetlist.tcl
+# create_project -name photon -dir "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_5" -part xc6slx45fgg484-2
+# set_property design_mode GateLvl [get_property srcset [current_run -impl]]
+# set_property edif_top_file "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.ngc" [ get_property srcset [ current_run ] ]
+# add_files -norecurse { {C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon} {ipcore_dir} }
+# add_files [list {C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/dds_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/fifo_photon.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/normal_pmt_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/pulser_ram.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/pulse_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/readout_count_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# add_files [list {ipcore_dir/usb_dds_fifo.ncf}] -fileset [get_property constrset [current_run]]
+# set_param project.pinAheadLayout  yes
+# set_property target_constrs_file "xem6010.ucf" [current_fileset -constrset]
+Adding file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/xem6010.ucf' to fileset 'constrs_1'
+# add_files [list {xem6010.ucf}] -fileset [get_property constrset [current_run]]
+# link_design
+Design is defaulting to srcset: sources_1
+Design is defaulting to constrset: constrs_1
+Design is defaulting to project part: xc6slx45fgg484-2
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design photon.ngc ...
+WARNING:NetListWriters:298 - No output is written to photon.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+WARNING:NetListWriters:306 - Signal bus ep00wire[7 : 0] on block photon is not
+   reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus master_logic[31 : 0] on block photon is
+   not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus ram_data_out_2[61 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus ram_data_out_1[31 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus pulser_ram_doutb[61 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus blocks_written[3]_GND_8_o_mux_21_OUT[3 :
+   0] on block photon is not reconstructed, because there are some missing bus
+   signals.
+WARNING:NetListWriters:306 - Signal bus _n1345[31 : 0] on block photon is not
+   reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus
+   Madd_ram_read_address[9]_GND_8_o_add_131_OUT_cy[7 : 4] on block photon is not
+   reconstructed, because there are some missing bus signals.
+  finished :Prep
+Writing EDIF netlist file photon.edif ...
+ngc2edif: Total memory usage is 91076 kilobytes
+
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/photon_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/photon_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okWireIn.ngc' for (cell view 'okWireIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireOut.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okWireOut.ngc' for (cell view 'okWireOut', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireOut_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireOut_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okCoreHarness.ngc ...
+WARNING:NetListWriters:298 - No output is written to okCoreHarness.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okCoreHarness.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okCoreHarness.ngc' for (cell view 'okCoreHarness', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okCoreHarness_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okCoreHarness_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design TFIFO64x8a_64x8b.ngc ...
+WARNING:NetListWriters:298 - No output is written to TFIFO64x8a_64x8b.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+WARNING:NetListWriters:306 - Signal bus
+   U0/grf.rf/rstblk/ngwrdrst.grst.rd_rst_reg<2 : 0> on block
+   TFIFO64x8a_64x8b_fifo_generator_v6_2_xst_1 is not reconstructed, because
+   there are some missing bus signals.
+  finished :Prep
+Writing EDIF netlist file TFIFO64x8a_64x8b.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/TFIFO64x8a_64x8b.ngc' for (cell view 'TFIFO64x8a_64x8b', library 'okCoreHarness_lib', file 'okCoreHarness.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/TFIFO64x8a_64x8b_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/TFIFO64x8a_64x8b_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okTriggerIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okTriggerIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okTriggerIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okTriggerIn.ngc' for (cell view 'okTriggerIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okTriggerIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okTriggerIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okBTPipeIn.ngc' for (cell view 'okBTPipeIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeOut.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okBTPipeOut.ngc' for (cell view 'okBTPipeOut', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeOut_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeOut_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design fifo_photon.ngc ...
+WARNING:NetListWriters:298 - No output is written to fifo_photon.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file fifo_photon.edif ...
+ngc2edif: Total memory usage is 91076 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/fifo_photon.ngc' for (cell view 'fifo_photon', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/fifo_photon_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/fifo_photon_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design pulse_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to pulse_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file pulse_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulse_fifo.ngc' for (cell view 'pulse_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulse_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulse_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design normal_pmt_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to normal_pmt_fifo.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file normal_pmt_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/normal_pmt_fifo.ngc' for (cell view 'normal_pmt_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/normal_pmt_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/normal_pmt_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design dds_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to dds_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file dds_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/dds_fifo.ngc' for (cell view 'dds_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/dds_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/dds_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design readout_count_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to readout_count_fifo.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file readout_count_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ngc' for (cell view 'readout_count_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/readout_count_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/readout_count_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design usb_dds_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to usb_dds_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file usb_dds_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ngc' for (cell view 'usb_dds_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/usb_dds_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/usb_dds_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design pulser_ram.ngc ...
+WARNING:NetListWriters:298 - No output is written to pulser_ram.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file pulser_ram.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ngc' for (cell view 'pulser_ram', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulser_ram_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulser_ram_ngc_zx.edif]
+INFO: [Netlist 29-17] Analyzing 83 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+Loading clock regions from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/ClockRegion.xml
+Loading clock buffers from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/ClockBuffers.xml
+Loading package pin functions from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/PinFunctions.xml...
+Loading package from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/spartan6lx/xc6slx45/fgg484/Package.xml
+Loading io standards from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\./parts/xilinx/spartan6/IOStandards.xml
+Loading device configuration modes from C:/Xilinx/14.7/ISE_DS/PlanAhead/data\parts/xilinx/spartan6/ConfigModes.xml
+Loading list of drcs for the architecture : C:/Xilinx/14.7/ISE_DS/PlanAhead/data\./parts/xilinx/spartan6/drc.xml
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/dds_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/dds_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/fifo_photon.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/fifo_photon.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/normal_pmt_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/normal_pmt_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulser_ram.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulser_ram.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulse_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulse_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/xem6010.ucf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/xem6010.ucf]
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 83 instances were transformed.
+  IOBUF => IOBUF (OBUFT, IBUF): 17 instances
+  LUT6_2 => LUT6_2 (LUT6, LUT5): 50 instances
+  RAM128X1S => RAM128X1S (RAMS64E, RAMS64E, MUXF7): 8 instances
+  RAM32M => RAM32M (RAMD32, RAMD32, RAMD32, RAMD32, RAMD32, RAMD32, RAMS32, RAMS32): 4 instances
+  RAM64M => RAM64M (RAMD64E, RAMD64E, RAMD64E, RAMD64E): 2 instances
+  RAM64X1D => RAM64X1D (RAMD64E, RAMD64E): 2 instances
+
+Phase 0 | Netlist Checksum: 544d8ad9
+link_design: Time (s): elapsed = 00:00:27 . Memory (MB): peak = 694.641 ; gain = 228.934
+startgroup
+set_property package_pin C22 [get_ports {logic_in[0]}]
+endgroup
+refresh_design
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design photon.ngc ...
+WARNING:NetListWriters:298 - No output is written to photon.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+WARNING:NetListWriters:306 - Signal bus ep00wire[7 : 0] on block photon is not
+   reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus master_logic[31 : 0] on block photon is
+   not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus ram_data_out_2[61 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus ram_data_out_1[31 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus pulser_ram_doutb[61 : 0] on block photon
+   is not reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus blocks_written[3]_GND_8_o_mux_21_OUT[3 :
+   0] on block photon is not reconstructed, because there are some missing bus
+   signals.
+WARNING:NetListWriters:306 - Signal bus _n1345[31 : 0] on block photon is not
+   reconstructed, because there are some missing bus signals.
+WARNING:NetListWriters:306 - Signal bus
+   Madd_ram_read_address[9]_GND_8_o_add_130_OUT_cy[7 : 4] on block photon is not
+   reconstructed, because there are some missing bus signals.
+  finished :Prep
+Writing EDIF netlist file photon.edif ...
+ngc2edif: Total memory usage is 91076 kilobytes
+
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/photon_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/photon_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okWireIn.ngc' for (cell view 'okWireIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okWireOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okWireOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okWireOut.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okWireOut.ngc' for (cell view 'okWireOut', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireOut_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okWireOut_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okCoreHarness.ngc ...
+WARNING:NetListWriters:298 - No output is written to okCoreHarness.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okCoreHarness.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okCoreHarness.ngc' for (cell view 'okCoreHarness', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okCoreHarness_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okCoreHarness_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design TFIFO64x8a_64x8b.ngc ...
+WARNING:NetListWriters:298 - No output is written to TFIFO64x8a_64x8b.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+WARNING:NetListWriters:306 - Signal bus
+   U0/grf.rf/rstblk/ngwrdrst.grst.rd_rst_reg<2 : 0> on block
+   TFIFO64x8a_64x8b_fifo_generator_v6_2_xst_1 is not reconstructed, because
+   there are some missing bus signals.
+  finished :Prep
+Writing EDIF netlist file TFIFO64x8a_64x8b.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/TFIFO64x8a_64x8b.ngc' for (cell view 'TFIFO64x8a_64x8b', library 'okCoreHarness_lib', file 'okCoreHarness.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/TFIFO64x8a_64x8b_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/TFIFO64x8a_64x8b_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okTriggerIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okTriggerIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okTriggerIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okTriggerIn.ngc' for (cell view 'okTriggerIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okTriggerIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okTriggerIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeIn.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeIn.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeIn.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okBTPipeIn.ngc' for (cell view 'okBTPipeIn', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeIn_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeIn_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design okBTPipeOut.ngc ...
+WARNING:NetListWriters:298 - No output is written to okBTPipeOut.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file okBTPipeOut.edif ...
+ngc2edif: Total memory usage is 78788 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okBTPipeOut.ngc' for (cell view 'okBTPipeOut', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeOut_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/okBTPipeOut_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design fifo_photon.ngc ...
+WARNING:NetListWriters:298 - No output is written to fifo_photon.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file fifo_photon.edif ...
+ngc2edif: Total memory usage is 91076 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/fifo_photon.ngc' for (cell view 'fifo_photon', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/fifo_photon_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/fifo_photon_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design pulse_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to pulse_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file pulse_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulse_fifo.ngc' for (cell view 'pulse_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulse_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulse_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design normal_pmt_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to normal_pmt_fifo.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file normal_pmt_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/normal_pmt_fifo.ngc' for (cell view 'normal_pmt_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/normal_pmt_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/normal_pmt_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design dds_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to dds_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file dds_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/dds_fifo.ngc' for (cell view 'dds_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/dds_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/dds_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design readout_count_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to readout_count_fifo.xncf,
+   ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file readout_count_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ngc' for (cell view 'readout_count_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/readout_count_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/readout_count_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design usb_dds_fifo.ngc ...
+WARNING:NetListWriters:298 - No output is written to usb_dds_fifo.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file usb_dds_fifo.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ngc' for (cell view 'usb_dds_fifo', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/usb_dds_fifo_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/usb_dds_fifo_ngc_zx.edif]
+Release 14.7 - ngc2edif P.20131013 (nt64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+Reading design pulser_ram.ngc ...
+WARNING:NetListWriters:298 - No output is written to pulser_ram.xncf, ignored.
+Processing design ...
+   Preping design's networks ...
+   Preping design's macros ...
+  finished :Prep
+Writing EDIF netlist file pulser_ram.edif ...
+ngc2edif: Total memory usage is 82884 kilobytes
+
+Reading core file 'C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ngc' for (cell view 'pulser_ram', library 'photon_lib', file 'photon.ngc')
+Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulser_ram_ngc_zx.edif]
+Finished Parsing EDIF File [./planAhead_run_5/photon.data/cache/pulser_ram_ngc_zx.edif]
+INFO: [Netlist 29-17] Analyzing 83 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pulser_ram.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/dds_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/dds_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/fifo_photon.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/fifo_photon.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/normal_pmt_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/normal_pmt_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulser_ram.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulser_ram.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulse_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/pulse_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/readout_count_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ncf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/ipcore_dir/usb_dds_fifo.ncf]
+Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/xem6010.ucf]
+Finished Parsing UCF File [C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/xem6010.ucf]
+refresh_design: Time (s): elapsed = 00:00:21 . Memory (MB): peak = 773.652 ; gain = 0.000
+startgroup
+set_property package_pin C22 [get_ports {logic_in[0]}]
+endgroup
+save_constraints

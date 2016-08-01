@@ -310,7 +310,7 @@ NET "pmt_input" IOSTANDARD = LVCMOS33;
 NET "pmt_input" CLOCK_DEDICATED_ROUTE = FALSE;
 #NET "pmt_input" 	LOC=L19 | IOSTANDARD=LVCMOS33;
 
-NET "logic_in[0]" LOC = D10;
+NET "logic_in[0]" LOC = C22;
 NET "logic_in[0]" IOSTANDARD = LVCMOS33;
 NET "logic_in[1]" LOC = D7;
 NET "logic_in[1]" IOSTANDARD = LVCMOS33;
@@ -482,7 +482,6 @@ NET "dds_logic_debug_out[2]" LOC = F20;
 NET "dds_logic_debug_out[1]" LOC = G16;
 NET "dds_logic_debug_out[0]" LOC = G19;
 
-# PlanAhead Generated IO constraints 
 
 NET "dds_logic_debug_out[7]" IOSTANDARD = LVCMOS33;
 NET "dds_logic_debug_out[6]" IOSTANDARD = LVCMOS33;

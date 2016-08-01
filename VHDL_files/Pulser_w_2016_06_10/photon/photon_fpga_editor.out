@@ -1,0 +1,38 @@
+#:C9     
+#Xilinx FPGA Editor Command Log File
+#Editor Version:
+#:V   NT M2.1 P.20131013
+#Current Working Directory:
+#:D   C:\Users\katori\Desktop\pulse_sequencer\VHDL_files\Pulser_w_2016_06_10\photon
+#Date/Time:
+#:T   Tue Jul 26 13:56:33 2016
+#------------------------------
+	#Reading photon.ncd...
+	#Loading device for application Rf_Device from file '6slx45.nph' in environment C:\Xilinx\14.7\ISE_DS\ISE\.
+	#   "photon" is an NCD, version 3.2, device xc6slx45, package fgg484, speed -2
+	#Design creation date: 2016.07.26.04.48.54
+	#Building chip graphics...
+	#Loading speed info...
+	#1
+setattr main edit-mode no-logic-changes
+	#2
+select -k comp 'logic_in<0>'
+	#3
+unselect -all
+	#4
+select site 'D8'
+	#site "D8",  bonded type = IOBS,  pad name = PAD18,  pin name = D8  (RPM grid X69Y508)
+	#5
+unselect -all
+	#6
+select comp 'logic_in<1>'
+	#comp "logic_in<1>",  site "D7",  bonded type = IOB,  pad name = PAD17,  pin name = D7  (RPM grid X69Y510)
+	#7
+unselect -all
+	#8
+select comp 'logic_in<0>'
+	#comp "logic_in<0>",  site "D10",  bonded type = IOB,  pad name = PAD19,  pin name = D10  (RPM grid X69Y506)
+	#9
+unselect -all
+	#10
+select site 'OLOGIC_X12Y118'
