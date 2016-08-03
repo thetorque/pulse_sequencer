@@ -110,7 +110,7 @@ class mainwindow(QtGui.QMainWindow):
             pass
             #layout.addWidget(switchWidget(self.reactor,self.connection))
             layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
-            #layout.addWidget(linetriggerWidget(self.reactor,self.connection))
+            layout.addWidget(linetriggerWidget(self.reactor,self.connection))
         except AttributeError, e:
             print e
         widget.setLayout(layout)
@@ -162,6 +162,7 @@ class mainwindow(QtGui.QMainWindow):
         panel = QtGui.QWidget()
         Startbutton = QtGui.QPushButton(QtGui.QIcon('icons/go-next.svg'),'RUN')
         Stopbutton = QtGui.QPushButton(QtGui.QIcon('icons/emblem-noread.svg'),'STOP')
+        Loopbutton = QtGui.QPushButton(QtGui.QIcon('icons/synchronize.svg'),'LOOP')
         LineTrigbutton = QtGui.QPushButton('linetrig')
         LineTrigbutton.setCheckable(True)
         state = True
@@ -186,6 +187,7 @@ class mainwindow(QtGui.QMainWindow):
 
         Startbutton.pressed.connect(self.on_Start)
         Stopbutton.pressed.connect(self.on_Stop)
+        Loopbutton.pressed.connect(self.on_Loop)
         Spacetaker = QtGui.QWidget()
         ledpanel =QtGui.QWidget()
         ledlayout = QtGui.QHBoxLayout()
@@ -200,10 +202,11 @@ class mainwindow(QtGui.QMainWindow):
         layout = QtGui.QGridLayout()
         layout.addWidget(Startbutton,0,0)
         layout.addWidget(Stopbutton,1,0)
+        layout.addWidget(Loopbutton,2,0)
         layout.addWidget(ledpanel,0,1,1,5)
         layout.addWidget(LineTrigbutton,1,1)
-        layout.addWidget(filetoolbar,2,0,1,2)
-        layout.addWidget(self.Messagebox,1,2,2,4)
+        layout.addWidget(filetoolbar,3,0,1,2)
+        layout.addWidget(self.Messagebox,1,2,3,4)
         panel.setLayout(layout)
         return panel
 
@@ -346,10 +349,10 @@ class mainwindow(QtGui.QMainWindow):
             print repr(e)
         
     @inlineCallbacks
-    def sendIdtoParameterVault(self,intID):
+    def sendIdtoParameterVault(self,intID,good = False):
         self.paramID = intID
         pv = yield self.connection.get_server('ParameterVault')
-        yield pv.set_parameter('shotID','PulserProgrammed',intID)
+        yield pv.set_parameter('Raman','Last Shot',(good,intID))
         #print 'time updated id: ',time.time()
         self.messageout('Completed shot: {:}'.format(intID))
 
@@ -369,12 +372,16 @@ class mainwindow(QtGui.QMainWindow):
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
         print 'starting button clicked'
         self.parsingworker.start.emit()
-        #self.pulserworker.startsignal.emit()
 
     def on_Stop(self):
         self.parsingworker.Parsing = False
         self.stop_signal.emit()
         self.pulserworker.stopsignal.emit()
+        
+    def on_Loop(self):
+        self.pulserworker.loopsignal.emit()
+
+        
 
 
     #########################

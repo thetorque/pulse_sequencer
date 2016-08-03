@@ -1,5 +1,6 @@
 from PyQt4.QtCore import QThread, pyqtSignal, QObject, pyqtSlot, QTimer
 from twisted.internet.defer import inlineCallbacks
+
 import time
 
 
@@ -7,8 +8,9 @@ class PulserWorker(QObject):
 
     startsignal = pyqtSignal()
     stopsignal = pyqtSignal()
+    loopsignal = pyqtSignal()
     pulsermessages = pyqtSignal(str)
-    sequence_done_trigger = pyqtSignal(int)
+    sequence_done_trigger = pyqtSignal(int,bool)
 
     def __init__(self,reactor,connection,parsingworker):
         
@@ -20,6 +22,7 @@ class PulserWorker(QObject):
         self.sequencestorage = []
         self.startsignal.connect(self.run)
         self.stopsignal.connect(self.stop)
+        self.loopsignal.connect(self.loop)
         self.running = False
         self.stopping=False
 
@@ -41,22 +44,21 @@ class PulserWorker(QObject):
         p = cnx.pulser
         self.pulsermessages.emit('Pulser: Programming:' + str(currentID))
         p.new_sequence()
-        tic = time.clock()
+        #tic = time.clock()
         #p.stop_sequence()
         p.program_dds_and_ttl(currentsequence,currentttl)
-        toc = time.clock()
-        print "programmed ", toc-tic
+        #toc = time.clock()
+        #print "programmed ", toc-tic
         self.pulsermessages.emit('Pulser: Running:' + str(currentID))
-        time.sleep(1)
-        counts = p.get_metablock_counts()
-        self.pulsermessages.emit('Metablock counts: '+ str(counts[0]))
-        
         p.start_number(1)
         #toc = time.clock()
         #print 'Programming and starting time: ',toc-tic
         try:
             #tic = time.clock()
             p.wait_sequence_done(timeout=self.shottime)
+            counts = p.get_metablock_counts()
+            
+            
             p.stop_sequence() #The stop signal stops the loop *if more than one repetition was set, and resets the OKfpga (the ttltimings)
             #toc = time.clock()
             #print 'Sequence done:                 ',toc-tic
@@ -66,15 +68,16 @@ class PulserWorker(QObject):
             self.pulsermessages.emit('Pulser: Timed out')
         else:
             #print 'time done:       ',time.time()
-            self.sequence_done_trigger.emit(counts[0])
-            pass
+            self.sequence_done_trigger.emit(currentID,True)
+            
+            self.pulsermessages.emit('Metablock counts: '+ str(counts[0]))
+
         cnx.disconnect()
         
     
     @pyqtSlot()
     def run(self):
         while not self.stopping:
-            print 'starting'
             currentsequence, currentttl, currentID = self.parsingworker.get_sequence()
             if None in (currentsequence, currentttl, currentID):
                 #self.pulsermessages.emit('Pulser: Error in retrieveing sequence from parser')
@@ -83,5 +86,19 @@ class PulserWorker(QObject):
                 self.stopping = True
                 self.do_sequence(currentsequence, currentttl, currentID)
             
+        self.stopping = False
+        
+    @pyqtSlot()    
+    def loop(self):
+        import labrad
+        cnx = labrad.connect()
+        p = cnx.pulser
+        self.pulsermessages.emit('Pulser: Looping beginning')
+        while not self.stopping:
+            p.start_number(1)
+            p.wait_sequence_done(timeout=self.shottime)
+            p.stop_sequence()
+            time.sleep(0.1)
+        cnx.disconnect()
         self.stopping = False
         

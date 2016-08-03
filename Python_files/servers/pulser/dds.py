@@ -48,6 +48,7 @@ class DDS(LabradServer):
             if channel.state:
                 #only send to hardware if the channel is on
                 yield self._setAmplitude(channel, amplitude)
+                yield self.api.resetAllDDS()
             channel.amplitude = amplitude
             self.notifyOtherListeners(c, (name, 'amplitude', channel.amplitude), self.on_dds_param)
         amplitude = WithUnit(channel.amplitude, 'dBm')
@@ -67,6 +68,7 @@ class DDS(LabradServer):
             if channel.state:
                 #only send to hardware if the channel is on
                 yield self._setFrequency(channel, frequency)
+                yield self.api.resetAllDDS()
             channel.frequency = frequency
             self.notifyOtherListeners(c, (name, 'frequency', channel.frequency), self.on_dds_param)
         frequency = WithUnit(channel.frequency, 'MHz')
@@ -183,6 +185,7 @@ class DDS(LabradServer):
         channel = self._getChannel(c, name)
         if state is not None:
             yield self._setOutput(channel, state)
+            yield self.api.resetAllDDS()
             channel.state = state
             self.notifyOtherListeners(c, (name, 'state', channel.state), self.on_dds_param)
         returnValue(channel.state)
@@ -267,11 +270,11 @@ class DDS(LabradServer):
     @inlineCallbacks    
     def _programDDSSequenceBurst(self,dds):
         self.ddsLock = True
-        tic = time.clock()
+        #tic = time.clock()
         yield self.api.resetAllDDS()
         yield deferToThread(self.api.programDDSburst, dds)
-        toc = time.clock()
-        print toc-tic
+        #toc = time.clock()
+        #print toc-tic
     @inlineCallbacks
     def _setParameters(self, channel, freq, ampl, mode):
         buf = self.settings_to_buf(channel, freq, ampl, mode)
@@ -336,8 +339,8 @@ class DDS(LabradServer):
     def program_dds_chanel(self, channel, buf):
         addr = channel.channelnumber
         binary = bytearray('e000'.decode('hex'))  + bytearray([128+addr,0]) + buf + bytearray('f000'.decode('hex')) 
-        import binascii
-        print binascii.hexlify(binary)
+        #import binascii
+        #print binascii.hexlify(binary)
         yield self.api.resetAllDDS()
         yield self.api.resetRam()
         if not channel.remote:

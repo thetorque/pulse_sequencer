@@ -44,11 +44,10 @@ class ParsingWorker(QObject):
 
     def update_parameters(self,collection,name,value):
         if collection == "Raman" and name=="Parameters":
-            time,shotID,mode,timetaken,boolean,A,B,C = value
+            Good,self.ParameterID,A,B,C = value
             self.parameters['Raman']['A'] = A
             self.parameters['Raman']['B'] = B
             self.parameters['Raman']['C'] = C
-            self.ParameterID = shotID
         else:
             self.parameters[collection][name] = value
 
@@ -61,7 +60,7 @@ class ParsingWorker(QObject):
     def parse_text(self):
         self.sequence =  []
         self.steadystatedict = hardwareConfiguration.ddsDict
-        tic = time.clock()
+        #tic = time.clock()
         defs,reducedtext =  self.findAndReplace(self.defpattern,self.text,re.DOTALL)
         if any(["ParameterVault" in d for d in defs]):
             self.tracking = True
@@ -71,13 +70,12 @@ class ParsingWorker(QObject):
             self.trackingparameterserver.emit(self.tracking) 
         loops,reducedtext = self.findAndReplace(self.looppattern,reducedtext,re.DOTALL)
         steadys,reducedtext = self.findAndReplace(self.steadypattern,reducedtext,re.DOTALL)
-        print reducedtext
         self.parseDefine(defs,loops)
         self.parseLoop(loops)
         self.parseSteadystate(steadys)
         self.parsePulses(reducedtext)
-        toc = time.clock()
-        print 'Parsing time:                  ',toc-tic
+        #toc = time.clock()
+        #print 'Parsing time:                  ',toc-tic
         self.parsing_done_trigger.emit(self.sequence,self.ParameterID)
         self.get_binary_repres()
         
@@ -135,7 +133,6 @@ class ParsingWorker(QObject):
         from labrad.units import WithUnit
         for block in listofstrings:
             for line in block.strip().split('\n'):
-                print line
                 name,line = self.findAndReplace(self.channelpattern,line)
                 mode,line = self.findAndReplace(self.modepattern,line)
                 pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
@@ -157,7 +154,6 @@ class ParsingWorker(QObject):
         if len(blockoftext.strip())==0:
             return
         for line in blockoftext.strip().split('\n'):
-            print line
             name,line = self.findAndReplace(self.channelpattern,line)
             mode,line = self.findAndReplace(self.modepattern,line)
             pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
@@ -197,21 +193,21 @@ class ParsingWorker(QObject):
     
     
     def get_binary_repres(self):
-        tottic = time.clock()
+  #      tottic = time.clock()
         seqObject = Sequence(self.steadystatedict)
-        tic = time.clock()
+   #     tic = time.clock()
         seqObject.addDDSStandardPulses(self.sequence)
-        toc = time.clock()
-        print 'added pulses    ',toc-tic
+ #       toc = time.clock()
+#        print 'added pulses    ',toc-tic
         tic = time.clock()
         binary,ttl = seqObject.progRepresentation()
         toc = time.clock()
-        print 'got binary     ',toc-tic
-        #import binascii
-        #for abyte in [binary[i:i+18] for i in range(0, len(binary), 18)]:
-        #    print '------------------lol'
-        #    print binascii.hexlify(abyte),len(abyte)
-        toc = time.clock()
+        # print 'got binary     ',toc-tic
+        # import binascii
+        # for abyte in [binary[i:i+18] for i in range(2, len(binary)-2, 18)]:
+            # print '------------------lol'
+            # print binascii.hexlify(abyte),len(abyte)
+        # toc = time.clock()
         
         self.mutex.lock()
         try:
@@ -220,8 +216,8 @@ class ParsingWorker(QObject):
             print e
         finally:
             self.mutex.unlock()
-        print 'Binary compilation time:       ',toc-tottic
-        print 'compiling done'
+     #   print 'Binary compilation time:       ',toc-tottic
+     #   print 'compiling done'
         self.new_sequence_trigger.emit()
 
     def get_sequence(self):
@@ -296,19 +292,6 @@ class Sequence():
             self.ddsSettings = self.parseDDS()
             self.ttlProgram = self.parseTTL()
             fullbinary = None
-            for name,pulsebinary in self.ddsSettings.iteritems():
-                addresse = self.ddsDict[name].channelnumber
-                for ablock in [pulsebinary[i:i+16] for i in range(0, len(pulsebinary), 16)]:
-                    if fullbinary is None:
-                        fullbinary =  bytearray([addresse,0]) + ablock
-                    else:   
-                        fullbinary += bytearray([addresse,0]) + ablock
-            print "old binary pattern ", len(fullbinary)
-            
-
-            tempdict = {}
-
-            fullbinary = None
             metablockcounter = 0
             for name, pulsebinary in self.ddsSettings.iteritems():
                 addresse = self.ddsDict[name].channelnumber
@@ -338,9 +321,6 @@ class Sequence():
             # print binascii.hexlify(abyte),len(abyte)
         fullbinary = bytearray('e000'.decode('hex'))  + fullbinary + bytearray('F000'.decode('hex'))
         #print binascii.hexlify(fullbinary)
-        print "Smart repetition ",len(fullbinary)
-        print "metablocks ",metablockcounter
-        #fullbinary = bytearray('E000'.decode('hex')) + bytearray('04000000000000000000c0726891ed7c3f05'.decode('hex'))+  bytearray('840000002ca100000000c0726891ed7c3f05'.decode('hex')) + bytearray('830000002ca100000000c0726891ed7c3f05'.decode('hex')) + bytearray('F000'.decode('hex'))
             
         return fullbinary, self.ttlProgram
         
@@ -376,10 +356,10 @@ class Sequence():
         pulses_end = {}.fromkeys(state, (0, 'stop')) #time / boolean whether in a middle of a pulse 
         dds_program = {}.fromkeys(state, '')
         lastTime = 0
-        tic = time.clock()
+        #tic = time.clock()
         entries = sorted(self.ddsSettingList, key = lambda t: t[1] ) #sort by starting time
-        toc = time.clock()
-        print "time sorting    ",toc-tic
+        #toc = time.clock()
+        #print "time sorting    ",toc-tic
         possibleError = (0,'')
         while True:
             try:

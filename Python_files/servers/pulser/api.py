@@ -269,8 +269,8 @@ class api(object):
             if len(prog)%i == 0:
                 bs = i
                 break
-        print bs
-        print self.xem.WriteToBlockPipeIn(0x81, bs , prog)
+        #print bs
+        self.xem.WriteToBlockPipeIn(0x81, bs , prog)
     
     def initializeDDS(self):
         '''force reprogram of all dds chips during initialization'''

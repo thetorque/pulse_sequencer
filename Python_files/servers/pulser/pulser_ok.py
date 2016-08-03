@@ -127,15 +127,14 @@ class Pulser(DDS, LineTrigger):
     def program_dds_and_ttl(self,c,dds,ttl):
         dds = bytearray(dds)
         ttl = bytearray(ttl)
-        tic = time.clock()
+        #tic = time.clock()
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.programBoard, ttl)
         yield self._programDDSSequenceBurst(dds)
         self.inCommunication.release()
         toc = time.clock()
-        print "Time in progam_dds_ttl ",toc-tic
+        #print "Time in progam_dds_ttl ",toc-tic
         self.isProgrammed = True
-        print 'lol'
         returnValue(self.isProgrammed)
     
     @setting(2, "Start Infinite", returns = '')
@@ -425,13 +424,22 @@ class Pulser(DDS, LineTrigger):
         counts = yield deferToThread(self.api.getMetablockCounts)
         self.inCommunication.release()
         string = bin(counts)
-        print string
+        #print string
         string = string[2:] #remove the leading '0b'
-        started_programming = int(string[0],2)
-        ended_programming = int(string[1],2)
-        counts = int(string[2:],2)
-        returnValue([counts,started_programming,ended_programming])
-
+        try:
+            started_programming = int(string[0],2)
+        except:
+            started_programmng = 0
+        try:
+            count = int(string[2:],2)
+        except:
+            count = 0
+        try:
+            ended_programming = int(string[1],2)
+        except:
+            ended_programming = 0
+        returnValue([count,started_programming,ended_programming])
+        
     @setting(40, 'Get hardwareconfiguration Path', returns = 's')
     def getHardwareconfigurationPath(self,c):
         ''' 
