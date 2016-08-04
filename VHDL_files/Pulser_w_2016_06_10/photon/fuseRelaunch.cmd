@@ -1,0 +1,1 @@
+-intstyle "ise" -incremental -lib "secureip" -o "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/testing_isim_beh.exe" -prj "C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/testing_beh.prj" "work.testing" 

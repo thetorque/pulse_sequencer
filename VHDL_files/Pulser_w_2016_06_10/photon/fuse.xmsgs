@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IMPORTANT: This is an internal file that has been generated
+     by the Xilinx ISE software.  Any direct editing or
+     changes made to this file may result in unpredictable
+     behavior or data corruption.  It is strongly advised that
+     users do not edit the contents of this file. -->
+<messages>
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okLibrary.vhd" Line 109: &lt;<arg fmt="%s" index="1">okcoreharness</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1312: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1313: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1314: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1315: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1316: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1317: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1318: &lt;<arg fmt="%s" index="1">okwirein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1319: &lt;<arg fmt="%s" index="1">oktriggerin</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1320: &lt;<arg fmt="%s" index="1">okwireout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1321: &lt;<arg fmt="%s" index="1">okwireout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1322: &lt;<arg fmt="%s" index="1">okwireout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1323: &lt;<arg fmt="%s" index="1">okbtpipein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1325: &lt;<arg fmt="%s" index="1">okbtpipein</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1328: &lt;<arg fmt="%s" index="1">okbtpipeout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1331: &lt;<arg fmt="%s" index="1">okbtpipeout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="HDLCompiler" num="89" delta="unknown" >"C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd" Line 1334: &lt;<arg fmt="%s" index="1">okbtpipeout</arg>&gt; remains a black-box since it has no binding entity.
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/okLibrary.vhd</arg>&quot; Line <arg fmt="%d" index="2">109</arg>. Instance <arg fmt="%s" index="3">okcoreharness</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1312</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1313</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1314</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1315</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1316</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1317</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1318</arg>. Instance <arg fmt="%s" index="3">okwirein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1319</arg>. Instance <arg fmt="%s" index="3">oktriggerin</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1320</arg>. Instance <arg fmt="%s" index="3">okwireout</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1321</arg>. Instance <arg fmt="%s" index="3">okwireout</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1322</arg>. Instance <arg fmt="%s" index="3">okwireout</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1323</arg>. Instance <arg fmt="%s" index="3">okbtpipein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1325</arg>. Instance <arg fmt="%s" index="3">okbtpipein</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1328</arg>. Instance <arg fmt="%s" index="3">okbtpipeout</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1331</arg>. Instance <arg fmt="%s" index="3">okbtpipeout</arg> is unbound
+</msg>
+
+<msg type="warning" file="Simulator" num="648" delta="unknown" >&quot;<arg fmt="%s" index="1">C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/photon.vhd</arg>&quot; Line <arg fmt="%d" index="2">1334</arg>. Instance <arg fmt="%s" index="3">okbtpipeout</arg> is unbound
+</msg>
+
+</messages>
+

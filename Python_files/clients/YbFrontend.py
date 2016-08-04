@@ -32,7 +32,7 @@ class mainwindow(QtGui.QMainWindow):
         yield self.create_layout()
         self.messageout('Layout done')
         yield self.get_parameters()
-        self.start_parserthread()
+        yield self.start_parserthread()
         self.start_pulserthread()
         self.messageout('Parserthread started')
         self.fill_parameterstree()
@@ -107,9 +107,10 @@ class mainwindow(QtGui.QMainWindow):
 
         layout = QtGui.QVBoxLayout()
         try:
-            layout.addWidget(switchWidget(self.reactor,self.connection))
+            pass
+            #layout.addWidget(switchWidget(self.reactor,self.connection))
             layout.addWidget(DDS_CONTROL(self.reactor,self.connection))
-            #layout.addWidget(linetriggerWidget(self.reactor,self.connection))
+            layout.addWidget(linetriggerWidget(self.reactor,self.connection))
         except AttributeError, e:
             print e
         widget.setLayout(layout)
@@ -136,9 +137,10 @@ class mainwindow(QtGui.QMainWindow):
         from graphingwidget import graphingwidget
         self.filename = None
         splitterwidget = QtGui.QSplitter()
-        string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
-        string += "Channel DDS_2 do 10  MHz with -10 dBm for var tstart ms at 40 ms in mode Normal\n"
-        string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
+        #string = "#def\n"+"tstart = A from ParameterVault\n"+"#enddef\n"
+        #string = "Channel Raman_rad do 360  MHz with -10 dBm for 1000 ms at 40 ms in mode Normal\n"
+        string = "bytearray([0,0]) + bytearray([0]*7) + bytearray([0]*1) + bytearray([0]*8)"
+        #string += "Channel DDS_2 do 10  MHz with -10 dBm for 1 ms at 700 ms in mode Normal\n"
         
         self.graphingwidget = graphingwidget(self.reactor,self.connection)
         self.writingwidget = QtGui.QTextEdit('Writingbox')
@@ -160,6 +162,7 @@ class mainwindow(QtGui.QMainWindow):
         panel = QtGui.QWidget()
         Startbutton = QtGui.QPushButton(QtGui.QIcon('icons/go-next.svg'),'RUN')
         Stopbutton = QtGui.QPushButton(QtGui.QIcon('icons/emblem-noread.svg'),'STOP')
+        Loopbutton = QtGui.QPushButton(QtGui.QIcon('icons/synchronize.svg'),'LOOP')
         LineTrigbutton = QtGui.QPushButton('linetrig')
         LineTrigbutton.setCheckable(True)
         state = True
@@ -184,6 +187,7 @@ class mainwindow(QtGui.QMainWindow):
 
         Startbutton.pressed.connect(self.on_Start)
         Stopbutton.pressed.connect(self.on_Stop)
+        Loopbutton.pressed.connect(self.on_Loop)
         Spacetaker = QtGui.QWidget()
         ledpanel =QtGui.QWidget()
         ledlayout = QtGui.QHBoxLayout()
@@ -198,10 +202,11 @@ class mainwindow(QtGui.QMainWindow):
         layout = QtGui.QGridLayout()
         layout.addWidget(Startbutton,0,0)
         layout.addWidget(Stopbutton,1,0)
+        layout.addWidget(Loopbutton,2,0)
         layout.addWidget(ledpanel,0,1,1,5)
         layout.addWidget(LineTrigbutton,1,1)
-        layout.addWidget(filetoolbar,2,0,1,2)
-        layout.addWidget(self.Messagebox,1,2,2,4)
+        layout.addWidget(filetoolbar,3,0,1,2)
+        layout.addWidget(self.Messagebox,1,2,3,4)
         panel.setLayout(layout)
         return panel
 
@@ -211,9 +216,13 @@ class mainwindow(QtGui.QMainWindow):
 #########                and connect signals                   #########
 #########                                                      #########
 ########################################################################
+    @inlineCallbacks
     def start_parserthread(self):
+        p = yield self.connection.get_server('Pulser')
+        hwconfigpath = yield p.get_hardwareconfiguration_path()
+        print hwconfigpath
         self.parsingthread = QThread()
-        self.parsingworker = ParsingWorker(str(self.writingwidget.toPlainText()),self.reactor,self.connection,self.context)
+        self.parsingworker = ParsingWorker(hwconfigpath,str(self.writingwidget.toPlainText()),self.reactor,self.connection,self.context)
         self.parsingworker.moveToThread(self.parsingthread)
         self.parsingworker.busy_trigger.connect(self.ledparsing.setState)
         self.parsingworker.trackingparameterserver.connect(self.ledtracking.setState)
@@ -340,10 +349,10 @@ class mainwindow(QtGui.QMainWindow):
             print repr(e)
         
     @inlineCallbacks
-    def sendIdtoParameterVault(self,intID):
+    def sendIdtoParameterVault(self,intID,good = False):
         self.paramID = intID
         pv = yield self.connection.get_server('ParameterVault')
-        yield pv.set_parameter('shotID','PulserProgrammed',intID)
+        yield pv.set_parameter('Raman','Last Shot',(good,intID))
         #print 'time updated id: ',time.time()
         self.messageout('Completed shot: {:}'.format(intID))
 
@@ -361,14 +370,18 @@ class mainwindow(QtGui.QMainWindow):
     #################
     def on_Start(self):
         self.parsingworker.add_text(str(self.writingwidget.toPlainText()))
-        print 'starting'
+        print 'starting button clicked'
         self.parsingworker.start.emit()
-        self.pulserworker.startsignal.emit()
 
     def on_Stop(self):
         self.parsingworker.Parsing = False
         self.stop_signal.emit()
         self.pulserworker.stopsignal.emit()
+        
+    def on_Loop(self):
+        self.pulserworker.loopsignal.emit()
+
+        
 
 
     #########################

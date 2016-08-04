@@ -28,6 +28,7 @@ from dds import DDS
 from api import api
 from linetrigger import LineTrigger
 import numpy
+import os
 
 class Pulser(DDS, LineTrigger):
     
@@ -37,6 +38,7 @@ class Pulser(DDS, LineTrigger):
     @inlineCallbacks
     def initServer(self):
         self.api  = api()
+        self.hwconfigpath = os.getcwd()
         self.channelDict = hardwareConfiguration.channelDict
         self.collectionTime = hardwareConfiguration.collectionTime
         self.collectionMode = hardwareConfiguration.collectionMode
@@ -121,15 +123,17 @@ class Pulser(DDS, LineTrigger):
         passable = dds.items()
         return passable
 
-    @setting(38, 'Program dds and ttl')
+    @setting(38, 'Program dds and ttl', dds= 's', ttl = 's',returns = 'b' )
     def program_dds_and_ttl(self,c,dds,ttl):
-        self.api.resetAllDDS()
-        dds = dict([(x,bytearray(y)) for x,y in dds])
+        dds = bytearray(dds)
         ttl = bytearray(ttl)
+        #tic = time.clock()
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.programBoard, ttl)
-        yield self._programDDSSequence(dds)
-        yield self.inCommunication.release()
+        yield self._programDDSSequenceBurst(dds)
+        self.inCommunication.release()
+        toc = time.clock()
+        #print "Time in progam_dds_ttl ",toc-tic
         self.isProgrammed = True
         returnValue(self.isProgrammed)
     
@@ -201,6 +205,7 @@ class Pulser(DDS, LineTrigger):
         """Stops any currently running sequence"""
         yield self.inCommunication.acquire()
         yield deferToThread(self.api.resetRam)
+        yield deferToThread(self.api.resetAllDDS)
         if self.sequenceType =='Infinite':
             yield deferToThread(self.api.stopLooped)
         elif self.sequenceType =='One':
@@ -413,6 +418,44 @@ class Pulser(DDS, LineTrigger):
         yield deferToThread(self.api.resetFIFOReadout)
         self.inCommunication.release()
 
+    @setting(39, 'Get Metablock Counts', returns = '(i,i,i)')
+    def getMetablockCounts(self, c):
+        yield self.inCommunication.acquire()
+        counts = yield deferToThread(self.api.getMetablockCounts)
+        self.inCommunication.release()
+        string = bin(counts)
+        #print string
+        string = string[2:] #remove the leading '0b'
+        try:
+            started_programming = int(string[0],2)
+        except:
+            started_programmng = 0
+        try:
+            count = int(string[2:],2)
+        except:
+            count = 0
+        try:
+            ended_programming = int(string[1],2)
+        except:
+            ended_programming = 0
+        returnValue([count,started_programming,ended_programming])
+        
+    @setting(40, 'Get hardwareconfiguration Path', returns = 's')
+    def getHardwareconfigurationPath(self,c):
+        ''' 
+        Returns the path where the hwconfigurationfile is placed
+        '''
+        return self.hwconfigpath
+        
+    @setting(42, 'Get DDSchannel state',returns = 's')
+    def getDDSchannelState(self,c):
+        ''' 
+        Returns the current state of the dds channels
+        '''
+        stringdict = str(self._getCurrentDDS())
+        print type(stringdict)
+        returnValue(stringdict)
+     
     #debugging settings
     @setting(90, 'Internal Reset DDS', returns = '')
     def internal_reset_dds(self, c):

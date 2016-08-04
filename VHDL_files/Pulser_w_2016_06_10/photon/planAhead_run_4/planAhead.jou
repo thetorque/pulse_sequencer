@@ -1,0 +1,22 @@
+#-----------------------------------------------------------
+# PlanAhead v14.7 (64-bit)
+# Build 321239 by xbuild on Fri Sep 27 19:29:51 MDT 2013
+# Start of session at: Wed Jun 22 23:28:46 2016
+# Process ID: 37720
+# Log file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_4/planAhead.log
+# Journal file: C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/planAhead_run_4/planAhead.jou
+#-----------------------------------------------------------
+start_gui
+source C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2016_06_10/photon/pa.fromHdl.tcl
+update_compile_order -fileset sim_1
+startgroup
+set_property package_pin R22 [get_ports dds_logic_fifo_address_lock]
+endgroup
+set_property iostandard LVCMOS33 [get_ports [list dds_logic_fifo_address_lock]]
+startgroup
+set_property package_pin R20 [get_ports dds_logic_fifo_rd_en]
+endgroup
+startgroup
+set_property package_pin R22 [get_ports dds_logic_fifo_address_lock]
+endgroup
+save_constraints

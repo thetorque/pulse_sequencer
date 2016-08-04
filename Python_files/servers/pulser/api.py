@@ -1,4 +1,5 @@
 import ok
+import time
 from hardwareConfiguration import hardwareConfiguration
 
 class api(object):
@@ -127,6 +128,14 @@ class api(object):
         done = self.xem.GetWireOutValue(0x21)
         return done
     
+    def getMetablockCounts(self):
+        '''
+        Gets the number of metablocks programmed
+        '''
+        self.xem.UpdateWireOuts()
+        counts = self.xem.GetWireOutValue(0x23)
+        return counts
+    
     def getResolvedTotal(self):
         '''
         Get the number of photons counted in the FIFO for the time-resolved photon counter.
@@ -253,6 +262,15 @@ class api(object):
         prog_padded = self.padTo16(prog)
         self.xem.WriteToBlockPipeIn(0x81, 16, prog_padded)  # very important !!! second argument need to be 16. Don't change this.
         #print "program DDS"
+        
+    def programDDSburst(self, prog):
+        bs = 2
+        for i in range(1024,2,-2):
+            if len(prog)%i == 0:
+                bs = i
+                break
+        #print bs
+        self.xem.WriteToBlockPipeIn(0x81, bs , prog)
     
     def initializeDDS(self):
         '''force reprogram of all dds chips during initialization'''

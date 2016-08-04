@@ -21,13 +21,14 @@ class DDS(LabradServer):
             channel.name = name
             freq,ampl,mode = (channel.frequency, channel.amplitude,channel.mode)
             self._checkRange('amplitude', channel, ampl)
-            self._checkRange('frequency', channel, freq)
+            self._checkRange('frequency', channel, freq)         
+
             if name == "Moving Lattice":
                 print "Moving Lattice channel found"
-                yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
+                #yield self.inCommunication.run(self._setLatticeParameters, channel, freq, ampl, channel.lattice_parameter)
             else:
                 yield self.inCommunication.run(self._setParameters, channel, freq, ampl, mode)
-    
+            
     @setting(41, "Get DDS Channels", returns = '*s')
     def getDDSChannels(self, c):
         """get the list of available channels"""
@@ -47,6 +48,7 @@ class DDS(LabradServer):
             if channel.state:
                 #only send to hardware if the channel is on
                 yield self._setAmplitude(channel, amplitude)
+                yield self.api.resetAllDDS()
             channel.amplitude = amplitude
             self.notifyOtherListeners(c, (name, 'amplitude', channel.amplitude), self.on_dds_param)
         amplitude = WithUnit(channel.amplitude, 'dBm')
@@ -66,6 +68,7 @@ class DDS(LabradServer):
             if channel.state:
                 #only send to hardware if the channel is on
                 yield self._setFrequency(channel, frequency)
+                yield self.api.resetAllDDS()
             channel.frequency = frequency
             self.notifyOtherListeners(c, (name, 'frequency', channel.frequency), self.on_dds_param)
         frequency = WithUnit(channel.frequency, 'MHz')
@@ -182,6 +185,7 @@ class DDS(LabradServer):
         channel = self._getChannel(c, name)
         if state is not None:
             yield self._setOutput(channel, state)
+            yield self.api.resetAllDDS()
             channel.state = state
             self.notifyOtherListeners(c, (name, 'state', channel.state), self.on_dds_param)
         returnValue(channel.state)
@@ -263,7 +267,14 @@ class DDS(LabradServer):
         for name,channel in self.ddsDict.iteritems():
             buf = dds[name]
             yield self.program_dds_chanel(channel, buf)
-               
+    @inlineCallbacks    
+    def _programDDSSequenceBurst(self,dds):
+        self.ddsLock = True
+        #tic = time.clock()
+        yield self.api.resetAllDDS()
+        yield deferToThread(self.api.programDDSburst, dds)
+        #toc = time.clock()
+        #print toc-tic
     @inlineCallbacks
     def _setParameters(self, channel, freq, ampl, mode):
         buf = self.settings_to_buf(channel, freq, ampl, mode)
@@ -327,19 +338,18 @@ class DDS(LabradServer):
     @inlineCallbacks
     def program_dds_chanel(self, channel, buf):
         addr = channel.channelnumber
+        binary = bytearray('e000'.decode('hex'))  + bytearray([128+addr,0]) + buf + bytearray('f000'.decode('hex')) 
+        #import binascii
+        #print binascii.hexlify(binary)
+        yield self.api.resetAllDDS()
+        yield self.api.resetRam()
         if not channel.remote:
-            yield deferToThread(self._setDDSLocal, addr, buf)
+            yield deferToThread(self.api.programDDSburst, binary)
         else:
             yield self._setDDSRemote(channel, addr, buf)
     
-    def _setDDSLocal(self, addr, buf):
-        self.api.resetAllDDS()
-        self.api.setDDSchannel(addr)
-        tic = time.clock()
-        self.api.programDDS(buf)
-        toc = time.clock()
-        print 'Data sent:    ',toc-tic
-
+    def _setDDSLocal(self, buf):
+        self.api.programDDSburst(buf)
 
         
     @inlineCallbacks

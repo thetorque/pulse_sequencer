@@ -4,8 +4,10 @@ import re
 import time
 import numpy as np
 import array
-from hardwareConfiguration import hardwareConfiguration
 from decimal import Decimal
+import sys
+
+global harwareConfiguration
 
 class ParsingWorker(QObject):
     parsing_done_trigger = pyqtSignal(list,int)
@@ -17,7 +19,7 @@ class ParsingWorker(QObject):
     new_sequence_trigger = pyqtSignal()
 
 
-    def __init__(self,text,reactor,connection,cntx):
+    def __init__(self,hwconfigpath,text,reactor,connection,cntx):
         super(ParsingWorker,self).__init__()
         self.text = text
         self.reactor = reactor
@@ -32,18 +34,20 @@ class ParsingWorker(QObject):
         self.Busy = False
         self.sequencestorage = []
         self.mutex = QMutex()
-
+        sys.path.append(hwconfigpath)
+        self.steadystatedict = None
+        global hardwareConfiguration
+        from hardwareConfiguration import hardwareConfiguration
 
     def set_parameters(self,paramdict):
         self.parameters = paramdict
 
     def update_parameters(self,collection,name,value):
         if collection == "Raman" and name=="Parameters":
-            time,shotID,mode,timetaken,boolean,A,B,C = value
+            Good,self.ParameterID,A,B,C = value
             self.parameters['Raman']['A'] = A
             self.parameters['Raman']['B'] = B
             self.parameters['Raman']['C'] = C
-            self.ParameterID = shotID
         else:
             self.parameters[collection][name] = value
 
@@ -55,6 +59,7 @@ class ParsingWorker(QObject):
         
     def parse_text(self):
         self.sequence =  []
+        self.steadystatedict = hardwareConfiguration.ddsDict
         #tic = time.clock()
         defs,reducedtext =  self.findAndReplace(self.defpattern,self.text,re.DOTALL)
         if any(["ParameterVault" in d for d in defs]):
@@ -64,8 +69,10 @@ class ParsingWorker(QObject):
             self.tracking = False
             self.trackingparameterserver.emit(self.tracking) 
         loops,reducedtext = self.findAndReplace(self.looppattern,reducedtext,re.DOTALL)
+        steadys,reducedtext = self.findAndReplace(self.steadypattern,reducedtext,re.DOTALL)
         self.parseDefine(defs,loops)
         self.parseLoop(loops)
+        self.parseSteadystate(steadys)
         self.parsePulses(reducedtext)
         #toc = time.clock()
         #print 'Parsing time:                  ',toc-tic
@@ -82,9 +89,10 @@ class ParsingWorker(QObject):
     def defineRegexPatterns(self):
         self.channelpattern = r'Channel\s+([aA0-zZ9]+)\s'
         self.pulsepattern   = r'([a-z]*)\s+([+-]?[0-9]+|[+-]?[0-9]+\.[0-9]+|var\s+[aA0-zZ9]+)\s+([aA-zZ]+)'
-        self.looppattern    = r'#repeat\s+(.+?)\s+(.+?)\s*#endrepeat'
-        self.defpattern     = r'#def\s+(.+?)\s*#enddef'
+        self.looppattern    = r'(?s)(?<=)#repeat(.+?)\s+(.+?)(?=)#endrepeat'
+        self.defpattern     = r'(?s)(?<=)#def(.+?)(?=)#enddef'
         self.modepattern    = r'in\s+mode\s+([aA-zZ]+)'
+        self.steadypattern     = r'(?s)(?<=)#steadystate(.+?)(?=)#endsteadystate'
 
     def parseDefine(self,listofstrings,loops):
         for defblock in listofstrings:
@@ -121,6 +129,26 @@ class ParsingWorker(QObject):
                     newlines += aline + '\n'
             self.parsePulses(newlines)
 
+    def parseSteadystate(self,listofstrings):
+        from labrad.units import WithUnit
+        for block in listofstrings:
+            for line in block.strip().split('\n'):
+                name,line = self.findAndReplace(self.channelpattern,line)
+                mode,line = self.findAndReplace(self.modepattern,line)
+                pulseparameters,line = self.findAndReplace(self.pulsepattern,line.strip())
+                for desig,value,unit in pulseparameters:
+                    if desig == 'do':
+                        try:
+                            __freq = WithUnit(float(value),unit)
+                        except ValueError:
+                            __freq = WithUnit(float(value),unit)
+                    elif desig == 'with':
+                        try:
+                            __amp = WithUnit(float(value),unit)
+                        except ValueError:
+                            __amp = WithUnit(float(value),unit)
+                self.steadystatedict[name[0]].frequency = __freq['MHz']
+                self.steadystatedict[name[0]].amplitude =__amp['dBm']
 
     def parsePulses(self,blockoftext):
         if len(blockoftext.strip())==0:
@@ -138,7 +166,8 @@ class ParsingWorker(QObject):
         __phase = WithUnit(0,"deg")
         __ramprate = WithUnit(0,'MHz')
         __ampramp = WithUnit(0,'dBm')
-
+        
+        
         for desig,value,unit in parameters:
             if   desig == 'do':
                 try:
@@ -164,40 +193,33 @@ class ParsingWorker(QObject):
     
     
     def get_binary_repres(self):
-        #tic = time.clock()
-        #import labrad
-        #try:
-        #    print 'got here super last!'
-        #    p = labrad.connect().pulser
-        #except Exeption, e:
-        #    parsermessages.emit('Parser \nDEBUG:\n'+repr(e))
-        #else:
-        #    cont = p.context()
-        #    p.new_sequence(context = cont)
-        #    p.add_dds_standard_pulses(self.sequence,context = cont)
-        #    binary = p.get_dds_program_representation(context = cont)
-        seqObject = Sequence()
+  #      tottic = time.clock()
+        seqObject = Sequence(self.steadystatedict)
+   #     tic = time.clock()
         seqObject.addDDSStandardPulses(self.sequence)
-        binary = seqObject.parseDDS()
-        ttl = seqObject.parseTTL()
-        # As labrad cannot handle returnig the bytearray, we convert it to string first
-        for key, value in binary.iteritems():
-            binary[key] = str(value)
-        # It also cannot handle dictionaries, so we recreate it as a list of tuples
-        passable = binary.items()
+ #       toc = time.clock()
+#        print 'added pulses    ',toc-tic
+        tic = time.clock()
+        binary,ttl = seqObject.progRepresentation()
+        toc = time.clock()
+        # print 'got binary     ',toc-tic
+        # import binascii
+        # for abyte in [binary[i:i+18] for i in range(2, len(binary)-2, 18)]:
+            # print '------------------lol'
+            # print binascii.hexlify(abyte),len(abyte)
+        # toc = time.clock()
         
         self.mutex.lock()
         try:
-            #self.sequencestorage.append((passable,str(ttl),self.ParameterID))
-            self.sequencestorage = [(passable,str(ttl),self.ParameterID)]
+            self.sequencestorage = [(str(binary),str(ttl),self.ParameterID)]
         except Exception,e:
             print e
         finally:
             self.mutex.unlock()
-        #toc = time.clock()
-        #print 'Binary compilation time:       ',toc-tic
+     #   print 'Binary compilation time:       ',toc-tottic
+     #   print 'compiling done'
         self.new_sequence_trigger.emit()
-        
+
     def get_sequence(self):
         if self.mutex.tryLock(1):
             try:
@@ -231,12 +253,13 @@ class ParsingWorker(QObject):
         
 class Sequence():
     """Sequence for programming pulses"""
-    def __init__(self):
+    def __init__(self,steadystatedict):
         self.channelTotal = hardwareConfiguration.channelTotal
         self.timeResolution = Decimal(hardwareConfiguration.timeResolution)
         self.MAX_SWITCHES = hardwareConfiguration.maxSwitches
         self.resetstepDuration = hardwareConfiguration.resetstepDuration
-        self.ddsDict = hardwareConfiguration.ddsDict
+        self.ddsDict = steadystatedict
+
         #dictionary in the form time:which channels to switch
         #time is expressed as timestep with the given resolution
         #which channels to switch is a channelTotal-long array with 1 to switch ON, -1 to switch OFF, 0 to do nothing
@@ -248,6 +271,7 @@ class Sequence():
         self.sequenceTimeRange = hardwareConfiguration.sequenceTimeRange
         self.advanceDDS = hardwareConfiguration.channelDict['AdvanceDDS'].channelnumber
         self.resetDDS = hardwareConfiguration.channelDict['ResetDDS'].channelnumber
+
         
     def addDDS(self, name, start, num, typ):
         timeStep = self.secToStep(start)
@@ -267,7 +291,38 @@ class Sequence():
         if parse:
             self.ddsSettings = self.parseDDS()
             self.ttlProgram = self.parseTTL()
-        return self.ddsSettings, self.ttlProgram
+            fullbinary = None
+            metablockcounter = 0
+            for name, pulsebinary in self.ddsSettings.iteritems():
+                addresse = self.ddsDict[name].channelnumber
+                blocklist = [pulsebinary[i:i+16] for i in range(0, len(pulsebinary), 16)]
+                i = 0
+                while i < len(blocklist):
+                    repeat = 0
+                    currentblock = blocklist[i]
+                    j = i+1
+                    try:
+                        while blocklist[j] == currentblock and repeat < 250:
+                            repeat += 1
+                            j += 1
+                    except IndexError ,e:
+                    
+                        pass
+                    i = j
+                    if fullbinary is None:
+                        fullbinary = bytearray([addresse,repeat]) + currentblock
+                    else:
+                        fullbinary += bytearray([addresse,repeat]) + currentblock
+                    metablockcounter += 1
+                fullbinary[-18] = 128 + addresse
+        # import binascii
+        # for abyte in [fullbinary[i:i+18] for i in range(0, len(fullbinary), 18)]:
+            # print '------------------'
+            # print binascii.hexlify(abyte),len(abyte)
+        fullbinary = bytearray('e000'.decode('hex'))  + fullbinary + bytearray('F000'.decode('hex'))
+        #print binascii.hexlify(fullbinary)
+            
+        return fullbinary, self.ttlProgram
         
     def userAddedDDS(self):
         return bool(len(self.ddsSettingList))
@@ -278,7 +333,11 @@ class Sequence():
         '''
         d = dict([(name,self._channel_to_num(channel)) for (name,channel) in self.ddsDict.iteritems()])
         return d
-        
+    
+    def _getSteadyStateDDS(self):
+        d = dict([(name,self._channel_to_num(channel)) for (name,channel) in self.ddsDict.iteritems()])
+        return d
+
     def _channel_to_num(self, channel):
         '''returns the current state of the channel in the num represenation'''
         if channel.state:
@@ -297,7 +356,10 @@ class Sequence():
         pulses_end = {}.fromkeys(state, (0, 'stop')) #time / boolean whether in a middle of a pulse 
         dds_program = {}.fromkeys(state, '')
         lastTime = 0
+        #tic = time.clock()
         entries = sorted(self.ddsSettingList, key = lambda t: t[1] ) #sort by starting time
+        #toc = time.clock()
+        #print "time sorting    ",toc-tic
         possibleError = (0,'')
         while True:
             try:
@@ -309,8 +371,8 @@ class Sequence():
                     self._addNewSwitch(lastTime,self.advanceDDS,1)
                     self._addNewSwitch(lastTime + self.resetstepDuration,self.advanceDDS,-1)
                 #add termination
-                for name in dds_program.iterkeys():
-                    dds_program[name] +=  '\x00\x00'
+                #for name in dds_program.iterkeys():
+                #    dds_program[name] +=  '\x00\x00'
                 #at the end of the sequence, reset dds
                 lastTTL = max(self.switchingTimes.keys())
                 self._addNewSwitch(lastTTL ,self.resetDDS, 1 )
@@ -343,7 +405,7 @@ class Sequence():
 
     def addToProgram(self, prog, state):
         for name,num in state.iteritems():
-            if not hardwareConfiguration.ddsDict[name].phase_coherent_model:
+            if not self.ddsDict[name].phase_coherent_model:
                 buf = self._intToBuf(num)
             else:  
                 buf = self._intToBuf_coherent(num)
@@ -426,11 +488,13 @@ class Sequence():
             
         #note < sign, because start can not be 0. 
         #this would overwrite the 0 position of the ram, and cause the dds to change before pulse sequence is launched
-        if not self.sequenceTimeRange[0] < start <= self.sequenceTimeRange[1]: 
+        if not start <= self.sequenceTimeRange[1]: 
             raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start))
-        if not self.sequenceTimeRange[0] < start + dur <= self.sequenceTimeRange[1]: 
+        if not start + dur <= self.sequenceTimeRange[1]: 
             raise Exception ("DDS start time out of acceptable input range for channel {0} at time {1}".format(name, start + dur))
-        if not dur == 0:#0 length pulses are ignored
+        if start == 0:
+            self.addDDS(name,start,num,'steadystate')
+        elif not dur == 0:#0 length pulses are ignored
             self.addDDS(name, start, num, 'start')
             self.addDDS(name, start + dur, num_off, 'stop')
             
@@ -574,7 +638,6 @@ class Sequence():
             
             ##a = bytearray.fromhex(u'0000') + amp + bytearray.fromhex(u'0000 0000')
             ans = phase + amp + amp_ramp + ramp + b
-            
         elif mode == 1: #frequency modulation mode
             low_ramp = (num%(2**32))
             low = bytearray(4)
@@ -591,6 +654,7 @@ class Sequence():
             for i in range(4):
                 freq_s[i]=(freq_step//(2**(i*8)))%256
             ans = phase + amp + freq_s + high + low  
+        
         return ans
         
     def _checkRange(self, t, channel, val):
