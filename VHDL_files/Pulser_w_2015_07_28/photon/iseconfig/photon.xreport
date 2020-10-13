@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <report-views version="2.0" >
  <header>
-  <DateModified>2016-02-10T14:22:34</DateModified>
+  <DateModified>2020-09-01T21:39:31</DateModified>
   <ModuleName>photon</ModuleName>
   <SummaryTimeStamp>2012-02-23T23:26:25</SummaryTimeStamp>
-  <SavedFilePath>C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/iseconfig/photon.xreport</SavedFilePath>
-  <ImplementationReportsDirectory>C:/Users/katori/Desktop/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon\</ImplementationReportsDirectory>
+  <SavedFilePath>/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/iseconfig/photon.xreport</SavedFilePath>
+  <ImplementationReportsDirectory>/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/</ImplementationReportsDirectory>
   <DateInitialized>2012-02-15T16:27:09</DateInitialized>
   <EnableMessageFiltering>false</EnableMessageFiltering>
  </header>

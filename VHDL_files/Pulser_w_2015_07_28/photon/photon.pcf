@@ -1,11 +1,9 @@
 //! **************************************************************************
-// Written by: Map P.20131013 on Mon Jul 13 13:01:03 2015
+// Written by: Map P.20131013 on Tue Sep 01 23:30:39 2020
 //! **************************************************************************
 
 SCHEMATIC START;
 CONFIG VCCAUX = "3.3";
-PIN pll/clkout2_buf_pin<1> = BEL "pll/clkout2_buf" PINNAME O;
-PIN "pll/clkout2_buf_pin<1>" CLOCK_DEDICATED_ROUTE = FALSE;
 COMP "dds_logic_step_to_next_value" LOCATE = SITE "J17" LEVEL 1;
 COMP "dds_logic_data_out<10>" LOCATE = SITE "L19" LEVEL 1;
 COMP "dds_logic_data_out<11>" LOCATE = SITE "L22" LEVEL 1;
@@ -112,6 +110,8 @@ COMP "logic_out<6>" LOCATE = SITE "A14" LEVEL 1;
 COMP "logic_out<7>" LOCATE = SITE "A15" LEVEL 1;
 COMP "logic_out<8>" LOCATE = SITE "B14" LEVEL 1;
 COMP "logic_out<9>" LOCATE = SITE "C15" LEVEL 1;
+PIN pll/clkout2_buf_pin<1> = BEL "pll/clkout2_buf" PINNAME O;
+PIN "pll/clkout2_buf_pin<1>" CLOCK_DEDICATED_ROUTE = FALSE;
 PIN SP6_INS_BUFIO2FB_DCM_ML_BUFIO2FB_3_pins<1> = BEL
         "SP6_INS_BUFIO2FB_DCM_ML_BUFIO2FB_3" PINNAME O;
 PIN pll/dcm_sp_inst_pins<2> = BEL "pll/dcm_sp_inst" PINNAME CLKFB;
@@ -302,42 +302,58 @@ TIMEGRP clk_100 = BEL "ram_data_out_2_0" BEL "ram_data_out_2_1" BEL
         "fifo_data_var_21" BEL "fifo_data_var_22" BEL "fifo_data_var_23" BEL
         "fifo_data_var_24" BEL "fifo_data_var_25" BEL "fifo_data_var_26" BEL
         "fifo_data_var_27" BEL "fifo_data_var_28" BEL "fifo_data_var_29" BEL
-        "fifo_data_var_30" BEL "_i000240_0" BEL "_i000240_1" BEL "_i000240_2"
-        BEL "_i000240_3" BEL "_i000240_4" BEL "_i000240_5" BEL "_i000240_6"
-        BEL "_i000240_7" BEL "_i000240_8" BEL "_i000240_9" BEL "_i000240_10"
-        BEL "_i000240_11" BEL "_i000240_12" BEL "_i000240_13" BEL
-        "_i000240_14" BEL "_i000240_15" BEL "_i000240_16" BEL "_i000240_17"
-        BEL "_i000240_18" BEL "_i000240_19" BEL "_i000240_20" BEL
-        "_i000240_21" BEL "_i000240_22" BEL "_i000240_23" BEL "_i000240_24"
-        BEL "_i000240_25" BEL "_i000240_26" BEL "_i000240_27" BEL
-        "_i000240_28" BEL "_i000240_29" BEL "_i000240_30" BEL "_i000240_31"
-        BEL "_i000238_0" BEL "wr_en_var" BEL "pmt_count_reset_var" BEL
-        "readout_count_wr_en" BEL "_i000222_0" BEL "_i000222_1" BEL
-        "_i000222_2" BEL "_i000222_3" BEL "_i000222_4" BEL "_i000222_5" BEL
-        "_i000222_6" BEL "_i000222_7" BEL "_i000222_8" BEL "_i000222_9" BEL
-        "_i000222_10" BEL "_i000222_11" BEL "_i000222_12" BEL "_i000222_13"
-        BEL "_i000222_14" BEL "_i000222_15" BEL "_i000222_16" BEL
-        "_i000222_17" BEL "_i000222_18" BEL "_i000222_19" BEL "_i000222_20"
-        BEL "_i000222_21" BEL "_i000222_22" BEL "_i000222_23" BEL
-        "_i000222_24" BEL "_i000222_25" BEL "_i000222_26" BEL "_i000222_27"
-        BEL "_i000222_28" BEL "_i000222_29" BEL "_i000222_30" BEL
-        "_i000168_FSM_FFd4" BEL "_i000168_FSM_FFd3" BEL "_i000168_FSM_FFd2"
-        BEL "count1_FSM_FFd1" BEL "_i000168_FSM_FFd1" BEL "count1_FSM_FFd2"
-        BEL "write_ram_address_0" BEL "write_ram_address_1" BEL
+        "fifo_data_var_30" BEL "_i000258_0" BEL "_i000258_1" BEL "_i000258_2"
+        BEL "_i000258_3" BEL "_i000258_4" BEL "_i000258_5" BEL "_i000258_6"
+        BEL "_i000258_7" BEL "_i000258_8" BEL "_i000258_9" BEL "_i000258_10"
+        BEL "_i000258_11" BEL "_i000258_12" BEL "_i000258_13" BEL
+        "_i000258_14" BEL "_i000258_15" BEL "_i000258_16" BEL "_i000258_17"
+        BEL "_i000258_18" BEL "_i000258_19" BEL "_i000258_20" BEL
+        "_i000258_21" BEL "_i000258_22" BEL "_i000258_23" BEL "_i000258_24"
+        BEL "_i000258_25" BEL "_i000258_26" BEL "_i000258_27" BEL
+        "_i000258_28" BEL "_i000258_29" BEL "_i000258_30" BEL "_i000258_31"
+        BEL "_i000256_0" BEL "wr_en_var" BEL "pmt_count_reset_var" BEL
+        "readout_count_wr_en" BEL "_i000240_0" BEL "_i000240_1" BEL
+        "_i000240_2" BEL "_i000240_3" BEL "_i000240_4" BEL "_i000240_5" BEL
+        "_i000240_6" BEL "_i000240_7" BEL "_i000240_8" BEL "_i000240_9" BEL
+        "_i000240_10" BEL "_i000240_11" BEL "_i000240_12" BEL "_i000240_13"
+        BEL "_i000240_14" BEL "_i000240_15" BEL "_i000240_16" BEL
+        "_i000240_17" BEL "_i000240_18" BEL "_i000240_19" BEL "_i000240_20"
+        BEL "_i000240_21" BEL "_i000240_22" BEL "_i000240_23" BEL
+        "_i000240_24" BEL "_i000240_25" BEL "_i000240_26" BEL "_i000240_27"
+        BEL "_i000240_28" BEL "_i000240_29" BEL "_i000240_30" BEL
+        "_i000185_FSM_FFd2" BEL "_i000185_FSM_FFd4" BEL "_i000185_FSM_FFd3"
+        BEL "_i000185_FSM_FFd1" BEL "count1_FSM_FFd3" BEL
+        "write_ram_address_0" BEL "write_ram_address_1" BEL
         "write_ram_address_2" BEL "write_ram_address_3" BEL
         "write_ram_address_4" BEL "write_ram_address_5" BEL
         "write_ram_address_6" BEL "write_ram_address_7" BEL
-        "write_ram_address_8" BEL "write_ram_address_9" BEL
-        "pulser_sequence_done" BEL "fifo_pulser_rd_en" BEL
-        "fifo_pulser_rd_clk" BEL "pulser_ram_wea_0" BEL "pulser_ram_clka" BEL
-        "pulser_ram_clkb" BEL "normal_pmt_auto_count_clk" BEL
-        "pmt_readout_count_var_29_C_29" BEL "pmt_readout_count_var_29_P_29"
-        BEL "pmt_readout_count_var_30_C_30" BEL
-        "pmt_readout_count_var_30_P_30" BEL "pmt_readout_count_var_26_C_26"
-        BEL "pmt_readout_count_var_26_P_26" BEL
-        "pmt_readout_count_var_28_C_28" BEL "pmt_readout_count_var_28_P_28"
-        BEL "pmt_readout_count_var_27_C_27" BEL
-        "pmt_readout_count_var_27_P_27" BEL "pmt_readout_count_var_23_C_23"
+        "write_ram_address_8" BEL "write_ram_address_9" BEL "count1_FSM_FFd4"
+        BEL "count1_FSM_FFd2" BEL "count1_FSM_FFd1" BEL "pulser_sequence_done"
+        BEL "fifo_pulser_rd_en" BEL "fifo_pulser_rd_clk" BEL
+        "pulser_ram_wea_0" BEL "pulser_ram_clka" BEL
+        "normal_pmt_auto_count_clk" BEL "pulser_ram_clkb" BEL
+        "last_time_line_trigger_0" BEL "last_time_line_trigger_1" BEL
+        "last_time_line_trigger_2" BEL "last_time_line_trigger_3" BEL
+        "last_time_line_trigger_4" BEL "last_time_line_trigger_5" BEL
+        "last_time_line_trigger_6" BEL "last_time_line_trigger_7" BEL
+        "last_time_line_trigger_8" BEL "last_time_line_trigger_9" BEL
+        "last_time_line_trigger_10" BEL "last_time_line_trigger_11" BEL
+        "last_time_line_trigger_12" BEL "last_time_line_trigger_13" BEL
+        "last_time_line_trigger_14" BEL "last_time_line_trigger_15" BEL
+        "last_time_line_trigger_16" BEL "last_time_line_trigger_17" BEL
+        "last_time_line_trigger_18" BEL "last_time_line_trigger_19" BEL
+        "last_time_line_trigger_20" BEL "last_time_line_trigger_21" BEL
+        "last_time_line_trigger_22" BEL "last_time_line_trigger_23" BEL
+        "last_time_line_trigger_24" BEL "last_time_line_trigger_25" BEL
+        "last_time_line_trigger_26" BEL "last_time_line_trigger_27" BEL
+        "last_time_line_trigger_28" BEL "last_time_line_trigger_29" BEL
+        "pmt_readout_count_var_30_C_30" BEL "pmt_readout_count_var_30_P_30"
+        BEL "pmt_readout_count_var_29_C_29" BEL
+        "pmt_readout_count_var_29_P_29" BEL "pmt_readout_count_var_28_C_28"
+        BEL "pmt_readout_count_var_28_P_28" BEL
+        "pmt_readout_count_var_27_C_27" BEL "pmt_readout_count_var_27_P_27"
+        BEL "pmt_readout_count_var_26_C_26" BEL
+        "pmt_readout_count_var_26_P_26" BEL "pmt_readout_count_var_23_C_23"
         BEL "pmt_readout_count_var_23_P_23" BEL
         "pmt_readout_count_var_25_C_25" BEL "pmt_readout_count_var_25_P_25"
         BEL "pmt_readout_count_var_24_C_24" BEL
@@ -369,8 +385,8 @@ TIMEGRP clk_100 = BEL "ram_data_out_2_0" BEL "ram_data_out_2_1" BEL
         BEL "pmt_readout_count_var_2_P_2" BEL "pmt_readout_count_var_1_C_1"
         BEL "pmt_readout_count_var_1_P_1" BEL "pmt_readout_count_var_0_C_0"
         BEL "pmt_readout_count_var_0_P_0" BEL "count_1_C_1" BEL
-        "_i000238_1_C_1" BEL "_i000238_1_P_1" BEL "_i000238_2_C_2" BEL
-        "_i000238_2_P_2" BEL "count_1_P_1" BEL
+        "_i000256_1_C_1" BEL "_i000256_1_P_1" BEL "_i000256_2_C_2" BEL
+        "_i000256_2_P_2" BEL "count_1_P_1" BEL
         "fifo3/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_fb_i"
         BEL
         "fifo3/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/RST_FULL_GEN"
@@ -821,42 +837,58 @@ TIMEGRP pll_clk0 = BEL "ram_data_out_2_0" BEL "ram_data_out_2_1" BEL
         "fifo_data_var_21" BEL "fifo_data_var_22" BEL "fifo_data_var_23" BEL
         "fifo_data_var_24" BEL "fifo_data_var_25" BEL "fifo_data_var_26" BEL
         "fifo_data_var_27" BEL "fifo_data_var_28" BEL "fifo_data_var_29" BEL
-        "fifo_data_var_30" BEL "_i000240_0" BEL "_i000240_1" BEL "_i000240_2"
-        BEL "_i000240_3" BEL "_i000240_4" BEL "_i000240_5" BEL "_i000240_6"
-        BEL "_i000240_7" BEL "_i000240_8" BEL "_i000240_9" BEL "_i000240_10"
-        BEL "_i000240_11" BEL "_i000240_12" BEL "_i000240_13" BEL
-        "_i000240_14" BEL "_i000240_15" BEL "_i000240_16" BEL "_i000240_17"
-        BEL "_i000240_18" BEL "_i000240_19" BEL "_i000240_20" BEL
-        "_i000240_21" BEL "_i000240_22" BEL "_i000240_23" BEL "_i000240_24"
-        BEL "_i000240_25" BEL "_i000240_26" BEL "_i000240_27" BEL
-        "_i000240_28" BEL "_i000240_29" BEL "_i000240_30" BEL "_i000240_31"
-        BEL "_i000238_0" BEL "wr_en_var" BEL "pmt_count_reset_var" BEL
-        "readout_count_wr_en" BEL "_i000222_0" BEL "_i000222_1" BEL
-        "_i000222_2" BEL "_i000222_3" BEL "_i000222_4" BEL "_i000222_5" BEL
-        "_i000222_6" BEL "_i000222_7" BEL "_i000222_8" BEL "_i000222_9" BEL
-        "_i000222_10" BEL "_i000222_11" BEL "_i000222_12" BEL "_i000222_13"
-        BEL "_i000222_14" BEL "_i000222_15" BEL "_i000222_16" BEL
-        "_i000222_17" BEL "_i000222_18" BEL "_i000222_19" BEL "_i000222_20"
-        BEL "_i000222_21" BEL "_i000222_22" BEL "_i000222_23" BEL
-        "_i000222_24" BEL "_i000222_25" BEL "_i000222_26" BEL "_i000222_27"
-        BEL "_i000222_28" BEL "_i000222_29" BEL "_i000222_30" BEL
-        "_i000168_FSM_FFd4" BEL "_i000168_FSM_FFd3" BEL "_i000168_FSM_FFd2"
-        BEL "count1_FSM_FFd1" BEL "_i000168_FSM_FFd1" BEL "count1_FSM_FFd2"
-        BEL "write_ram_address_0" BEL "write_ram_address_1" BEL
+        "fifo_data_var_30" BEL "_i000258_0" BEL "_i000258_1" BEL "_i000258_2"
+        BEL "_i000258_3" BEL "_i000258_4" BEL "_i000258_5" BEL "_i000258_6"
+        BEL "_i000258_7" BEL "_i000258_8" BEL "_i000258_9" BEL "_i000258_10"
+        BEL "_i000258_11" BEL "_i000258_12" BEL "_i000258_13" BEL
+        "_i000258_14" BEL "_i000258_15" BEL "_i000258_16" BEL "_i000258_17"
+        BEL "_i000258_18" BEL "_i000258_19" BEL "_i000258_20" BEL
+        "_i000258_21" BEL "_i000258_22" BEL "_i000258_23" BEL "_i000258_24"
+        BEL "_i000258_25" BEL "_i000258_26" BEL "_i000258_27" BEL
+        "_i000258_28" BEL "_i000258_29" BEL "_i000258_30" BEL "_i000258_31"
+        BEL "_i000256_0" BEL "wr_en_var" BEL "pmt_count_reset_var" BEL
+        "readout_count_wr_en" BEL "_i000240_0" BEL "_i000240_1" BEL
+        "_i000240_2" BEL "_i000240_3" BEL "_i000240_4" BEL "_i000240_5" BEL
+        "_i000240_6" BEL "_i000240_7" BEL "_i000240_8" BEL "_i000240_9" BEL
+        "_i000240_10" BEL "_i000240_11" BEL "_i000240_12" BEL "_i000240_13"
+        BEL "_i000240_14" BEL "_i000240_15" BEL "_i000240_16" BEL
+        "_i000240_17" BEL "_i000240_18" BEL "_i000240_19" BEL "_i000240_20"
+        BEL "_i000240_21" BEL "_i000240_22" BEL "_i000240_23" BEL
+        "_i000240_24" BEL "_i000240_25" BEL "_i000240_26" BEL "_i000240_27"
+        BEL "_i000240_28" BEL "_i000240_29" BEL "_i000240_30" BEL
+        "_i000185_FSM_FFd2" BEL "_i000185_FSM_FFd4" BEL "_i000185_FSM_FFd3"
+        BEL "_i000185_FSM_FFd1" BEL "count1_FSM_FFd3" BEL
+        "write_ram_address_0" BEL "write_ram_address_1" BEL
         "write_ram_address_2" BEL "write_ram_address_3" BEL
         "write_ram_address_4" BEL "write_ram_address_5" BEL
         "write_ram_address_6" BEL "write_ram_address_7" BEL
-        "write_ram_address_8" BEL "write_ram_address_9" BEL "pll/clkout2_buf"
-        BEL "pulser_sequence_done" BEL "fifo_pulser_rd_en" BEL
+        "write_ram_address_8" BEL "write_ram_address_9" BEL "count1_FSM_FFd4"
+        BEL "count1_FSM_FFd2" BEL "count1_FSM_FFd1" BEL "pll/clkout2_buf" BEL
+        "pulser_sequence_done" BEL "fifo_pulser_rd_en" BEL
         "fifo_pulser_rd_clk" BEL "pulser_ram_wea_0" BEL "pulser_ram_clka" BEL
-        "pulser_ram_clkb" BEL "normal_pmt_auto_count_clk" BEL
-        "pmt_readout_count_var_29_C_29" BEL "pmt_readout_count_var_29_P_29"
-        BEL "pmt_readout_count_var_30_C_30" BEL
-        "pmt_readout_count_var_30_P_30" BEL "pmt_readout_count_var_26_C_26"
-        BEL "pmt_readout_count_var_26_P_26" BEL
-        "pmt_readout_count_var_28_C_28" BEL "pmt_readout_count_var_28_P_28"
-        BEL "pmt_readout_count_var_27_C_27" BEL
-        "pmt_readout_count_var_27_P_27" BEL "pmt_readout_count_var_23_C_23"
+        "normal_pmt_auto_count_clk" BEL "pulser_ram_clkb" BEL
+        "last_time_line_trigger_0" BEL "last_time_line_trigger_1" BEL
+        "last_time_line_trigger_2" BEL "last_time_line_trigger_3" BEL
+        "last_time_line_trigger_4" BEL "last_time_line_trigger_5" BEL
+        "last_time_line_trigger_6" BEL "last_time_line_trigger_7" BEL
+        "last_time_line_trigger_8" BEL "last_time_line_trigger_9" BEL
+        "last_time_line_trigger_10" BEL "last_time_line_trigger_11" BEL
+        "last_time_line_trigger_12" BEL "last_time_line_trigger_13" BEL
+        "last_time_line_trigger_14" BEL "last_time_line_trigger_15" BEL
+        "last_time_line_trigger_16" BEL "last_time_line_trigger_17" BEL
+        "last_time_line_trigger_18" BEL "last_time_line_trigger_19" BEL
+        "last_time_line_trigger_20" BEL "last_time_line_trigger_21" BEL
+        "last_time_line_trigger_22" BEL "last_time_line_trigger_23" BEL
+        "last_time_line_trigger_24" BEL "last_time_line_trigger_25" BEL
+        "last_time_line_trigger_26" BEL "last_time_line_trigger_27" BEL
+        "last_time_line_trigger_28" BEL "last_time_line_trigger_29" BEL
+        "pmt_readout_count_var_30_C_30" BEL "pmt_readout_count_var_30_P_30"
+        BEL "pmt_readout_count_var_29_C_29" BEL
+        "pmt_readout_count_var_29_P_29" BEL "pmt_readout_count_var_28_C_28"
+        BEL "pmt_readout_count_var_28_P_28" BEL
+        "pmt_readout_count_var_27_C_27" BEL "pmt_readout_count_var_27_P_27"
+        BEL "pmt_readout_count_var_26_C_26" BEL
+        "pmt_readout_count_var_26_P_26" BEL "pmt_readout_count_var_23_C_23"
         BEL "pmt_readout_count_var_23_P_23" BEL
         "pmt_readout_count_var_25_C_25" BEL "pmt_readout_count_var_25_P_25"
         BEL "pmt_readout_count_var_24_C_24" BEL
@@ -888,8 +920,8 @@ TIMEGRP pll_clk0 = BEL "ram_data_out_2_0" BEL "ram_data_out_2_1" BEL
         BEL "pmt_readout_count_var_2_P_2" BEL "pmt_readout_count_var_1_C_1"
         BEL "pmt_readout_count_var_1_P_1" BEL "pmt_readout_count_var_0_C_0"
         BEL "pmt_readout_count_var_0_P_0" BEL "count_1_C_1" BEL
-        "_i000238_1_C_1" BEL "_i000238_1_P_1" BEL "_i000238_2_C_2" BEL
-        "_i000238_2_P_2" BEL "count_1_P_1" BEL
+        "_i000256_1_C_1" BEL "_i000256_1_P_1" BEL "_i000256_2_C_2" BEL
+        "_i000256_2_P_2" BEL "count_1_P_1" BEL
         "fifo3/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_fb_i"
         BEL
         "fifo3/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/RST_FULL_GEN"
@@ -1205,8 +1237,8 @@ TIMEGRP pll_clk0 = BEL "ram_data_out_2_0" BEL "ram_data_out_2_1" BEL
         "fifo5/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gcx.clkx/gsync_stage[1].wr_stg_inst/Q_1"
         BEL
         "fifo5/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/wr_rst_asreg";
-TIMEGRP pll_clkfx = BEL "line_triggering_conditioned" BEL "_i000209_0" BEL
-        "_i000209_1" BEL "_i000209_2" BEL "_i000209_3" BEL "_i000209_4" BEL
+TIMEGRP pll_clkfx = BEL "line_triggering_conditioned" BEL "_i000227_0" BEL
+        "_i000227_1" BEL "_i000227_2" BEL "_i000227_3" BEL "_i000227_4" BEL
         "_i000053_0" BEL "_i000053_1" BEL "_i000053_2" BEL "_i000053_3" BEL
         "_i000055_0" BEL "_i000055_1" BEL "_i000055_2" BEL "_i000055_3" BEL
         "pll/clkout3_buf" BEL "fifo_dds_rd_clk" BEL "clk_1";
@@ -1573,11 +1605,38 @@ TIMEGRP okHI_dcm_clk0 = BEL "ep21wire_0" BEL "ep21wire_1" BEL "ep21wire_2" BEL
         "okHI/hi_dataout_reg_5" BEL "okHI/hi_dataout_reg_4" BEL
         "okHI/hi_dataout_reg_3" BEL "okHI/hi_dataout_reg_2" BEL
         "okHI/hi_dataout_reg_1" BEL "okHI/hi_dataout_reg_0" BEL
-        "okHI/hi_drive" BEL "wi06/ep_datahold_0" BEL "wi06/ep_datahold_1" BEL
-        "wi06/ep_datahold_2" BEL "wi06/ep_datahold_3" BEL "wi06/ep_datahold_4"
-        BEL "wi06/ep_datahold_5" BEL "wi06/ep_datahold_6" BEL
-        "wi06/ep_datahold_7" BEL "wi06/ep_datahold_8" BEL "wi06/ep_datahold_9"
-        BEL "wi06/ep_datahold_10" BEL "wi06/ep_datahold_11" BEL
+        "okHI/hi_drive" BEL "wi08/ep_datahold_0" BEL "wi08/ep_datahold_1" BEL
+        "wi08/ep_datahold_2" BEL "wi08/ep_datahold_3" BEL "wi08/ep_datahold_4"
+        BEL "wi08/ep_datahold_5" BEL "wi08/ep_datahold_6" BEL
+        "wi08/ep_datahold_7" BEL "wi08/ep_datahold_8" BEL "wi08/ep_datahold_9"
+        BEL "wi08/ep_datahold_10" BEL "wi08/ep_datahold_11" BEL
+        "wi08/ep_datahold_12" BEL "wi08/ep_datahold_13" BEL
+        "wi08/ep_datahold_14" BEL "wi08/ep_datahold_15" BEL
+        "wi08/ep_dataout_0" BEL "wi08/ep_dataout_1" BEL "wi08/ep_dataout_2"
+        BEL "wi08/ep_dataout_3" BEL "wi08/ep_dataout_4" BEL
+        "wi08/ep_dataout_5" BEL "wi08/ep_dataout_6" BEL "wi08/ep_dataout_7"
+        BEL "wi08/ep_dataout_8" BEL "wi08/ep_dataout_9" BEL
+        "wi08/ep_dataout_10" BEL "wi08/ep_dataout_11" BEL "wi08/ep_dataout_12"
+        BEL "wi08/ep_dataout_13" BEL "wi08/ep_dataout_14" BEL
+        "wi08/ep_dataout_15" BEL "wi07/ep_datahold_0" BEL "wi07/ep_datahold_1"
+        BEL "wi07/ep_datahold_2" BEL "wi07/ep_datahold_3" BEL
+        "wi07/ep_datahold_4" BEL "wi07/ep_datahold_5" BEL "wi07/ep_datahold_6"
+        BEL "wi07/ep_datahold_7" BEL "wi07/ep_datahold_8" BEL
+        "wi07/ep_datahold_9" BEL "wi07/ep_datahold_10" BEL
+        "wi07/ep_datahold_11" BEL "wi07/ep_datahold_12" BEL
+        "wi07/ep_datahold_13" BEL "wi07/ep_datahold_14" BEL
+        "wi07/ep_datahold_15" BEL "wi07/ep_dataout_0" BEL "wi07/ep_dataout_1"
+        BEL "wi07/ep_dataout_2" BEL "wi07/ep_dataout_3" BEL
+        "wi07/ep_dataout_4" BEL "wi07/ep_dataout_5" BEL "wi07/ep_dataout_6"
+        BEL "wi07/ep_dataout_7" BEL "wi07/ep_dataout_8" BEL
+        "wi07/ep_dataout_9" BEL "wi07/ep_dataout_10" BEL "wi07/ep_dataout_11"
+        BEL "wi07/ep_dataout_12" BEL "wi07/ep_dataout_13" BEL
+        "wi07/ep_dataout_14" BEL "wi07/ep_dataout_15" BEL "wi06/ep_datahold_0"
+        BEL "wi06/ep_datahold_1" BEL "wi06/ep_datahold_2" BEL
+        "wi06/ep_datahold_3" BEL "wi06/ep_datahold_4" BEL "wi06/ep_datahold_5"
+        BEL "wi06/ep_datahold_6" BEL "wi06/ep_datahold_7" BEL
+        "wi06/ep_datahold_8" BEL "wi06/ep_datahold_9" BEL
+        "wi06/ep_datahold_10" BEL "wi06/ep_datahold_11" BEL
         "wi06/ep_datahold_12" BEL "wi06/ep_datahold_13" BEL
         "wi06/ep_datahold_14" BEL "wi06/ep_datahold_15" BEL
         "wi06/ep_dataout_0" BEL "wi06/ep_dataout_1" BEL "wi06/ep_dataout_2"

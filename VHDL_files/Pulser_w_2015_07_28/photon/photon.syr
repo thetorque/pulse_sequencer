@@ -1,18 +1,21 @@
-Release 14.7 - xst P.20131013 (nt64)
+Release 14.7 - xst P.20131013 (lin64)
 Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
---> Parameter TMPDIR set to xst/projnav.tmp
+--> 
+Parameter TMPDIR set to xst/projnav.tmp
 
 
 Total REAL time to Xst completion: 0.00 secs
-Total CPU time to Xst completion: 0.08 secs
+Total CPU time to Xst completion: 0.05 secs
  
---> Parameter xsthdpdir set to xst
+--> 
+Parameter xsthdpdir set to xst
 
 
 Total REAL time to Xst completion: 0.00 secs
-Total CPU time to Xst completion: 0.08 secs
+Total CPU time to Xst completion: 0.05 secs
  
---> Reading design: photon.prj
+--> 
+Reading design: photon.prj
 
 TABLE OF CONTENTS
   1) Synthesis Options Summary
@@ -108,36 +111,36 @@ Cores Search Directories           : {"ipcore_dir"  }
 =========================================================================
 *                          HDL Parsing                                  *
 =========================================================================
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\readout_count_fifo.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/readout_count_fifo.vhd" into library work
 Parsing entity <readout_count_fifo>.
 Parsing architecture <readout_count_fifo_a> of entity <readout_count_fifo>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\okLibrary.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pulse_fifo.vhd" into library work
+Parsing entity <pulse_fifo>.
+Parsing architecture <pulse_fifo_a> of entity <pulse_fifo>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pulser_ram.vhd" into library work
+Parsing entity <pulser_ram>.
+Parsing architecture <pulser_ram_a> of entity <pulser_ram>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okLibrary.vhd" into library work
 Parsing entity <okHost>.
 Parsing architecture <archHost> of entity <okhost>.
 Parsing entity <okWireOR>.
 Parsing architecture <archWireOR> of entity <okwireor>.
 Parsing package <FRONTPANEL>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\normal_pmt_fifo.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/normal_pmt_fifo.vhd" into library work
 Parsing entity <normal_pmt_fifo>.
 Parsing architecture <normal_pmt_fifo_a> of entity <normal_pmt_fifo>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\ipcore_dir\pulse_fifo.vhd" into library work
-Parsing entity <pulse_fifo>.
-Parsing architecture <pulse_fifo_a> of entity <pulse_fifo>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\ipcore_dir\pulser_ram.vhd" into library work
-Parsing entity <pulser_ram>.
-Parsing architecture <pulser_ram_a> of entity <pulser_ram>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\ipcore_dir\fifo_photon.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/fifo_photon.vhd" into library work
 Parsing entity <fifo_photon>.
 Parsing architecture <fifo_photon_a> of entity <fifo_photon>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\ipcore_dir\clk_pll_100_in_200_out.vhd" into library work
-Parsing entity <clk_pll_100_in_200_out>.
-Parsing architecture <xilinx> of entity <clk_pll_100_in_200_out>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\dds_fifo.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/dds_fifo.vhd" into library work
 Parsing entity <dds_fifo>.
 Parsing architecture <dds_fifo_a> of entity <dds_fifo>.
-Parsing VHDL file "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" into library work
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/clk_pll_100_in_200_out.vhd" into library work
+Parsing entity <clk_pll_100_in_200_out>.
+Parsing architecture <xilinx> of entity <clk_pll_100_in_200_out>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" into library work
 Parsing entity <photon>.
-INFO:HDLCompiler:1676 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" Line 25. declaration of a buffer port will make it difficult for you to validate this design by simulation. It is preferable to declare it as output
+INFO:HDLCompiler:1676 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 25. declaration of a buffer port will make it difficult for you to validate this design by simulation. It is preferable to declare it as output
 Parsing architecture <arch> of entity <photon>.
 
 =========================================================================
@@ -153,43 +156,43 @@ Elaborating entity <clk_pll_100_in_200_out> (architecture <xilinx>) from library
 Elaborating entity <pulse_fifo> (architecture <pulse_fifo_a>) from library <work>.
 
 Elaborating entity <pulser_ram> (architecture <pulser_ram_a>) from library <work>.
-WARNING:HDLCompiler:1127 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" Line 804: Assignment to line_triggering_enabled ignored, since the identifier is never used
+WARNING:HDLCompiler:1127 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 820: Assignment to line_triggering_enabled ignored, since the identifier is never used
 
 Elaborating entity <fifo_photon> (architecture <fifo_photon_a>) from library <work>.
-WARNING:HDLCompiler:1127 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" Line 892: Assignment to normal_pmt_block_aval ignored, since the identifier is never used
+WARNING:HDLCompiler:1127 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 908: Assignment to normal_pmt_block_aval ignored, since the identifier is never used
 
 Elaborating entity <normal_pmt_fifo> (architecture <normal_pmt_fifo_a>) from library <work>.
 
 Elaborating entity <readout_count_fifo> (architecture <readout_count_fifo_a>) from library <work>.
-WARNING:HDLCompiler:92 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" Line 1004: pmt_readout_count should be on the sensitivity list of the process
+WARNING:HDLCompiler:92 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 1020: pmt_readout_count should be on the sensitivity list of the process
 
 Elaborating entity <okHost> (architecture <archHost>) from library <work>.
 
 Elaborating entity <okWireOR> (architecture <archWireOR>) with generics from library <work>.
-WARNING:HDLCompiler:634 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" Line 280: Net <pulser_flag_register[15]> does not have a driver.
+WARNING:HDLCompiler:634 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 283: Net <pulser_flag_register[15]> does not have a driver.
 
 =========================================================================
 *                           HDL Synthesis                               *
 =========================================================================
 
 Synthesizing Unit <photon>.
-    Related source file is "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd".
+    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd".
 WARNING:Xst:647 - Input <logic_in<3:1>> is never used. This port will be preserved and left unconnected if it belongs to a top-level block or it belongs to a sub-block and the hierarchy of this sub-block is preserved.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 334: Output port <wr_data_count> of the instance <fifo4> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 334: Output port <full> of the instance <fifo4> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 410: Output port <rd_data_count> of the instance <fifo2> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 410: Output port <full> of the instance <fifo2> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 842: Output port <full> of the instance <fifo1> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 842: Output port <empty> of the instance <fifo1> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 896: Output port <full> of the instance <fifo3> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 896: Output port <empty> of the instance <fifo3> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 973: Output port <full> of the instance <fifo5> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 973: Output port <empty> of the instance <fifo5> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 1042: Output port <ep_blockstrobe> of the instance <ep80> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 1044: Output port <ep_blockstrobe> of the instance <ep81> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 1047: Output port <ep_blockstrobe> of the instance <epA0> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 1050: Output port <ep_blockstrobe> of the instance <epA1> is unconnected or connected to loadless signal.
-INFO:Xst:3210 - "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\photon.vhd" line 1053: Output port <ep_blockstrobe> of the instance <epA2> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 338: Output port <wr_data_count> of the instance <fifo4> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 338: Output port <full> of the instance <fifo4> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 414: Output port <rd_data_count> of the instance <fifo2> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 414: Output port <full> of the instance <fifo2> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 858: Output port <full> of the instance <fifo1> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 858: Output port <empty> of the instance <fifo1> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 912: Output port <full> of the instance <fifo3> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 912: Output port <empty> of the instance <fifo3> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 989: Output port <full> of the instance <fifo5> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 989: Output port <empty> of the instance <fifo5> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 1060: Output port <ep_blockstrobe> of the instance <ep80> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 1062: Output port <ep_blockstrobe> of the instance <ep81> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 1065: Output port <ep_blockstrobe> of the instance <epA0> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 1068: Output port <ep_blockstrobe> of the instance <epA1> is unconnected or connected to loadless signal.
+INFO:Xst:3210 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" line 1071: Output port <ep_blockstrobe> of the instance <epA2> is unconnected or connected to loadless signal.
 WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned. This sourceless signal will be automatically connected to value GND.
     Register <fifo_photon_wr_clk> equivalent to <pmt_synced> has been removed
     Found 1-bit register for signal <line_triggering_pulse>.
@@ -203,11 +206,12 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 4-bit register for signal <ram_process_count>.
     Found 10-bit register for signal <ram_read_address>.
     Found 2-bit register for signal <count1>.
+    Found 32-bit register for signal <last_time_line_trigger>.
     Found 32-bit register for signal <time_count>.
     Found 32-bit register for signal <time_stamp>.
     Found 32-bit register for signal <master_logic>.
     Found 16-bit register for signal <seq_count>.
-    Found 31-bit register for signal <_v40>.
+    Found 31-bit register for signal <_v41>.
     Found 31-bit register for signal <pmt_count>.
     Found 31-bit register for signal <pmt_readout_count>.
     Found 2-bit register for signal <count>.
@@ -218,7 +222,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pulser_ram_clka>.
     Found 10-bit register for signal <pulser_ram_addra>.
     Found 64-bit register for signal <pulser_ram_dina>.
-    Found 5-bit register for signal <_v33>.
+    Found 5-bit register for signal <_v34>.
     Found 1-bit register for signal <clk_1>.
     Found 1-bit register for signal <pulser_ram_clkb>.
     Found 64-bit register for signal <ram_data_out_2>.
@@ -231,9 +235,9 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pmt_sampled>.
     Found 16-bit register for signal <ep21wire>.
     Found 1-bit register for signal <normal_pmt_auto_count_clk>.
-    Found 3-bit register for signal <_v52>.
+    Found 3-bit register for signal <_v53>.
     Found 1-bit register for signal <wr_en_var>.
-    Found 32-bit register for signal <_v56>.
+    Found 32-bit register for signal <_v57>.
     Found 1-bit register for signal <pmt_count_reset_var>.
     Found 1-bit register for signal <normal_pmt_wr_en>.
     Found 32-bit register for signal <normal_pmt_fifo_data>.
@@ -273,7 +277,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pmt_readout_count_var<2>>.
     Found 1-bit register for signal <pmt_readout_count_var<1>>.
     Found 1-bit register for signal <pmt_readout_count_var<0>>.
-    Found finite state machine <FSM_0> for signal <_i000168>.
+    Found finite state machine <FSM_0> for signal <_i000185>.
     -----------------------------------------------------------------------
     | States             | 9                                              |
     | Transitions        | 11                                             |
@@ -290,8 +294,8 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found finite state machine <FSM_1> for signal <count1>.
     -----------------------------------------------------------------------
     | States             | 4                                              |
-    | Transitions        | 24                                             |
-    | Inputs             | 5                                              |
+    | Transitions        | 28                                             |
+    | Inputs             | 9                                              |
     | Outputs            | 5                                              |
     | Clock              | clk_100 (rising_edge)                          |
     | Reset              | pulser_counter_reset (positive)                |
@@ -301,54 +305,57 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     | Encoding           | auto                                           |
     | Implementation     | LUT                                            |
     -----------------------------------------------------------------------
-    Found 10-bit adder for signal <write_ram_address[9]_GND_8_o_add_5_OUT> created at line 480.
-    Found 5-bit adder for signal <count[4]_GND_8_o_add_21_OUT> created at line 500.
-    Found 4-bit adder for signal <delay_count[3]_GND_8_o_add_30_OUT> created at line 525.
-    Found 4-bit adder for signal <duration_count[3]_GND_8_o_add_33_OUT> created at line 528.
-    Found 16-bit adder for signal <delay_count[15]_GND_8_o_add_42_OUT> created at line 549.
-    Found 16-bit adder for signal <duration_count[15]_GND_8_o_add_45_OUT> created at line 552.
-    Found 32-bit adder for signal <time_count[31]_GND_8_o_add_61_OUT> created at line 613.
-    Found 10-bit adder for signal <ram_read_address[9]_GND_8_o_add_68_OUT> created at line 628.
-    Found 16-bit adder for signal <seq_count[15]_GND_8_o_add_70_OUT> created at line 638.
-    Found 4-bit adder for signal <ram_process_count[3]_GND_8_o_add_77_OUT> created at line 648.
-    Found 31-bit adder for signal <count[30]_GND_8_o_add_198_OUT> created at line 879.
-    Found 3-bit adder for signal <count[2]_GND_8_o_add_215_OUT> created at line 947.
-    Found 31-bit adder for signal <pmt_count[30]_GND_8_o_add_226_OUT> created at line 963.
-    Found 31-bit adder for signal <pmt_readout_count[30]_GND_8_o_add_228_OUT> created at line 992.
-    Found 2-bit adder for signal <count[1]_GND_8_o_add_231_OUT> created at line 1018.
-    Found 16x16-bit multiplier for signal <normal_pmt_count_period[15]_PWR_8_o_MuLt_200_OUT> created at line 882.
-    Found 16x17-bit multiplier for signal <n0695> created at line 884.
-    Found 16-bit 7-to-1 multiplexer for signal <GND_8_o_pulser_flag_register[15]_mux_195_OUT> created at line 817.
-    Found 1-bit tristate buffer for signal <i2c_sda> created at line 858
-    Found 1-bit tristate buffer for signal <i2c_scl> created at line 859
-    Found 5-bit comparator greater for signal <n0040> created at line 501
-    Found 5-bit comparator greater for signal <n0042> created at line 503
-    Found 4-bit comparator greater for signal <delay_count[3]_GND_8_o_LessThan_30_o> created at line 524
-    Found 4-bit comparator greater for signal <duration_count[3]_GND_8_o_LessThan_33_o> created at line 527
-    Found 16-bit comparator greater for signal <delay_count[15]_ep06wire[15]_LessThan_42_o> created at line 548
-    Found 16-bit comparator greater for signal <duration_count[15]_GND_8_o_LessThan_45_o> created at line 551
-    Found 32-bit comparator equal for signal <time_stamp[31]_time_count[31]_equal_63_o> created at line 613
-    Found 16-bit comparator equal for signal <ep05wire[15]_seq_count[15]_equal_73_o> created at line 640
-    Found 32-bit comparator equal for signal <normal_pmt_count_period[15]_GND_8_o_equal_202_o> created at line 882
-    Found 32-bit comparator greater for signal <normal_pmt_count_period[15]_GND_8_o_LessThan_204_o> created at line 884
+    Found 10-bit adder for signal <write_ram_address[9]_GND_8_o_add_5_OUT> created at line 484.
+    Found 5-bit adder for signal <count[4]_GND_8_o_add_21_OUT> created at line 504.
+    Found 4-bit adder for signal <delay_count[3]_GND_8_o_add_30_OUT> created at line 529.
+    Found 4-bit adder for signal <duration_count[3]_GND_8_o_add_33_OUT> created at line 532.
+    Found 16-bit adder for signal <delay_count[15]_GND_8_o_add_42_OUT> created at line 553.
+    Found 16-bit adder for signal <duration_count[15]_GND_8_o_add_45_OUT> created at line 556.
+    Found 32-bit adder for signal <time_count[31]_GND_8_o_add_62_OUT> created at line 620.
+    Found 32-bit adder for signal <last_time_line_trigger[31]_sub_sequence_line_trigger[31]_add_66_OUT> created at line 622.
+    Found 10-bit adder for signal <ram_read_address[9]_GND_8_o_add_76_OUT> created at line 643.
+    Found 16-bit adder for signal <seq_count[15]_GND_8_o_add_78_OUT> created at line 654.
+    Found 4-bit adder for signal <ram_process_count[3]_GND_8_o_add_85_OUT> created at line 664.
+    Found 31-bit adder for signal <count[30]_GND_8_o_add_216_OUT> created at line 895.
+    Found 3-bit adder for signal <count[2]_GND_8_o_add_233_OUT> created at line 963.
+    Found 31-bit adder for signal <pmt_count[30]_GND_8_o_add_244_OUT> created at line 979.
+    Found 31-bit adder for signal <pmt_readout_count[30]_GND_8_o_add_246_OUT> created at line 1008.
+    Found 2-bit adder for signal <count[1]_GND_8_o_add_249_OUT> created at line 1034.
+    Found 16x16-bit multiplier for signal <normal_pmt_count_period[15]_PWR_8_o_MuLt_218_OUT> created at line 898.
+    Found 16x17-bit multiplier for signal <n0737> created at line 900.
+    Found 16-bit 7-to-1 multiplexer for signal <GND_8_o_pulser_flag_register[15]_mux_213_OUT> created at line 833.
+    Found 1-bit tristate buffer for signal <i2c_sda> created at line 874
+    Found 1-bit tristate buffer for signal <i2c_scl> created at line 875
+    Found 5-bit comparator greater for signal <n0040> created at line 505
+    Found 5-bit comparator greater for signal <n0042> created at line 507
+    Found 4-bit comparator greater for signal <delay_count[3]_GND_8_o_LessThan_30_o> created at line 528
+    Found 4-bit comparator greater for signal <duration_count[3]_GND_8_o_LessThan_33_o> created at line 531
+    Found 16-bit comparator greater for signal <delay_count[15]_ep06wire[15]_LessThan_42_o> created at line 552
+    Found 16-bit comparator greater for signal <duration_count[15]_GND_8_o_LessThan_45_o> created at line 555
+    Found 32-bit comparator equal for signal <time_stamp[31]_time_count[31]_equal_64_o> created at line 620
+    Found 32-bit comparator greater for signal <last_time_line_trigger[31]_GND_8_o_LessThan_66_o> created at line 622
+    Found 32-bit comparator greater for signal <n0101> created at line 622
+    Found 16-bit comparator equal for signal <ep05wire[15]_seq_count[15]_equal_81_o> created at line 656
+    Found 32-bit comparator equal for signal <normal_pmt_count_period[15]_GND_8_o_equal_220_o> created at line 898
+    Found 32-bit comparator greater for signal <normal_pmt_count_period[15]_GND_8_o_LessThan_222_o> created at line 900
     Summary:
 	inferred   2 Multiplier(s).
-	inferred  15 Adder/Subtractor(s).
-	inferred 764 D-type flip-flop(s).
-	inferred  10 Comparator(s).
-	inferred  81 Multiplexer(s).
+	inferred  16 Adder/Subtractor(s).
+	inferred 796 D-type flip-flop(s).
+	inferred  12 Comparator(s).
+	inferred  82 Multiplexer(s).
 	inferred   2 Tristate(s).
 	inferred   2 Finite State Machine(s).
 Unit <photon> synthesized.
 
 Synthesizing Unit <clk_pll_100_in_200_out>.
-    Related source file is "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\ipcore_dir\clk_pll_100_in_200_out.vhd".
+    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/clk_pll_100_in_200_out.vhd".
     Summary:
 	no macro.
 Unit <clk_pll_100_in_200_out> synthesized.
 
 Synthesizing Unit <okHost>.
-    Related source file is "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\okLibrary.vhd".
+    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okLibrary.vhd".
     Found 16-bit register for signal <hi_dataout_reg>.
     Found 16-bit register for signal <hi_datain>.
     Found 1-bit register for signal <hi_drive>.
@@ -374,7 +381,7 @@ Synthesizing Unit <okHost>.
 Unit <okHost> synthesized.
 
 Synthesizing Unit <okWireOR>.
-    Related source file is "C:\Users\Thaned\Dropbox\Hardware\RIKEN_Hardware\Pulser_w_line_triggering_2015_03_10\photon\okLibrary.vhd".
+    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okLibrary.vhd".
         N = 7
     Summary:
 	no macro.
@@ -387,34 +394,34 @@ Macro Statistics
 # Multipliers                                          : 2
  16x16-bit multiplier                                  : 1
  17x16-bit multiplier                                  : 1
-# Adders/Subtractors                                   : 15
+# Adders/Subtractors                                   : 16
  10-bit adder                                          : 2
  16-bit adder                                          : 3
  2-bit adder                                           : 1
  3-bit adder                                           : 1
  31-bit adder                                          : 3
- 32-bit adder                                          : 1
+ 32-bit adder                                          : 2
  4-bit adder                                           : 3
  5-bit adder                                           : 1
-# Registers                                            : 82
+# Registers                                            : 83
  1-bit register                                        : 50
  10-bit register                                       : 4
  16-bit register                                       : 7
  2-bit register                                        : 1
  3-bit register                                        : 1
  31-bit register                                       : 3
- 32-bit register                                       : 9
+ 32-bit register                                       : 10
  4-bit register                                        : 3
  5-bit register                                        : 1
  64-bit register                                       : 3
-# Comparators                                          : 10
+# Comparators                                          : 12
  16-bit comparator equal                               : 1
  16-bit comparator greater                             : 2
  32-bit comparator equal                               : 2
- 32-bit comparator greater                             : 1
+ 32-bit comparator greater                             : 3
  4-bit comparator greater                              : 2
  5-bit comparator greater                              : 2
-# Multiplexers                                         : 81
+# Multiplexers                                         : 82
  1-bit 2-to-1 multiplexer                              : 37
  10-bit 2-to-1 multiplexer                             : 12
  16-bit 2-to-1 multiplexer                             : 6
@@ -422,7 +429,7 @@ Macro Statistics
  3-bit 2-to-1 multiplexer                              : 1
  30-bit 2-to-1 multiplexer                             : 2
  31-bit 2-to-1 multiplexer                             : 4
- 32-bit 2-to-1 multiplexer                             : 15
+ 32-bit 2-to-1 multiplexer                             : 16
  4-bit 2-to-1 multiplexer                              : 3
 # Tristates                                            : 18
  1-bit tristate buffer                                 : 18
@@ -454,6 +461,8 @@ Loading core <okWireIn> for timing and area information for instance <wi03>.
 Loading core <okWireIn> for timing and area information for instance <wi04>.
 Loading core <okWireIn> for timing and area information for instance <wi05>.
 Loading core <okWireIn> for timing and area information for instance <wi06>.
+Loading core <okWireIn> for timing and area information for instance <wi07>.
+Loading core <okWireIn> for timing and area information for instance <wi08>.
 Loading core <okTriggerIn> for timing and area information for instance <ep40>.
 Loading core <okWireOut> for timing and area information for instance <wo21>.
 Loading core <okWireOut> for timing and area information for instance <wo22>.
@@ -510,7 +519,7 @@ WARNING:Xst:2677 - Node <master_logic_14> of sequential type is unconnected in b
 WARNING:Xst:2677 - Node <master_logic_15> of sequential type is unconnected in block <photon>.
 
 Synthesizing (advanced) Unit <photon>.
-The following registers are absorbed into counter <_i000209>: 1 register on signal <_i000209>.
+The following registers are absorbed into counter <_i000227>: 1 register on signal <_i000227>.
 The following registers are absorbed into counter <_i000053>: 1 register on signal <_i000053>.
 The following registers are absorbed into counter <_i000055>: 1 register on signal <_i000055>.
 The following registers are absorbed into counter <write_ram_address>: 1 register on signal <write_ram_address>.
@@ -565,13 +574,13 @@ Macro Statistics
 # Multipliers                                          : 2
  16x16-bit multiplier                                  : 1
  17x16-bit multiplier                                  : 1
-# Adders/Subtractors                                   : 8
+# Adders/Subtractors                                   : 9
  10-bit adder                                          : 1
  16-bit adder                                          : 1
  2-bit adder                                           : 1
  3-bit adder                                           : 1
  31-bit adder                                          : 1
- 32-bit adder                                          : 1
+ 32-bit adder                                          : 2
  4-bit adder                                           : 1
  5-bit adder                                           : 1
 # Counters                                             : 8
@@ -580,16 +589,16 @@ Macro Statistics
  31-bit up counter                                     : 2
  4-bit up counter                                      : 2
  5-bit up counter                                      : 1
-# Registers                                            : 646
- Flip-Flops                                            : 646
-# Comparators                                          : 10
+# Registers                                            : 678
+ Flip-Flops                                            : 678
+# Comparators                                          : 12
  16-bit comparator equal                               : 1
  16-bit comparator greater                             : 2
  32-bit comparator equal                               : 2
- 32-bit comparator greater                             : 1
+ 32-bit comparator greater                             : 3
  4-bit comparator greater                              : 2
  5-bit comparator greater                              : 2
-# Multiplexers                                         : 112
+# Multiplexers                                         : 113
  1-bit 2-to-1 multiplexer                              : 69
  10-bit 2-to-1 multiplexer                             : 12
  16-bit 2-to-1 multiplexer                             : 6
@@ -597,7 +606,7 @@ Macro Statistics
  3-bit 2-to-1 multiplexer                              : 1
  30-bit 2-to-1 multiplexer                             : 2
  31-bit 2-to-1 multiplexer                             : 4
- 32-bit 2-to-1 multiplexer                             : 14
+ 32-bit 2-to-1 multiplexer                             : 15
  4-bit 2-to-1 multiplexer                              : 3
 # FSMs                                                 : 2
 
@@ -606,74 +615,74 @@ Macro Statistics
 =========================================================================
 *                         Low Level Synthesis                           *
 =========================================================================
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_26> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_31> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_27> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_28> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_29> 
-INFO:Xst:2261 - The FF/Latch <_i000240_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_0> 
-INFO:Xst:2261 - The FF/Latch <_i000240_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_1> 
-INFO:Xst:2261 - The FF/Latch <pmt_count_reset_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <pmt_count_reset> 
-INFO:Xst:2261 - The FF/Latch <_i000240_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_2> 
-INFO:Xst:2261 - The FF/Latch <_i000240_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_3> 
-INFO:Xst:2261 - The FF/Latch <_i000240_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_4> 
-INFO:Xst:2261 - The FF/Latch <_i000240_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_5> 
-INFO:Xst:2261 - The FF/Latch <_i000240_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_6> 
-INFO:Xst:2261 - The FF/Latch <_i000240_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_10> 
-INFO:Xst:2261 - The FF/Latch <_i000240_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_7> 
-INFO:Xst:2261 - The FF/Latch <_i000240_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_11> 
-INFO:Xst:2261 - The FF/Latch <_i000240_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_8> 
-INFO:Xst:2261 - The FF/Latch <_i000240_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_12> 
-INFO:Xst:2261 - The FF/Latch <_i000240_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_9> 
-INFO:Xst:2261 - The FF/Latch <_i000240_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_13> 
-INFO:Xst:2261 - The FF/Latch <_i000240_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_14> 
-INFO:Xst:2261 - The FF/Latch <_i000240_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_15> 
-INFO:Xst:2261 - The FF/Latch <_i000240_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_20> 
-INFO:Xst:2261 - The FF/Latch <_i000240_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_16> 
-INFO:Xst:2261 - The FF/Latch <_i000240_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_21> 
-INFO:Xst:2261 - The FF/Latch <_i000240_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_22> 
-INFO:Xst:2261 - The FF/Latch <_i000240_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_17> 
-INFO:Xst:2261 - The FF/Latch <_i000240_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_23> 
-INFO:Xst:2261 - The FF/Latch <_i000240_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_18> 
-INFO:Xst:2261 - The FF/Latch <_i000240_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_24> 
-INFO:Xst:2261 - The FF/Latch <_i000240_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_19> 
-INFO:Xst:2261 - The FF/Latch <_i000240_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_30> 
-INFO:Xst:2261 - The FF/Latch <_i000240_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_25> 
-INFO:Xst:2261 - The FF/Latch <_i000240_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_31> 
-INFO:Xst:2261 - The FF/Latch <_i000240_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_26> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_0> 
-INFO:Xst:2261 - The FF/Latch <_i000240_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_27> 
+INFO:Xst:2261 - The FF/Latch <wr_en_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_wr_en> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_1> 
-INFO:Xst:2261 - The FF/Latch <_i000240_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_28> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_2> 
-INFO:Xst:2261 - The FF/Latch <_i000240_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_29> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_10> 
+INFO:Xst:2261 - The FF/Latch <_i000258_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_10> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_3> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_11> 
+INFO:Xst:2261 - The FF/Latch <_i000258_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_11> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_4> 
+INFO:Xst:2261 - The FF/Latch <_i000258_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_12> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_5> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_12> 
+INFO:Xst:2261 - The FF/Latch <_i000258_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_13> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_6> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_13> 
+INFO:Xst:2261 - The FF/Latch <_i000258_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_14> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_7> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_14> 
+INFO:Xst:2261 - The FF/Latch <_i000258_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_15> 
+INFO:Xst:2261 - The FF/Latch <_i000258_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_20> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_8> 
+INFO:Xst:2261 - The FF/Latch <_i000258_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_16> 
+INFO:Xst:2261 - The FF/Latch <_i000258_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_21> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_9> 
+INFO:Xst:2261 - The FF/Latch <_i000258_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_17> 
+INFO:Xst:2261 - The FF/Latch <_i000258_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_22> 
+INFO:Xst:2261 - The FF/Latch <_i000258_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_18> 
+INFO:Xst:2261 - The FF/Latch <_i000258_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_23> 
+INFO:Xst:2261 - The FF/Latch <pmt_count_reset_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <pmt_count_reset> 
+INFO:Xst:2261 - The FF/Latch <_i000258_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_19> 
+INFO:Xst:2261 - The FF/Latch <_i000258_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_24> 
+INFO:Xst:2261 - The FF/Latch <_i000258_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_25> 
+INFO:Xst:2261 - The FF/Latch <_i000258_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_30> 
+INFO:Xst:2261 - The FF/Latch <_i000258_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_26> 
+INFO:Xst:2261 - The FF/Latch <_i000258_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_31> 
+INFO:Xst:2261 - The FF/Latch <_i000258_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_27> 
+INFO:Xst:2261 - The FF/Latch <_i000258_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_28> 
+INFO:Xst:2261 - The FF/Latch <_i000258_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_29> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_10> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_11> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_12> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_13> 
+INFO:Xst:2261 - The FF/Latch <_i000258_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_0> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_14> 
+INFO:Xst:2261 - The FF/Latch <_i000258_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_1> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_20> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_15> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_9> 
+INFO:Xst:2261 - The FF/Latch <_i000258_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_2> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_21> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_16> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_17> 
+INFO:Xst:2261 - The FF/Latch <_i000258_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_3> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_22> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_17> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_18> 
+INFO:Xst:2261 - The FF/Latch <_i000258_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_4> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_23> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_19> 
+INFO:Xst:2261 - The FF/Latch <_i000258_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_5> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_24> 
-INFO:Xst:2261 - The FF/Latch <wr_en_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_wr_en> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_25> 
+INFO:Xst:2261 - The FF/Latch <_i000258_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_6> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_30> 
+INFO:Xst:2261 - The FF/Latch <_i000258_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_7> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_31> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_26> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_27> 
+INFO:Xst:2261 - The FF/Latch <_i000258_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_8> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_28> 
+INFO:Xst:2261 - The FF/Latch <_i000258_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_9> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_29> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_0> 
 Analyzing FSM <MFsm> for best encoding.
-Optimizing FSM <FSM_0> on signal <_i000168[1:4]> with user encoding.
+Optimizing FSM <FSM_0> on signal <_i000185[1:4]> with user encoding.
 -------------------
  State | Encoding
 -------------------
@@ -688,17 +697,19 @@ Optimizing FSM <FSM_0> on signal <_i000168[1:4]> with user encoding.
  1000  | 1000
 -------------------
 Analyzing FSM <MFsm> for best encoding.
-Optimizing FSM <FSM_1> on signal <count1[1:2]> with user encoding.
+Optimizing FSM <FSM_1> on signal <count1[1:4]> with one-hot encoding.
 -------------------
  State | Encoding
 -------------------
- 00    | 00
- 01    | 01
- 10    | 10
- 11    | 11
+ 00    | 0001
+ 10    | 0010
+ 11    | 0100
+ 01    | 1000
 -------------------
 WARNING:Xst:1293 - FF/Latch <time_stamp_30> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:1293 - FF/Latch <time_stamp_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <last_time_line_trigger_30> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <last_time_line_trigger_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:1293 - FF/Latch <fifo_data_var_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:2677 - Node <ram_data_out_2_12> of sequential type is unconnected in block <photon>.
 WARNING:Xst:2677 - Node <ram_data_out_2_13> of sequential type is unconnected in block <photon>.
@@ -757,16 +768,16 @@ WARNING:Xst:3002 - This design contains one or more registers/latches that are d
     pmt_readout_count_var_24 in unit <photon>
     pmt_readout_count_var_25 in unit <photon>
     pmt_readout_count_var_23 in unit <photon>
+    pmt_readout_count_var_26 in unit <photon>
     pmt_readout_count_var_27 in unit <photon>
     pmt_readout_count_var_28 in unit <photon>
-    pmt_readout_count_var_26 in unit <photon>
-    pmt_readout_count_var_30 in unit <photon>
     pmt_readout_count_var_29 in unit <photon>
+    pmt_readout_count_var_30 in unit <photon>
 
 
   List of register instances with asynchronous set or reset and opposite initialization value:
-    _i000238_2 in unit <photon>
-    _i000238_1 in unit <photon>
+    _i000256_2 in unit <photon>
+    _i000256_1 in unit <photon>
     count_1 in unit <photon>
 
 
@@ -778,7 +789,7 @@ Building and optimizing final netlist ...
 Found area constraint ratio of 100 (+ 5) on block photon, actual ratio is 9.
 WARNING:Xst:1426 - The value init of the FF/Latch count_1_LD hinder the constant cleaning in the block photon.
    You should achieve better results by setting this init to 0.
-WARNING:Xst:1426 - The value init of the FF/Latch _i000238_1_LD hinder the constant cleaning in the block photon.
+WARNING:Xst:1426 - The value init of the FF/Latch _i000256_1_LD hinder the constant cleaning in the block photon.
    You should achieve better results by setting this init to 0.
 INFO:Xst:2260 - The FF/Latch <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_i> in Unit <fifo4> is equivalent to the following FF/Latch : <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_fb_i> 
 INFO:Xst:2260 - The FF/Latch <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.wr_rst_reg_1> in Unit <fifo4> is equivalent to the following FF/Latch : <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.wr_rst_reg_0> 
@@ -841,8 +852,8 @@ Final Macro Processing ...
 Final Register Report
 
 Macro Statistics
-# Registers                                            : 725
- Flip-Flops                                            : 725
+# Registers                                            : 757
+ Flip-Flops                                            : 757
 
 =========================================================================
 
@@ -865,29 +876,29 @@ Top Level Output File Name         : photon.ngc
 
 Primitive and Black Box Usage:
 ------------------------------
-# BELS                             : 3262
+# BELS                             : 3485
 #      GND                         : 19
 #      INV                         : 94
-#      LUT1                        : 236
-#      LUT2                        : 472
-#      LUT3                        : 213
-#      LUT4                        : 346
-#      LUT5                        : 228
-#      LUT6                        : 726
+#      LUT1                        : 239
+#      LUT2                        : 501
+#      LUT3                        : 201
+#      LUT4                        : 380
+#      LUT5                        : 284
+#      LUT6                        : 750
 #      LUT6_2                      : 50
-#      MUXCY                       : 510
+#      MUXCY                       : 567
 #      MUXF7                       : 11
 #      VCC                         : 8
-#      XORCY                       : 349
-# FlipFlops/Latches                : 2548
+#      XORCY                       : 381
+# FlipFlops/Latches                : 2644
 #      FD                          : 218
-#      FDC                         : 760
+#      FDC                         : 791
 #      FDCE                        : 494
 #      FDE                         : 406
-#      FDP                         : 125
+#      FDP                         : 126
 #      FDPE                        : 24
 #      FDR                         : 67
-#      FDRE                        : 414
+#      FDRE                        : 478
 #      FDS                         : 5
 #      FDSE                        : 2
 #      LD                          : 2
@@ -923,19 +934,19 @@ Selected Device : 6slx45fgg484-2
 
 
 Slice Logic Utilization: 
- Number of Slice Registers:            2548  out of  54576     4%  
- Number of Slice LUTs:                 2410  out of  27288     8%  
-    Number used as Logic:              2365  out of  27288     8%  
+ Number of Slice Registers:            2644  out of  54576     4%  
+ Number of Slice LUTs:                 2544  out of  27288     9%  
+    Number used as Logic:              2499  out of  27288     9%  
     Number used as Memory:               45  out of   6408     0%  
        Number used as RAM:               44
        Number used as SRL:                1
 
 Slice Logic Distribution: 
- Number of LUT Flip Flop pairs used:   3753
-   Number with an unused Flip Flop:    1205  out of   3753    32%  
-   Number with an unused LUT:          1343  out of   3753    35%  
-   Number of fully used LUT-FF pairs:  1205  out of   3753    32%  
-   Number of unique control sets:       258
+ Number of LUT Flip Flop pairs used:   3948
+   Number with an unused Flip Flop:    1304  out of   3948    33%  
+   Number with an unused LUT:          1404  out of   3948    35%  
+   Number of fully used LUT-FF pairs:  1240  out of   3948    31%  
+   Number of unique control sets:       262
 
 IO Utilization: 
  Number of IOs:                         102
@@ -969,9 +980,9 @@ Clock Information:
 Clock Signal                                                                                                 | Clock buffer(FF name)                                                                                                            | Load  |
 -------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------+-------+
 clk1                                                                                                         | DCM_SP:CLK2X                                                                                                                     | 34    |
-clk1                                                                                                         | DCM_SP:CLK0                                                                                                                      | 691   |
+clk1                                                                                                         | DCM_SP:CLK0                                                                                                                      | 723   |
 clk1                                                                                                         | DCM_SP:CLKFX                                                                                                                     | 16    |
-hi_in<0>                                                                                                     | DCM_SP:CLK0                                                                                                                      | 1383  |
+hi_in<0>                                                                                                     | DCM_SP:CLK0                                                                                                                      | 1447  |
 clk_1                                                                                                        | BUFG                                                                                                                             | 81    |
 pmt_synced                                                                                                   | BUFG                                                                                                                             | 234   |
 fifo_dds_rd_clk                                                                                              | BUFG                                                                                                                             | 94    |
@@ -979,39 +990,39 @@ fifo_pulser_rd_clk                                                              
 pulser_ram_clka                                                                                              | NONE(ram1/U0/xst_blk_mem_generator/gnativebmg.native_blk_mem_gen/valid.cstr/ramloop[0].ram.r/s6_noinit.ram/SDP.SIMPLE_PRIM18.ram)| 4     |
 pulser_ram_clkb                                                                                              | NONE(ram1/U0/xst_blk_mem_generator/gnativebmg.native_blk_mem_gen/valid.cstr/ramloop[0].ram.r/s6_noinit.ram/SDP.SIMPLE_PRIM18.ram)| 4     |
 okHI/core0/okCH<1>                                                                                           | NONE(okHI/core0/core0/a0/pm0/ram_1k_generate.s6.kcpsm6_rom)                                                                      | 1     |
-readout_should_count_pmt_readout_count[29]_AND_601_o(readout_should_count_pmt_readout_count[29]_AND_601_o1:O)| NONE(*)(pmt_readout_count_var_29_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[30]_AND_599_o(readout_should_count_pmt_readout_count[30]_AND_599_o1:O)| NONE(*)(pmt_readout_count_var_30_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[26]_AND_607_o(readout_should_count_pmt_readout_count[26]_AND_607_o1:O)| NONE(*)(pmt_readout_count_var_26_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[28]_AND_603_o(readout_should_count_pmt_readout_count[28]_AND_603_o1:O)| NONE(*)(pmt_readout_count_var_28_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[27]_AND_605_o(readout_should_count_pmt_readout_count[27]_AND_605_o1:O)| NONE(*)(pmt_readout_count_var_27_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[23]_AND_613_o(readout_should_count_pmt_readout_count[23]_AND_613_o1:O)| NONE(*)(pmt_readout_count_var_23_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[25]_AND_609_o(readout_should_count_pmt_readout_count[25]_AND_609_o1:O)| NONE(*)(pmt_readout_count_var_25_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[24]_AND_611_o(readout_should_count_pmt_readout_count[24]_AND_611_o1:O)| NONE(*)(pmt_readout_count_var_24_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[22]_AND_615_o(readout_should_count_pmt_readout_count[22]_AND_615_o1:O)| NONE(*)(pmt_readout_count_var_22_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[21]_AND_617_o(readout_should_count_pmt_readout_count[21]_AND_617_o1:O)| NONE(*)(pmt_readout_count_var_21_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[20]_AND_619_o(readout_should_count_pmt_readout_count[20]_AND_619_o1:O)| NONE(*)(pmt_readout_count_var_20_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[19]_AND_621_o(readout_should_count_pmt_readout_count[19]_AND_621_o1:O)| NONE(*)(pmt_readout_count_var_19_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[16]_AND_627_o(readout_should_count_pmt_readout_count[16]_AND_627_o1:O)| NONE(*)(pmt_readout_count_var_16_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[18]_AND_623_o(readout_should_count_pmt_readout_count[18]_AND_623_o1:O)| NONE(*)(pmt_readout_count_var_18_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[17]_AND_625_o(readout_should_count_pmt_readout_count[17]_AND_625_o1:O)| NONE(*)(pmt_readout_count_var_17_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[13]_AND_633_o(readout_should_count_pmt_readout_count[13]_AND_633_o1:O)| NONE(*)(pmt_readout_count_var_13_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[15]_AND_629_o(readout_should_count_pmt_readout_count[15]_AND_629_o1:O)| NONE(*)(pmt_readout_count_var_15_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[14]_AND_631_o(readout_should_count_pmt_readout_count[14]_AND_631_o1:O)| NONE(*)(pmt_readout_count_var_14_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[10]_AND_639_o(readout_should_count_pmt_readout_count[10]_AND_639_o1:O)| NONE(*)(pmt_readout_count_var_10_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[12]_AND_635_o(readout_should_count_pmt_readout_count[12]_AND_635_o1:O)| NONE(*)(pmt_readout_count_var_12_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[11]_AND_637_o(readout_should_count_pmt_readout_count[11]_AND_637_o1:O)| NONE(*)(pmt_readout_count_var_11_LDC)                                                                                            | 1     |
-readout_should_count_pmt_readout_count[9]_AND_641_o(readout_should_count_pmt_readout_count[9]_AND_641_o1:O)  | NONE(*)(pmt_readout_count_var_9_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[8]_AND_643_o(readout_should_count_pmt_readout_count[8]_AND_643_o1:O)  | NONE(*)(pmt_readout_count_var_8_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[7]_AND_645_o(readout_should_count_pmt_readout_count[7]_AND_645_o1:O)  | NONE(*)(pmt_readout_count_var_7_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[6]_AND_647_o(readout_should_count_pmt_readout_count[6]_AND_647_o1:O)  | NONE(*)(pmt_readout_count_var_6_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[3]_AND_653_o(readout_should_count_pmt_readout_count[3]_AND_653_o1:O)  | NONE(*)(pmt_readout_count_var_3_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[5]_AND_649_o(readout_should_count_pmt_readout_count[5]_AND_649_o1:O)  | NONE(*)(pmt_readout_count_var_5_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[4]_AND_651_o(readout_should_count_pmt_readout_count[4]_AND_651_o1:O)  | NONE(*)(pmt_readout_count_var_4_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[2]_AND_655_o(readout_should_count_pmt_readout_count[2]_AND_655_o1:O)  | NONE(*)(pmt_readout_count_var_2_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[1]_AND_657_o(readout_should_count_pmt_readout_count[1]_AND_657_o1:O)  | NONE(*)(pmt_readout_count_var_1_LDC)                                                                                             | 1     |
-readout_should_count_pmt_readout_count[0]_AND_659_o(readout_should_count_pmt_readout_count[0]_AND_659_o1:O)  | NONE(*)(pmt_readout_count_var_0_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[30]_AND_601_o(readout_should_count_pmt_readout_count[30]_AND_601_o1:O)| NONE(*)(pmt_readout_count_var_30_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[29]_AND_603_o(readout_should_count_pmt_readout_count[29]_AND_603_o1:O)| NONE(*)(pmt_readout_count_var_29_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[28]_AND_605_o(readout_should_count_pmt_readout_count[28]_AND_605_o1:O)| NONE(*)(pmt_readout_count_var_28_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[27]_AND_607_o(readout_should_count_pmt_readout_count[27]_AND_607_o1:O)| NONE(*)(pmt_readout_count_var_27_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[26]_AND_609_o(readout_should_count_pmt_readout_count[26]_AND_609_o1:O)| NONE(*)(pmt_readout_count_var_26_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[23]_AND_615_o(readout_should_count_pmt_readout_count[23]_AND_615_o1:O)| NONE(*)(pmt_readout_count_var_23_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[25]_AND_611_o(readout_should_count_pmt_readout_count[25]_AND_611_o1:O)| NONE(*)(pmt_readout_count_var_25_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[24]_AND_613_o(readout_should_count_pmt_readout_count[24]_AND_613_o1:O)| NONE(*)(pmt_readout_count_var_24_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[22]_AND_617_o(readout_should_count_pmt_readout_count[22]_AND_617_o1:O)| NONE(*)(pmt_readout_count_var_22_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[21]_AND_619_o(readout_should_count_pmt_readout_count[21]_AND_619_o1:O)| NONE(*)(pmt_readout_count_var_21_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[20]_AND_621_o(readout_should_count_pmt_readout_count[20]_AND_621_o1:O)| NONE(*)(pmt_readout_count_var_20_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[19]_AND_623_o(readout_should_count_pmt_readout_count[19]_AND_623_o1:O)| NONE(*)(pmt_readout_count_var_19_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[16]_AND_629_o(readout_should_count_pmt_readout_count[16]_AND_629_o1:O)| NONE(*)(pmt_readout_count_var_16_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[18]_AND_625_o(readout_should_count_pmt_readout_count[18]_AND_625_o1:O)| NONE(*)(pmt_readout_count_var_18_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[17]_AND_627_o(readout_should_count_pmt_readout_count[17]_AND_627_o1:O)| NONE(*)(pmt_readout_count_var_17_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[13]_AND_635_o(readout_should_count_pmt_readout_count[13]_AND_635_o1:O)| NONE(*)(pmt_readout_count_var_13_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[15]_AND_631_o(readout_should_count_pmt_readout_count[15]_AND_631_o1:O)| NONE(*)(pmt_readout_count_var_15_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[14]_AND_633_o(readout_should_count_pmt_readout_count[14]_AND_633_o1:O)| NONE(*)(pmt_readout_count_var_14_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[10]_AND_641_o(readout_should_count_pmt_readout_count[10]_AND_641_o1:O)| NONE(*)(pmt_readout_count_var_10_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[12]_AND_637_o(readout_should_count_pmt_readout_count[12]_AND_637_o1:O)| NONE(*)(pmt_readout_count_var_12_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[11]_AND_639_o(readout_should_count_pmt_readout_count[11]_AND_639_o1:O)| NONE(*)(pmt_readout_count_var_11_LDC)                                                                                            | 1     |
+readout_should_count_pmt_readout_count[9]_AND_643_o(readout_should_count_pmt_readout_count[9]_AND_643_o1:O)  | NONE(*)(pmt_readout_count_var_9_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[8]_AND_645_o(readout_should_count_pmt_readout_count[8]_AND_645_o1:O)  | NONE(*)(pmt_readout_count_var_8_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[7]_AND_647_o(readout_should_count_pmt_readout_count[7]_AND_647_o1:O)  | NONE(*)(pmt_readout_count_var_7_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[6]_AND_649_o(readout_should_count_pmt_readout_count[6]_AND_649_o1:O)  | NONE(*)(pmt_readout_count_var_6_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[3]_AND_655_o(readout_should_count_pmt_readout_count[3]_AND_655_o1:O)  | NONE(*)(pmt_readout_count_var_3_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[5]_AND_651_o(readout_should_count_pmt_readout_count[5]_AND_651_o1:O)  | NONE(*)(pmt_readout_count_var_5_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[4]_AND_653_o(readout_should_count_pmt_readout_count[4]_AND_653_o1:O)  | NONE(*)(pmt_readout_count_var_4_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[2]_AND_657_o(readout_should_count_pmt_readout_count[2]_AND_657_o1:O)  | NONE(*)(pmt_readout_count_var_2_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[1]_AND_659_o(readout_should_count_pmt_readout_count[1]_AND_659_o1:O)  | NONE(*)(pmt_readout_count_var_1_LDC)                                                                                             | 1     |
+readout_should_count_pmt_readout_count[0]_AND_661_o(readout_should_count_pmt_readout_count[0]_AND_661_o1:O)  | NONE(*)(pmt_readout_count_var_0_LDC)                                                                                             | 1     |
 master_logic_20                                                                                              | NONE(count_1_LD)                                                                                                                 | 1     |
-normal_pmt_count_trigger_inv(normal_pmt_count_trigger_inv1:O)                                                | NONE(*)(_i000238_1_LD)                                                                                                           | 1     |
+normal_pmt_count_trigger_inv(normal_pmt_count_trigger_inv1:O)                                                | NONE(*)(_i000256_1_LD)                                                                                                           | 1     |
 -------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------+-------+
 (*) These 32 clock signal(s) are generated by combinatorial logic,
 and XST is not able to identify which are the primary clock signals.
@@ -1026,7 +1037,7 @@ Timing Summary:
 ---------------
 Speed Grade: -2
 
-   Minimum period: 9.633ns (Maximum Frequency: 103.815MHz)
+   Minimum period: 9.681ns (Maximum Frequency: 103.300MHz)
    Minimum input arrival time before clock: 7.073ns
    Maximum output required time after clock: 5.389ns
    Maximum combinational path delay: 1.328ns
@@ -1037,10 +1048,10 @@ All values displayed in nanoseconds (ns)
 
 =========================================================================
 Timing constraint: Default period analysis for Clock 'clk1'
-  Clock period: 7.465ns (frequency: 133.961MHz)
-  Total number of paths / destination ports: 218088 / 1325
+  Clock period: 8.364ns (frequency: 119.556MHz)
+  Total number of paths / destination ports: 308803 / 1357
 -------------------------------------------------------------------------
-Delay:               7.465ns (Levels of Logic = 33)
+Delay:               8.364ns (Levels of Logic = 33)
   Source:            time_count_0 (FF)
   Destination:       ram_data_out_2_0 (FF)
   Source Clock:      clk1 rising
@@ -1051,50 +1062,50 @@ Delay:               7.465ns (Levels of Logic = 33)
     Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
     ----------------------------------------  ------------
      FDC:C->Q              2   0.525   0.725  time_count_0 (time_count_0)
-     INV:I->O              1   0.255   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_lut<0>_INV_0 (Madd_time_count[31]_GND_8_o_add_61_OUT_lut<0>)
-     MUXCY:S->O            1   0.215   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<0> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<0>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<1> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<1>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<2> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<2>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<3> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<3>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<4> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<4>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<5> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<5>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<6> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<6>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<7> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<7>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<8> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<8>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<9> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<9>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<10> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<10>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<11> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<11>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<12> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<12>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<13> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<13>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<14> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<14>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<15> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<15>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<16> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<16>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<17> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<17>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<18> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<18>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<19> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<19>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<20> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<20>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<21> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<21>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<22> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<22>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<23> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<23>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<24> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<24>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<25> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<25>)
-     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_61_OUT_cy<26> (Madd_time_count[31]_GND_8_o_add_61_OUT_cy<26>)
-     XORCY:CI->O           2   0.206   0.954  Madd_time_count[31]_GND_8_o_add_61_OUT_xor<27> (time_count[31]_GND_8_o_add_61_OUT<27>)
-     LUT6:I3->O            1   0.235   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_63_o_lut<9> (Mcompar_time_stamp[31]_time_count[31]_equal_63_o_lut<9>)
-     MUXCY:S->O            1   0.215   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_63_o_cy<9> (Mcompar_time_stamp[31]_time_count[31]_equal_63_o_cy<9>)
-     MUXCY:CI->O          12   0.023   1.069  Mcompar_time_stamp[31]_time_count[31]_equal_63_o_cy<10> (time_stamp[31]_time_count[31]_equal_63_o)
-     LUT6:I5->O           58   0.254   1.882  _n1178_inv (_n1178_inv)
+     INV:I->O              1   0.255   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_lut<0>_INV_0 (Madd_time_count[31]_GND_8_o_add_62_OUT_lut<0>)
+     MUXCY:S->O            1   0.215   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<0> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<0>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<1> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<1>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<2> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<2>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<3> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<3>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<4> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<4>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<5> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<5>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<6> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<6>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<7> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<7>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<8> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<8>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<9> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<9>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<10> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<10>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<11> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<11>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<12> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<12>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<13> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<13>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<14> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<14>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<15> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<15>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<16> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<16>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<17> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<17>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<18> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<18>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<19> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<19>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<20> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<20>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<21> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<21>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<22> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<22>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<23> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<23>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<24> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<24>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<25> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<25>)
+     MUXCY:CI->O           1   0.023   0.000  Madd_time_count[31]_GND_8_o_add_62_OUT_cy<26> (Madd_time_count[31]_GND_8_o_add_62_OUT_cy<26>)
+     XORCY:CI->O           2   0.206   0.954  Madd_time_count[31]_GND_8_o_add_62_OUT_xor<27> (time_count[31]_GND_8_o_add_62_OUT<27>)
+     LUT6:I3->O            1   0.235   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_lut<9> (Mcompar_time_stamp[31]_time_count[31]_equal_64_o_lut<9>)
+     MUXCY:S->O            1   0.215   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<9> (Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<9>)
+     MUXCY:CI->O          69   0.023   1.968  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<10> (time_stamp[31]_time_count[31]_equal_64_o)
+     LUT6:I5->O           58   0.254   1.882  _n1272_inv (_n1272_inv)
      FDE:CE                    0.302          ram_data_out_2_0
     ----------------------------------------
-    Total                      7.465ns (2.835ns logic, 4.630ns route)
-                                       (38.0% logic, 62.0% route)
+    Total                      8.364ns (2.835ns logic, 5.530ns route)
+                                       (33.9% logic, 66.1% route)
 
 =========================================================================
 Timing constraint: Default period analysis for Clock 'hi_in<0>'
-  Clock period: 9.633ns (frequency: 103.815MHz)
-  Total number of paths / destination ports: 26243 / 3933
+  Clock period: 9.681ns (frequency: 103.300MHz)
+  Total number of paths / destination ports: 26691 / 4125
 -------------------------------------------------------------------------
-Delay:               9.633ns (Levels of Logic = 8)
+Delay:               9.681ns (Levels of Logic = 8)
   Source:            okHI/core0/core0/ti_addr_1 (FF)
   Destination:       fifo1/U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.mem/gbm.gbmg.gbmga.ngecc.bmg/gnativebmg.native_blk_mem_gen/valid.cstr/ramloop[0].ram.r/s6_noinit.ram/SDP.SIMPLE_PRIM18.ram (RAM)
   Source Clock:      hi_in<0> rising
@@ -1104,7 +1115,7 @@ Delay:               9.633ns (Levels of Logic = 8)
                                 Gate     Net
     Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
     ----------------------------------------  ------------
-     FDE:C->Q             21   0.525   1.740  core0/ti_addr_1 (ok1<17>)
+     FDE:C->Q             23   0.525   1.788  core0/ti_addr_1 (ok1<17>)
      end scope: 'okHI/core0:ok1<17>'
      begin scope: 'epA0:ok1<17>'
      LUT6:I1->O            1   0.254   1.137  ti_addr[7]_ep_addr[7]_equal_4_o81 (ti_addr[7]_ep_addr[7]_equal_4_o8)
@@ -1117,8 +1128,8 @@ Delay:               9.633ns (Levels of Logic = 8)
      LUT3:I2->O            7   0.254   0.909  out8 (ramloop[2].ram.ram_enb)
      RAMB16BWER:ENB            0.250          ramloop[2].ram.r/s6_noinit.ram/SDP.SIMPLE_PRIM18.ram
     ----------------------------------------
-    Total                      9.633ns (2.041ns logic, 7.592ns route)
-                                       (21.2% logic, 78.8% route)
+    Total                      9.681ns (2.041ns logic, 7.640ns route)
+                                       (21.1% logic, 78.9% route)
 
 =========================================================================
 Timing constraint: Default period analysis for Clock 'clk_1'
@@ -1138,7 +1149,7 @@ Delay:               6.269ns (Levels of Logic = 3)
      FDCE:C->Q             2   0.525   1.181  duration_count_9 (duration_count_9)
      LUT6:I0->O            1   0.254   1.137  line_triggering_pulse_PWR_8_o_MUX_160_o21 (line_triggering_pulse_PWR_8_o_MUX_160_o2)
      LUT6:I0->O            2   0.254   1.181  line_triggering_pulse_PWR_8_o_MUX_160_o23 (line_triggering_pulse_PWR_8_o_MUX_160_o)
-     LUT6:I0->O           16   0.254   1.181  _n0878_inv1 (_n0878_inv)
+     LUT6:I0->O           16   0.254   1.181  _n0936_inv1 (_n0936_inv)
      FDCE:CE                   0.302          duration_count_0
     ----------------------------------------
     Total                      6.269ns (1.589ns logic, 4.680ns route)
@@ -1402,7 +1413,7 @@ Delay:               1.328ns (Levels of Logic = 1)
                                 Gate     Net
     Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
     ----------------------------------------  ------------
-     IOBUF:IO->O           0   1.328   0.000  hi_inout_0_IOBUF (N87)
+     IOBUF:IO->O           0   1.328   0.000  hi_inout_0_IOBUF (N82)
     IODELAY2:IDATAIN           0.000          okHI/g1[0].idcomp
     ----------------------------------------
     Total                      1.328ns (1.328ns logic, 0.000ns route)
@@ -1418,45 +1429,45 @@ Clock to Setup on destination clock clk1
                                                     | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock                                        |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
 ----------------------------------------------------+---------+---------+---------+---------+
-clk1                                                |    7.465|         |         |         |
-clk_1                                               |    6.621|         |         |         |
+clk1                                                |    8.364|         |         |         |
+clk_1                                               |    6.911|         |         |         |
 fifo_pulser_rd_clk                                  |    1.639|         |         |         |
 hi_in<0>                                            |    8.831|         |         |         |
 master_logic_20                                     |         |    4.482|         |         |
 normal_pmt_count_trigger_inv                        |         |    4.333|         |         |
 pmt_synced                                          |    2.729|         |         |         |
-pulser_ram_clkb                                     |    3.608|         |         |         |
-readout_should_count_pmt_readout_count[0]_AND_659_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[10]_AND_639_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[11]_AND_637_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[12]_AND_635_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[13]_AND_633_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[14]_AND_631_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[15]_AND_629_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[16]_AND_627_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[17]_AND_625_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[18]_AND_623_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[19]_AND_621_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[1]_AND_657_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[20]_AND_619_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[21]_AND_617_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[22]_AND_615_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[23]_AND_613_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[24]_AND_611_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[25]_AND_609_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[26]_AND_607_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[27]_AND_605_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[28]_AND_603_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[29]_AND_601_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[2]_AND_655_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[30]_AND_599_o|         |    2.065|         |         |
-readout_should_count_pmt_readout_count[3]_AND_653_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[4]_AND_651_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[5]_AND_649_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[6]_AND_647_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[7]_AND_645_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[8]_AND_643_o |         |    2.065|         |         |
-readout_should_count_pmt_readout_count[9]_AND_641_o |         |    2.065|         |         |
+pulser_ram_clkb                                     |    3.712|         |         |         |
+readout_should_count_pmt_readout_count[0]_AND_661_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[10]_AND_641_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[11]_AND_639_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[12]_AND_637_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[13]_AND_635_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[14]_AND_633_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[15]_AND_631_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[16]_AND_629_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[17]_AND_627_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[18]_AND_625_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[19]_AND_623_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[1]_AND_659_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[20]_AND_621_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[21]_AND_619_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[22]_AND_617_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[23]_AND_615_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[24]_AND_613_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[25]_AND_611_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[26]_AND_609_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[27]_AND_607_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[28]_AND_605_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[29]_AND_603_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[2]_AND_657_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[30]_AND_601_o|         |    2.065|         |         |
+readout_should_count_pmt_readout_count[3]_AND_655_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[4]_AND_653_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[5]_AND_651_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[6]_AND_649_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[7]_AND_647_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[8]_AND_645_o |         |    2.065|         |         |
+readout_should_count_pmt_readout_count[9]_AND_643_o |         |    2.065|         |         |
 ----------------------------------------------------+---------+---------+---------+---------+
 
 Clock to Setup on destination clock clk_1
@@ -1498,7 +1509,7 @@ clk1              |    2.679|         |         |         |
 clk_1             |    2.620|         |         |         |
 fifo_dds_rd_clk   |    1.280|         |         |         |
 fifo_pulser_rd_clk|    1.280|         |         |         |
-hi_in<0>          |    9.633|         |         |         |
+hi_in<0>          |    9.681|         |         |         |
 pmt_synced        |    1.280|         |         |         |
 ------------------+---------+---------+---------+---------+
 
@@ -1537,7 +1548,7 @@ Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
 clk1           |    1.728|         |         |         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[0]_AND_659_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[0]_AND_661_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1546,7 +1557,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[10]_AND_639_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[10]_AND_641_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1555,7 +1566,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[11]_AND_637_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[11]_AND_639_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1564,7 +1575,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[12]_AND_635_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[12]_AND_637_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1573,7 +1584,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[13]_AND_633_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[13]_AND_635_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1582,7 +1593,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[14]_AND_631_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[14]_AND_633_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1591,7 +1602,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[15]_AND_629_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[15]_AND_631_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1600,7 +1611,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[16]_AND_627_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[16]_AND_629_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1609,7 +1620,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[17]_AND_625_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[17]_AND_627_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1618,7 +1629,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[18]_AND_623_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[18]_AND_625_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1627,7 +1638,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[19]_AND_621_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[19]_AND_623_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1636,7 +1647,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[1]_AND_657_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[1]_AND_659_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1645,7 +1656,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[20]_AND_619_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[20]_AND_621_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1654,7 +1665,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[21]_AND_617_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[21]_AND_619_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1663,7 +1674,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[22]_AND_615_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[22]_AND_617_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1672,7 +1683,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[23]_AND_613_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[23]_AND_615_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1681,7 +1692,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[24]_AND_611_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[24]_AND_613_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1690,7 +1701,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[25]_AND_609_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[25]_AND_611_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1699,7 +1710,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[26]_AND_607_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[26]_AND_609_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1708,7 +1719,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[27]_AND_605_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[27]_AND_607_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1717,7 +1728,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[28]_AND_603_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[28]_AND_605_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1726,7 +1737,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[29]_AND_601_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[29]_AND_603_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1735,7 +1746,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[2]_AND_655_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[2]_AND_657_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1744,7 +1755,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[30]_AND_599_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[30]_AND_601_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1753,7 +1764,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[3]_AND_653_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[3]_AND_655_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1762,7 +1773,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[4]_AND_651_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[4]_AND_653_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1771,7 +1782,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[5]_AND_649_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[5]_AND_651_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1780,7 +1791,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[6]_AND_647_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[6]_AND_649_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1789,7 +1800,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[7]_AND_645_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[7]_AND_647_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1798,7 +1809,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[8]_AND_643_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[8]_AND_645_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1807,7 +1818,7 @@ clk1           |         |         |    4.020|         |
 pmt_synced     |         |         |    2.729|         |
 ---------------+---------+---------+---------+---------+
 
-Clock to Setup on destination clock readout_should_count_pmt_readout_count[9]_AND_641_o
+Clock to Setup on destination clock readout_should_count_pmt_readout_count[9]_AND_643_o
 ---------------+---------+---------+---------+---------+
                | Src:Rise| Src:Fall| Src:Rise| Src:Fall|
 Source Clock   |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
@@ -1819,14 +1830,15 @@ pmt_synced     |         |         |    2.729|         |
 =========================================================================
 
 
-Total REAL time to Xst completion: 19.00 secs
-Total CPU time to Xst completion: 18.79 secs
+Total REAL time to Xst completion: 25.00 secs
+Total CPU time to Xst completion: 22.38 secs
  
 --> 
 
-Total memory usage is 273816 kilobytes
+
+Total memory usage is 528664 kilobytes
 
 Number of errors   :    0 (   0 filtered)
-Number of warnings :   97 (   0 filtered)
+Number of warnings :   99 (   0 filtered)
 Number of infos    :  136 (   0 filtered)
 

@@ -167,6 +167,9 @@ architecture arch of photon is
 	------ number of us delay in the line triggering ---------------------
 	signal ep06wire		  : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
 	
+	signal ep07wire		  : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
+	signal ep08wire		  : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
+	
 	------ output data to PC ------
 	signal ep21wire		  : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
 	signal ep22wire		  : STD_LOGIC_VECTOR(15 downto 0):="0000000000000000";
@@ -316,6 +319,7 @@ architecture arch of photon is
 	signal	pmt_readout_count: INTEGER RANGE 0 TO 2147483647:=0;
 	signal	readout_should_count : STD_LOGIC := '0';
 	
+	signal   sub_sequence_line_trigger : INTEGER:=0;
 	
 	----- line triggering -----
 	signal line_triggering_enabled: STD_LOGIC := '0'; ----- 1 means trigger with line
@@ -566,10 +570,12 @@ ram1: pulser_ram port map (
 ----- the end line is reached. The endline is specified from timestamp = 0. ---
 ----- The logic in the endline also doesn't do anything.----------------------
 
+sub_sequence_line_trigger <= CONV_INTEGER(UNSIGNED (ep07wire (15 DOWNTO 0) & ep08wire (15 DOWNTO 0)));
 
 	process (clk_100, pulser_counter_reset)
 		variable seq_count: INTEGER range 0 to 65535;--- count number of seq run
 		variable count1: INTEGER range 0 to 3:=0;
+		variable last_time_line_trigger: INTEGER:=0;
 		variable time_count: INTEGER:=0;
 		variable time_stamp: INTEGER:=0;
 		variable ram_read_address: integer range 0 to 1023:=0;
@@ -581,6 +587,7 @@ ram1: pulser_ram port map (
 			ram_process_count:=0;
 			ram_read_address:=0;
 			count1:=0;
+			last_time_line_trigger:=0;
 			time_count:=0;
 			time_stamp:=0;
 			master_logic <= "00000000000000000000000000000000";
@@ -612,8 +619,16 @@ ram1: pulser_ram port map (
 				---- read process -----		 
 				WHEN 5 => IF (time_count+1 = time_stamp) THEN ----------- approaching the time stamp
 								IF (count1 = 0) THEN
-									pulser_ram_clkb <= '0';
-									count1 :=1;
+									IF (last_time_line_trigger > 0 and time_stamp >= last_time_line_trigger + sub_sequence_line_trigger) THEN
+										IF ((ep00wire(3) = '1' and line_triggering_pulse = '1') or (ep00wire(3) = '0')) THEN
+											last_time_line_trigger := time_stamp;
+											pulser_ram_clkb <= '0';
+											count1 :=1;
+										END IF;
+									ELSE
+										pulser_ram_clkb <= '0';
+										count1 :=1;
+									END IF;
 								ELSIF (count1 = 1) THEN
 									pulser_ram_clkb <= '1'; -----------ram data is read
 									count1 :=2;
@@ -632,6 +647,7 @@ ram1: pulser_ram port map (
 												ram_process_count:=0;
 												ram_read_address:=0;
 												count1:=0;
+												last_time_line_trigger:=0;
 												time_count:=0;
 												time_stamp:=0;
 												master_logic <= ram_data_out_1(31 downto 0);
@@ -1036,6 +1052,8 @@ wi03 : okWireIn    port map (ok1=>ok1,                                  ep_addr=
 wi04 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"04", ep_dataout=>ep04wire);
 wi05 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"05", ep_dataout=>ep05wire);
 wi06 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"06", ep_dataout=>ep06wire);
+wi07 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"07", ep_dataout=>ep07wire);
+wi08 : okWireIn    port map (ok1=>ok1,                                  ep_addr=>x"08", ep_dataout=>ep08wire);
 ep40 : okTriggerIn  port map (ok1=>ok1,                                  ep_addr=>x"40", ep_clk=>clk_1, ep_trigger=>ep40wire);
 wo21 : okWireOut   port map (ok1=>ok1, ok2=>ok2s( 1*17-1 downto 0*17 ), ep_addr=>x"21", ep_datain=>ep21wire);
 wo22 : okWireOut   port map (ok1=>ok1, ok2=>ok2s( 4*17-1 downto 3*17 ), ep_addr=>x"22", ep_datain=>ep22wire);
