@@ -4,15 +4,15 @@ Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 Parameter TMPDIR set to xst/projnav.tmp
 
 
-Total REAL time to Xst completion: 0.00 secs
-Total CPU time to Xst completion: 0.05 secs
+Total REAL time to Xst completion: 1.00 secs
+Total CPU time to Xst completion: 0.04 secs
  
 --> 
 Parameter xsthdpdir set to xst
 
 
-Total REAL time to Xst completion: 0.00 secs
-Total CPU time to Xst completion: 0.05 secs
+Total REAL time to Xst completion: 1.00 secs
+Total CPU time to Xst completion: 0.04 secs
  
 --> 
 Reading design: photon.prj
@@ -211,7 +211,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 32-bit register for signal <time_stamp>.
     Found 32-bit register for signal <master_logic>.
     Found 16-bit register for signal <seq_count>.
-    Found 31-bit register for signal <_v41>.
+    Found 31-bit register for signal <_v42>.
     Found 31-bit register for signal <pmt_count>.
     Found 31-bit register for signal <pmt_readout_count>.
     Found 2-bit register for signal <count>.
@@ -222,7 +222,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pulser_ram_clka>.
     Found 10-bit register for signal <pulser_ram_addra>.
     Found 64-bit register for signal <pulser_ram_dina>.
-    Found 5-bit register for signal <_v34>.
+    Found 5-bit register for signal <_v35>.
     Found 1-bit register for signal <clk_1>.
     Found 1-bit register for signal <pulser_ram_clkb>.
     Found 64-bit register for signal <ram_data_out_2>.
@@ -235,9 +235,9 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pmt_sampled>.
     Found 16-bit register for signal <ep21wire>.
     Found 1-bit register for signal <normal_pmt_auto_count_clk>.
-    Found 3-bit register for signal <_v53>.
+    Found 3-bit register for signal <_v54>.
     Found 1-bit register for signal <wr_en_var>.
-    Found 32-bit register for signal <_v57>.
+    Found 32-bit register for signal <_v58>.
     Found 1-bit register for signal <pmt_count_reset_var>.
     Found 1-bit register for signal <normal_pmt_wr_en>.
     Found 32-bit register for signal <normal_pmt_fifo_data>.
@@ -277,7 +277,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 1-bit register for signal <pmt_readout_count_var<2>>.
     Found 1-bit register for signal <pmt_readout_count_var<1>>.
     Found 1-bit register for signal <pmt_readout_count_var<0>>.
-    Found finite state machine <FSM_0> for signal <_i000185>.
+    Found finite state machine <FSM_0> for signal <_i000186>.
     -----------------------------------------------------------------------
     | States             | 9                                              |
     | Transitions        | 11                                             |
@@ -313,17 +313,17 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 16-bit adder for signal <duration_count[15]_GND_8_o_add_45_OUT> created at line 556.
     Found 32-bit adder for signal <time_count[31]_GND_8_o_add_62_OUT> created at line 620.
     Found 32-bit adder for signal <last_time_line_trigger[31]_sub_sequence_line_trigger[31]_add_66_OUT> created at line 622.
-    Found 10-bit adder for signal <ram_read_address[9]_GND_8_o_add_76_OUT> created at line 643.
-    Found 16-bit adder for signal <seq_count[15]_GND_8_o_add_78_OUT> created at line 654.
-    Found 4-bit adder for signal <ram_process_count[3]_GND_8_o_add_85_OUT> created at line 664.
-    Found 31-bit adder for signal <count[30]_GND_8_o_add_216_OUT> created at line 895.
-    Found 3-bit adder for signal <count[2]_GND_8_o_add_233_OUT> created at line 963.
-    Found 31-bit adder for signal <pmt_count[30]_GND_8_o_add_244_OUT> created at line 979.
-    Found 31-bit adder for signal <pmt_readout_count[30]_GND_8_o_add_246_OUT> created at line 1008.
-    Found 2-bit adder for signal <count[1]_GND_8_o_add_249_OUT> created at line 1034.
-    Found 16x16-bit multiplier for signal <normal_pmt_count_period[15]_PWR_8_o_MuLt_218_OUT> created at line 898.
+    Found 10-bit adder for signal <ram_read_address[9]_GND_8_o_add_77_OUT> created at line 643.
+    Found 16-bit adder for signal <seq_count[15]_GND_8_o_add_79_OUT> created at line 654.
+    Found 4-bit adder for signal <ram_process_count[3]_GND_8_o_add_86_OUT> created at line 664.
+    Found 31-bit adder for signal <count[30]_GND_8_o_add_217_OUT> created at line 895.
+    Found 3-bit adder for signal <count[2]_GND_8_o_add_234_OUT> created at line 963.
+    Found 31-bit adder for signal <pmt_count[30]_GND_8_o_add_245_OUT> created at line 979.
+    Found 31-bit adder for signal <pmt_readout_count[30]_GND_8_o_add_247_OUT> created at line 1008.
+    Found 2-bit adder for signal <count[1]_GND_8_o_add_250_OUT> created at line 1034.
+    Found 16x16-bit multiplier for signal <normal_pmt_count_period[15]_PWR_8_o_MuLt_219_OUT> created at line 898.
     Found 16x17-bit multiplier for signal <n0737> created at line 900.
-    Found 16-bit 7-to-1 multiplexer for signal <GND_8_o_pulser_flag_register[15]_mux_213_OUT> created at line 833.
+    Found 16-bit 7-to-1 multiplexer for signal <GND_8_o_pulser_flag_register[15]_mux_214_OUT> created at line 833.
     Found 1-bit tristate buffer for signal <i2c_sda> created at line 874
     Found 1-bit tristate buffer for signal <i2c_scl> created at line 875
     Found 5-bit comparator greater for signal <n0040> created at line 505
@@ -335,9 +335,9 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 32-bit comparator equal for signal <time_stamp[31]_time_count[31]_equal_64_o> created at line 620
     Found 32-bit comparator greater for signal <last_time_line_trigger[31]_GND_8_o_LessThan_66_o> created at line 622
     Found 32-bit comparator greater for signal <n0101> created at line 622
-    Found 16-bit comparator equal for signal <ep05wire[15]_seq_count[15]_equal_81_o> created at line 656
-    Found 32-bit comparator equal for signal <normal_pmt_count_period[15]_GND_8_o_equal_220_o> created at line 898
-    Found 32-bit comparator greater for signal <normal_pmt_count_period[15]_GND_8_o_LessThan_222_o> created at line 900
+    Found 16-bit comparator equal for signal <ep05wire[15]_seq_count[15]_equal_82_o> created at line 656
+    Found 32-bit comparator equal for signal <normal_pmt_count_period[15]_GND_8_o_equal_221_o> created at line 898
+    Found 32-bit comparator greater for signal <normal_pmt_count_period[15]_GND_8_o_LessThan_223_o> created at line 900
     Summary:
 	inferred   2 Multiplier(s).
 	inferred  16 Adder/Subtractor(s).
@@ -519,7 +519,7 @@ WARNING:Xst:2677 - Node <master_logic_14> of sequential type is unconnected in b
 WARNING:Xst:2677 - Node <master_logic_15> of sequential type is unconnected in block <photon>.
 
 Synthesizing (advanced) Unit <photon>.
-The following registers are absorbed into counter <_i000227>: 1 register on signal <_i000227>.
+The following registers are absorbed into counter <_i000228>: 1 register on signal <_i000228>.
 The following registers are absorbed into counter <_i000053>: 1 register on signal <_i000053>.
 The following registers are absorbed into counter <_i000055>: 1 register on signal <_i000055>.
 The following registers are absorbed into counter <write_ram_address>: 1 register on signal <write_ram_address>.
@@ -615,74 +615,74 @@ Macro Statistics
 =========================================================================
 *                         Low Level Synthesis                           *
 =========================================================================
-INFO:Xst:2261 - The FF/Latch <wr_en_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_wr_en> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_1> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_2> 
-INFO:Xst:2261 - The FF/Latch <_i000258_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_10> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_3> 
-INFO:Xst:2261 - The FF/Latch <_i000258_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_11> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_4> 
-INFO:Xst:2261 - The FF/Latch <_i000258_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_12> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_5> 
-INFO:Xst:2261 - The FF/Latch <_i000258_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_13> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_6> 
-INFO:Xst:2261 - The FF/Latch <_i000258_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_14> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_7> 
-INFO:Xst:2261 - The FF/Latch <_i000258_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_15> 
-INFO:Xst:2261 - The FF/Latch <_i000258_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_20> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_8> 
-INFO:Xst:2261 - The FF/Latch <_i000258_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_16> 
-INFO:Xst:2261 - The FF/Latch <_i000258_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_21> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_9> 
-INFO:Xst:2261 - The FF/Latch <_i000258_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_17> 
-INFO:Xst:2261 - The FF/Latch <_i000258_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_22> 
-INFO:Xst:2261 - The FF/Latch <_i000258_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_18> 
-INFO:Xst:2261 - The FF/Latch <_i000258_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_23> 
-INFO:Xst:2261 - The FF/Latch <pmt_count_reset_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <pmt_count_reset> 
-INFO:Xst:2261 - The FF/Latch <_i000258_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_19> 
-INFO:Xst:2261 - The FF/Latch <_i000258_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_24> 
-INFO:Xst:2261 - The FF/Latch <_i000258_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_25> 
-INFO:Xst:2261 - The FF/Latch <_i000258_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_30> 
-INFO:Xst:2261 - The FF/Latch <_i000258_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_26> 
-INFO:Xst:2261 - The FF/Latch <_i000258_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_31> 
-INFO:Xst:2261 - The FF/Latch <_i000258_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_27> 
-INFO:Xst:2261 - The FF/Latch <_i000258_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_28> 
-INFO:Xst:2261 - The FF/Latch <_i000258_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_29> 
+INFO:Xst:2261 - The FF/Latch <_i000259_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_10> 
+INFO:Xst:2261 - The FF/Latch <_i000259_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_11> 
+INFO:Xst:2261 - The FF/Latch <_i000259_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_12> 
+INFO:Xst:2261 - The FF/Latch <_i000259_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_13> 
+INFO:Xst:2261 - The FF/Latch <_i000259_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_14> 
+INFO:Xst:2261 - The FF/Latch <wr_en_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_wr_en> 
+INFO:Xst:2261 - The FF/Latch <_i000259_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_15> 
+INFO:Xst:2261 - The FF/Latch <_i000259_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_20> 
+INFO:Xst:2261 - The FF/Latch <_i000259_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_16> 
+INFO:Xst:2261 - The FF/Latch <_i000259_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_21> 
+INFO:Xst:2261 - The FF/Latch <_i000259_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_17> 
+INFO:Xst:2261 - The FF/Latch <_i000259_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_22> 
+INFO:Xst:2261 - The FF/Latch <_i000259_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_18> 
+INFO:Xst:2261 - The FF/Latch <_i000259_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_23> 
+INFO:Xst:2261 - The FF/Latch <_i000259_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_19> 
+INFO:Xst:2261 - The FF/Latch <_i000259_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_24> 
+INFO:Xst:2261 - The FF/Latch <_i000259_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_25> 
+INFO:Xst:2261 - The FF/Latch <_i000259_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_30> 
+INFO:Xst:2261 - The FF/Latch <_i000259_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_26> 
+INFO:Xst:2261 - The FF/Latch <_i000259_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_31> 
+INFO:Xst:2261 - The FF/Latch <_i000259_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_0> 
+INFO:Xst:2261 - The FF/Latch <_i000259_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_27> 
+INFO:Xst:2261 - The FF/Latch <_i000259_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_1> 
+INFO:Xst:2261 - The FF/Latch <_i000259_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_28> 
+INFO:Xst:2261 - The FF/Latch <_i000259_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_2> 
+INFO:Xst:2261 - The FF/Latch <_i000259_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_29> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_10> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_10> 
+INFO:Xst:2261 - The FF/Latch <pmt_count_reset_var> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <pmt_count_reset> 
+INFO:Xst:2261 - The FF/Latch <_i000259_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_3> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_11> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_11> 
+INFO:Xst:2261 - The FF/Latch <_i000259_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_4> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_12> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_12> 
+INFO:Xst:2261 - The FF/Latch <_i000259_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_5> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_13> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_13> 
-INFO:Xst:2261 - The FF/Latch <_i000258_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_0> 
+INFO:Xst:2261 - The FF/Latch <_i000259_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_6> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_14> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_14> 
-INFO:Xst:2261 - The FF/Latch <_i000258_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_1> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_20> 
+INFO:Xst:2261 - The FF/Latch <_i000259_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_7> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_15> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_15> 
-INFO:Xst:2261 - The FF/Latch <_i000258_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_2> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_21> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_20> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_20> 
+INFO:Xst:2261 - The FF/Latch <_i000259_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_8> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_16> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_16> 
-INFO:Xst:2261 - The FF/Latch <_i000258_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_3> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_22> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_21> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_21> 
+INFO:Xst:2261 - The FF/Latch <_i000259_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_9> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_17> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_17> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_22> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_22> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_18> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_18> 
-INFO:Xst:2261 - The FF/Latch <_i000258_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_4> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_23> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_23> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_19> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_19> 
-INFO:Xst:2261 - The FF/Latch <_i000258_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_5> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_24> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_24> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_25> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_25> 
-INFO:Xst:2261 - The FF/Latch <_i000258_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_6> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_30> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_30> 
-INFO:Xst:2261 - The FF/Latch <_i000258_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_7> 
-INFO:Xst:2261 - The FF/Latch <fifo_data_var_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_31> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_26> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_26> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_31> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_31> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_27> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_27> 
-INFO:Xst:2261 - The FF/Latch <_i000258_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_8> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_28> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_28> 
-INFO:Xst:2261 - The FF/Latch <_i000258_9> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <normal_pmt_fifo_data_9> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_29> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_29> 
 INFO:Xst:2261 - The FF/Latch <fifo_data_var_0> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_0> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_1> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_1> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_2> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_2> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_3> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_3> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_4> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_4> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_5> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_5> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_6> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_6> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_7> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_7> 
+INFO:Xst:2261 - The FF/Latch <fifo_data_var_8> in Unit <photon> is equivalent to the following FF/Latch, which will be removed : <readout_count_fifo_data_8> 
 Analyzing FSM <MFsm> for best encoding.
-Optimizing FSM <FSM_0> on signal <_i000185[1:4]> with user encoding.
+Optimizing FSM <FSM_0> on signal <_i000186[1:4]> with user encoding.
 -------------------
  State | Encoding
 -------------------
@@ -708,8 +708,6 @@ Optimizing FSM <FSM_1> on signal <count1[1:4]> with one-hot encoding.
 -------------------
 WARNING:Xst:1293 - FF/Latch <time_stamp_30> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:1293 - FF/Latch <time_stamp_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
-WARNING:Xst:1293 - FF/Latch <last_time_line_trigger_30> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
-WARNING:Xst:1293 - FF/Latch <last_time_line_trigger_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:1293 - FF/Latch <fifo_data_var_31> has a constant value of 0 in block <photon>. This FF/Latch will be trimmed during the optimization process.
 WARNING:Xst:2677 - Node <ram_data_out_2_12> of sequential type is unconnected in block <photon>.
 WARNING:Xst:2677 - Node <ram_data_out_2_13> of sequential type is unconnected in block <photon>.
@@ -776,8 +774,8 @@ WARNING:Xst:3002 - This design contains one or more registers/latches that are d
 
 
   List of register instances with asynchronous set or reset and opposite initialization value:
-    _i000256_2 in unit <photon>
-    _i000256_1 in unit <photon>
+    _i000257_2 in unit <photon>
+    _i000257_1 in unit <photon>
     count_1 in unit <photon>
 
 
@@ -789,7 +787,7 @@ Building and optimizing final netlist ...
 Found area constraint ratio of 100 (+ 5) on block photon, actual ratio is 9.
 WARNING:Xst:1426 - The value init of the FF/Latch count_1_LD hinder the constant cleaning in the block photon.
    You should achieve better results by setting this init to 0.
-WARNING:Xst:1426 - The value init of the FF/Latch _i000256_1_LD hinder the constant cleaning in the block photon.
+WARNING:Xst:1426 - The value init of the FF/Latch _i000257_1_LD hinder the constant cleaning in the block photon.
    You should achieve better results by setting this init to 0.
 INFO:Xst:2260 - The FF/Latch <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_i> in Unit <fifo4> is equivalent to the following FF/Latch : <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/gntv_or_sync_fifo.gl0.wr/gwas.wsts/ram_full_fb_i> 
 INFO:Xst:2260 - The FF/Latch <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.wr_rst_reg_1> in Unit <fifo4> is equivalent to the following FF/Latch : <U0/xst_fifo_generator/gconvfifo.rf/grf.rf/rstblk/ngwrdrst.grst.wr_rst_reg_0> 
@@ -852,8 +850,8 @@ Final Macro Processing ...
 Final Register Report
 
 Macro Statistics
-# Registers                                            : 757
- Flip-Flops                                            : 757
+# Registers                                            : 759
+ Flip-Flops                                            : 759
 
 =========================================================================
 
@@ -876,23 +874,23 @@ Top Level Output File Name         : photon.ngc
 
 Primitive and Black Box Usage:
 ------------------------------
-# BELS                             : 3485
+# BELS                             : 3489
 #      GND                         : 19
 #      INV                         : 94
-#      LUT1                        : 239
-#      LUT2                        : 501
+#      LUT1                        : 238
+#      LUT2                        : 504
 #      LUT3                        : 201
 #      LUT4                        : 380
-#      LUT5                        : 284
+#      LUT5                        : 286
 #      LUT6                        : 750
 #      LUT6_2                      : 50
 #      MUXCY                       : 567
 #      MUXF7                       : 11
 #      VCC                         : 8
 #      XORCY                       : 381
-# FlipFlops/Latches                : 2644
+# FlipFlops/Latches                : 2646
 #      FD                          : 218
-#      FDC                         : 791
+#      FDC                         : 793
 #      FDCE                        : 494
 #      FDE                         : 406
 #      FDP                         : 126
@@ -934,18 +932,18 @@ Selected Device : 6slx45fgg484-2
 
 
 Slice Logic Utilization: 
- Number of Slice Registers:            2644  out of  54576     4%  
- Number of Slice LUTs:                 2544  out of  27288     9%  
-    Number used as Logic:              2499  out of  27288     9%  
+ Number of Slice Registers:            2646  out of  54576     4%  
+ Number of Slice LUTs:                 2548  out of  27288     9%  
+    Number used as Logic:              2503  out of  27288     9%  
     Number used as Memory:               45  out of   6408     0%  
        Number used as RAM:               44
        Number used as SRL:                1
 
 Slice Logic Distribution: 
- Number of LUT Flip Flop pairs used:   3948
-   Number with an unused Flip Flop:    1304  out of   3948    33%  
-   Number with an unused LUT:          1404  out of   3948    35%  
-   Number of fully used LUT-FF pairs:  1240  out of   3948    31%  
+ Number of LUT Flip Flop pairs used:   3952
+   Number with an unused Flip Flop:    1306  out of   3952    33%  
+   Number with an unused LUT:          1404  out of   3952    35%  
+   Number of fully used LUT-FF pairs:  1242  out of   3952    31%  
    Number of unique control sets:       262
 
 IO Utilization: 
@@ -980,7 +978,7 @@ Clock Information:
 Clock Signal                                                                                                 | Clock buffer(FF name)                                                                                                            | Load  |
 -------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------+-------+
 clk1                                                                                                         | DCM_SP:CLK2X                                                                                                                     | 34    |
-clk1                                                                                                         | DCM_SP:CLK0                                                                                                                      | 723   |
+clk1                                                                                                         | DCM_SP:CLK0                                                                                                                      | 725   |
 clk1                                                                                                         | DCM_SP:CLKFX                                                                                                                     | 16    |
 hi_in<0>                                                                                                     | DCM_SP:CLK0                                                                                                                      | 1447  |
 clk_1                                                                                                        | BUFG                                                                                                                             | 81    |
@@ -1022,7 +1020,7 @@ readout_should_count_pmt_readout_count[2]_AND_657_o(readout_should_count_pmt_rea
 readout_should_count_pmt_readout_count[1]_AND_659_o(readout_should_count_pmt_readout_count[1]_AND_659_o1:O)  | NONE(*)(pmt_readout_count_var_1_LDC)                                                                                             | 1     |
 readout_should_count_pmt_readout_count[0]_AND_661_o(readout_should_count_pmt_readout_count[0]_AND_661_o1:O)  | NONE(*)(pmt_readout_count_var_0_LDC)                                                                                             | 1     |
 master_logic_20                                                                                              | NONE(count_1_LD)                                                                                                                 | 1     |
-normal_pmt_count_trigger_inv(normal_pmt_count_trigger_inv1:O)                                                | NONE(*)(_i000256_1_LD)                                                                                                           | 1     |
+normal_pmt_count_trigger_inv(normal_pmt_count_trigger_inv1:O)                                                | NONE(*)(_i000257_1_LD)                                                                                                           | 1     |
 -------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------+-------+
 (*) These 32 clock signal(s) are generated by combinatorial logic,
 and XST is not able to identify which are the primary clock signals.
@@ -1049,7 +1047,7 @@ All values displayed in nanoseconds (ns)
 =========================================================================
 Timing constraint: Default period analysis for Clock 'clk1'
   Clock period: 8.364ns (frequency: 119.556MHz)
-  Total number of paths / destination ports: 308803 / 1357
+  Total number of paths / destination ports: 315489 / 1359
 -------------------------------------------------------------------------
 Delay:               8.364ns (Levels of Logic = 33)
   Source:            time_count_0 (FF)
@@ -1430,7 +1428,7 @@ Clock to Setup on destination clock clk1
 Source Clock                                        |Dest:Rise|Dest:Rise|Dest:Fall|Dest:Fall|
 ----------------------------------------------------+---------+---------+---------+---------+
 clk1                                                |    8.364|         |         |         |
-clk_1                                               |    6.911|         |         |         |
+clk_1                                               |    6.913|         |         |         |
 fifo_pulser_rd_clk                                  |    1.639|         |         |         |
 hi_in<0>                                            |    8.831|         |         |         |
 master_logic_20                                     |         |    4.482|         |         |
@@ -1830,15 +1828,15 @@ pmt_synced     |         |         |    2.729|         |
 =========================================================================
 
 
-Total REAL time to Xst completion: 25.00 secs
-Total CPU time to Xst completion: 22.38 secs
+Total REAL time to Xst completion: 26.00 secs
+Total CPU time to Xst completion: 22.49 secs
  
 --> 
 
 
-Total memory usage is 528664 kilobytes
+Total memory usage is 528780 kilobytes
 
 Number of errors   :    0 (   0 filtered)
-Number of warnings :   99 (   0 filtered)
+Number of warnings :   97 (   0 filtered)
 Number of infos    :  136 (   0 filtered)
 

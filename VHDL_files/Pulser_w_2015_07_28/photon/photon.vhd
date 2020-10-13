@@ -621,7 +621,7 @@ sub_sequence_line_trigger <= CONV_INTEGER(UNSIGNED (ep07wire (15 DOWNTO 0) & ep0
 								IF (count1 = 0) THEN
 									IF (last_time_line_trigger > 0 and time_stamp >= last_time_line_trigger + sub_sequence_line_trigger) THEN
 										IF ((ep00wire(3) = '1' and line_triggering_pulse = '1') or (ep00wire(3) = '0')) THEN
-											last_time_line_trigger := time_stamp;
+											last_time_line_trigger := last_time_line_trigger + sub_sequence_line_trigger;
 											pulser_ram_clkb <= '0';
 											count1 :=1;
 										END IF;
