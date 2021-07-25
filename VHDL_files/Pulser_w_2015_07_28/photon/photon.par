@@ -1,7 +1,7 @@
 Release 14.7 par P.20131013 (lin64)
 Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 
-localhost.localdomain::  Tue Sep 01 23:38:23 2020
+localhost.localdomain::  Sun Feb 14 21:30:41 2021
 
 par -w -intstyle ise -ol high -mt off photon_map.ncd photon.ncd photon.pcf 
 
@@ -32,11 +32,11 @@ Slice Logic Utilization:
     Number used as Latches:                     33
     Number used as Latch-thrus:                  0
     Number used as AND/OR logics:                0
-  Number of Slice LUTs:                      2,218 out of  27,288    8%
-    Number used as logic:                    2,044 out of  27,288    7%
-      Number using O6 output only:           1,268
+  Number of Slice LUTs:                      2,271 out of  27,288    8%
+    Number used as logic:                    2,042 out of  27,288    7%
+      Number using O6 output only:           1,265
       Number using O5 output only:             228
-      Number using O5 and O6:                  548
+      Number using O5 and O6:                  549
       Number used as ROM:                        0
     Number used as Memory:                      45 out of   6,408    1%
       Number used as Dual Port RAM:             20
@@ -51,18 +51,18 @@ Slice Logic Utilization:
         Number using O6 output only:             1
         Number using O5 output only:             0
         Number using O5 and O6:                  0
-    Number used exclusively as route-thrus:    129
-      Number with same-slice register load:    118
+    Number used exclusively as route-thrus:    184
+      Number with same-slice register load:    173
       Number with same-slice carry load:        11
       Number with other load:                    0
 
 Slice Logic Distribution:
-  Number of occupied Slices:                 1,102 out of   6,822   16%
+  Number of occupied Slices:                 1,079 out of   6,822   15%
   Number of MUXCYs used:                       636 out of  13,644    4%
-  Number of LUT Flip Flop pairs used:        3,142
-    Number with an unused Flip Flop:           943 out of   3,142   30%
-    Number with an unused LUT:                 924 out of   3,142   29%
-    Number of fully used LUT-FF pairs:       1,275 out of   3,142   40%
+  Number of LUT Flip Flop pairs used:        3,062
+    Number with an unused Flip Flop:           918 out of   3,062   29%
+    Number with an unused LUT:                 791 out of   3,062   25%
+    Number of fully used LUT-FF pairs:       1,353 out of   3,062   44%
     Number of slice register sites lost
       to control set restrictions:               0 out of  54,576    0%
 
@@ -130,29 +130,29 @@ WARNING:Par:288 - The signal okHI/core0/core0/a0/cb0/BU2/U0/grf.rf/mem/gdm.dm/Mr
 Starting Router
 
 
-Phase  1  : 21787 unrouted;      REAL time: 9 secs 
+Phase  1  : 21739 unrouted;      REAL time: 9 secs 
 
-Phase  2  : 14443 unrouted;      REAL time: 12 secs 
+Phase  2  : 14408 unrouted;      REAL time: 11 secs 
 
-Phase  3  : 5205 unrouted;      REAL time: 27 secs 
+Phase  3  : 5052 unrouted;      REAL time: 24 secs 
 
-Phase  4  : 5205 unrouted; (Setup:0, Hold:138, Component Switching Limit:0)     REAL time: 29 secs 
+Phase  4  : 5052 unrouted; (Setup:0, Hold:27, Component Switching Limit:0)     REAL time: 25 secs 
 
 Updating file: photon.ncd with current fully routed design.
 
-Phase  5  : 0 unrouted; (Setup:0, Hold:138, Component Switching Limit:0)     REAL time: 41 secs 
+Phase  5  : 0 unrouted; (Setup:0, Hold:27, Component Switching Limit:0)     REAL time: 33 secs 
 
-Phase  6  : 0 unrouted; (Setup:0, Hold:138, Component Switching Limit:0)     REAL time: 41 secs 
+Phase  6  : 0 unrouted; (Setup:0, Hold:27, Component Switching Limit:0)     REAL time: 33 secs 
 
-Phase  7  : 0 unrouted; (Setup:0, Hold:138, Component Switching Limit:0)     REAL time: 41 secs 
+Phase  7  : 0 unrouted; (Setup:0, Hold:27, Component Switching Limit:0)     REAL time: 33 secs 
 
-Phase  8  : 0 unrouted; (Setup:0, Hold:138, Component Switching Limit:0)     REAL time: 41 secs 
+Phase  8  : 0 unrouted; (Setup:0, Hold:27, Component Switching Limit:0)     REAL time: 33 secs 
 
-Phase  9  : 0 unrouted; (Setup:0, Hold:0, Component Switching Limit:0)     REAL time: 41 secs 
+Phase  9  : 0 unrouted; (Setup:0, Hold:0, Component Switching Limit:0)     REAL time: 34 secs 
 
-Phase 10  : 0 unrouted; (Setup:0, Hold:0, Component Switching Limit:0)     REAL time: 42 secs 
-Total REAL time to Router completion: 42 secs 
-Total CPU time to Router completion: 43 secs 
+Phase 10  : 0 unrouted; (Setup:0, Hold:0, Component Switching Limit:0)     REAL time: 34 secs 
+Total REAL time to Router completion: 34 secs 
+Total CPU time to Router completion: 35 secs 
 
 Partition Implementation Status
 -------------------------------
@@ -171,48 +171,48 @@ Generating Clock Report
 |        Clock Net    |   Resource   |Locked|Fanout|Net Skew(ns)|Max Delay(ns)|
 +---------------------+--------------+------+------+------------+-------------+
 |fifo_dds_rd_clk_BUFG |              |      |      |            |             |
-|                     | BUFGMUX_X2Y10| No   |   31 |  0.014     |  1.748      |
+|                     | BUFGMUX_X2Y10| No   |   32 |  0.029     |  1.749      |
 +---------------------+--------------+------+------+------------+-------------+
-|     pmt_synced_BUFG |  BUFGMUX_X2Y2| No   |  105 |  0.058     |  1.768      |
+|     pmt_synced_BUFG |  BUFGMUX_X2Y2| No   |  105 |  0.059     |  1.771      |
 +---------------------+--------------+------+------+------------+-------------+
-|             ok1<24> | BUFGMUX_X3Y13| No   |  463 |  0.643     |  2.352      |
+|             ok1<24> | BUFGMUX_X3Y13| No   |  459 |  0.644     |  2.352      |
 +---------------------+--------------+------+------+------------+-------------+
-|              clk_20 |  BUFGMUX_X2Y4| No   |    6 |  0.025     |  1.737      |
+|             clk_100 |  BUFGMUX_X2Y1| No   |  239 |  0.058     |  1.768      |
 +---------------------+--------------+------+------+------------+-------------+
-|             clk_100 |  BUFGMUX_X2Y1| No   |  245 |  0.061     |  1.772      |
+|              clk_20 |  BUFGMUX_X2Y4| No   |    6 |  0.017     |  1.737      |
 +---------------------+--------------+------+------+------------+-------------+
 |fifo_pulser_rd_clk_B |              |      |      |            |             |
-|                 UFG | BUFGMUX_X2Y12| No   |   35 |  0.018     |  1.729      |
+|                 UFG | BUFGMUX_X2Y12| No   |   29 |  0.017     |  1.729      |
 +---------------------+--------------+------+------+------------+-------------+
-|          clk_1_BUFG | BUFGMUX_X3Y14| No   |   15 |  0.014     |  1.750      |
+|          clk_1_BUFG | BUFGMUX_X3Y14| No   |   15 |  0.013     |  1.749      |
 +---------------------+--------------+------+------+------------+-------------+
-|             clk_200 |  BUFGMUX_X2Y3| No   |    9 |  0.053     |  1.770      |
+|             clk_200 |  BUFGMUX_X2Y3| No   |    8 |  0.024     |  1.746      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        2]_AND_637_o |         Local|      |    2 |  0.000     |  0.336      |
+|        2]_AND_637_o |         Local|      |    2 |  0.000     |  0.584      |
 +---------------------+--------------+------+------+------------+-------------+
-|    master_logic<20> |         Local|      |   35 |  0.000     |  3.664      |
+|    master_logic<20> |         Local|      |   35 |  0.000     |  5.711      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        4]_AND_613_o |         Local|      |    2 |  0.000     |  0.586      |
+|        4]_AND_613_o |         Local|      |    2 |  0.000     |  0.775      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[4 |              |      |      |            |             |
-|         ]_AND_653_o |         Local|      |    2 |  0.000     |  0.377      |
+|         ]_AND_653_o |         Local|      |    2 |  0.000     |  0.583      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        7]_AND_607_o |         Local|      |    2 |  0.000     |  0.562      |
+|        7]_AND_607_o |         Local|      |    2 |  0.000     |  0.379      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        9]_AND_623_o |         Local|      |    2 |  0.000     |  0.562      |
+|        9]_AND_623_o |         Local|      |    2 |  0.000     |  0.556      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[7 |              |      |      |            |             |
-|         ]_AND_647_o |         Local|      |    2 |  0.000     |  0.775      |
+|         ]_AND_647_o |         Local|      |    2 |  0.000     |  0.584      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
@@ -220,11 +220,11 @@ Generating Clock Report
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        3]_AND_635_o |         Local|      |    2 |  0.000     |  0.596      |
+|        3]_AND_635_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        1]_AND_619_o |         Local|      |    2 |  0.000     |  0.381      |
+|        1]_AND_619_o |         Local|      |    2 |  0.000     |  0.767      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[3 |              |      |      |            |             |
@@ -232,99 +232,99 @@ Generating Clock Report
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|         ]_AND_659_o |         Local|      |    2 |  0.000     |  0.592      |
+|         ]_AND_659_o |         Local|      |    2 |  0.000     |  0.775      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        5]_AND_611_o |         Local|      |    2 |  0.000     |  0.582      |
+|        5]_AND_611_o |         Local|      |    2 |  0.000     |  0.592      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        6]_AND_629_o |         Local|      |    2 |  0.000     |  0.556      |
+|        6]_AND_629_o |         Local|      |    2 |  0.000     |  0.775      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[5 |              |      |      |            |             |
-|         ]_AND_651_o |         Local|      |    2 |  0.000     |  0.564      |
+|         ]_AND_651_o |         Local|      |    2 |  0.000     |  0.379      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        8]_AND_605_o |         Local|      |    2 |  0.000     |  0.584      |
+|        8]_AND_605_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[8 |              |      |      |            |             |
-|         ]_AND_645_o |         Local|      |    2 |  0.000     |  0.592      |
+|         ]_AND_645_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        2]_AND_617_o |         Local|      |    2 |  0.000     |  0.592      |
+|        2]_AND_617_o |         Local|      |    2 |  0.000     |  0.583      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        4]_AND_633_o |         Local|      |    2 |  0.000     |  0.560      |
+|        4]_AND_633_o |         Local|      |    2 |  0.000     |  0.587      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|         ]_AND_657_o |         Local|      |    2 |  0.000     |  0.723      |
+|         ]_AND_657_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        7]_AND_627_o |         Local|      |    2 |  0.000     |  0.584      |
+|        7]_AND_627_o |         Local|      |    2 |  0.000     |  0.540      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        9]_AND_603_o |         Local|      |    2 |  0.000     |  0.586      |
+|        9]_AND_603_o |         Local|      |    2 |  0.000     |  0.596      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[9 |              |      |      |            |             |
-|         ]_AND_643_o |         Local|      |    2 |  0.000     |  0.587      |
+|         ]_AND_643_o |         Local|      |    2 |  0.000     |  0.336      |
 +---------------------+--------------+------+------+------------+-------------+
-|     pulser_ram_clka |         Local|      |    5 |  2.437     |  3.308      |
+|     pulser_ram_clka |         Local|      |    5 |  0.944     |  1.725      |
 +---------------------+--------------+------+------+------------+-------------+
-|     pulser_ram_clkb |         Local|      |    6 |  1.025     |  3.406      |
+|     pulser_ram_clkb |         Local|      |    6 |  1.200     |  3.466      |
 +---------------------+--------------+------+------+------------+-------------+
-|       hi_in_0_IBUFG |         Local|      |    4 |  0.614     |  3.887      |
+|       hi_in_0_IBUFG |         Local|      |    4 |  0.461     |  3.707      |
 +---------------------+--------------+------+------+------------+-------------+
 |okHI/core0/core0/a0/ |              |      |      |            |             |
-|           d0/div<4> |         Local|      |    3 |  0.000     |  6.613      |
+|           d0/div<4> |         Local|      |    3 |  0.000     |  6.629      |
 +---------------------+--------------+------+------+------------+-------------+
 |normal_pmt_count_tri |              |      |      |            |             |
-|            gger_inv |         Local|      |    3 |  0.000     |  0.360      |
+|            gger_inv |         Local|      |    3 |  0.000     |  0.597      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        1]_AND_639_o |         Local|      |    2 |  0.000     |  0.584      |
+|        1]_AND_639_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        0]_AND_621_o |         Local|      |    2 |  0.000     |  0.566      |
+|        0]_AND_621_o |         Local|      |    2 |  0.000     |  0.608      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        5]_AND_631_o |         Local|      |    2 |  0.000     |  0.583      |
+|        5]_AND_631_o |         Local|      |    2 |  0.000     |  1.043      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        3]_AND_615_o |         Local|      |    2 |  0.000     |  0.584      |
+|        3]_AND_615_o |         Local|      |    2 |  0.000     |  0.556      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[1 |              |      |      |            |             |
-|        8]_AND_625_o |         Local|      |    2 |  0.000     |  0.592      |
+|        8]_AND_625_o |         Local|      |    2 |  0.000     |  0.881      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[2 |              |      |      |            |             |
-|        6]_AND_609_o |         Local|      |    2 |  0.000     |  0.593      |
+|        6]_AND_609_o |         Local|      |    2 |  0.000     |  0.360      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[0 |              |      |      |            |             |
-|         ]_AND_661_o |         Local|      |    2 |  0.000     |  0.587      |
+|         ]_AND_661_o |         Local|      |    2 |  0.000     |  0.583      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[3 |              |      |      |            |             |
-|         ]_AND_655_o |         Local|      |    2 |  0.000     |  0.619      |
+|         ]_AND_655_o |         Local|      |    2 |  0.000     |  0.562      |
 +---------------------+--------------+------+------+------------+-------------+
 |readout_should_count |              |      |      |            |             |
 |_pmt_readout_count[6 |              |      |      |            |             |
-|         ]_AND_649_o |         Local|      |    2 |  0.000     |  0.775      |
+|         ]_AND_649_o |         Local|      |    2 |  0.000     |  0.839      |
 +---------------------+--------------+------+------+------------+-------------+
 
 * Net Skew is the difference between the minimum and maximum routing
@@ -346,68 +346,68 @@ Asterisk (*) preceding a constraint indicates it was not met.
   Constraint                                |    Check    | Worst Case |  Best Case | Timing |   Timing   
                                             |             |    Slack   | Achievable | Errors |    Score   
 ----------------------------------------------------------------------------------------------------------
-  TS_pll_clk2x = PERIOD TIMEGRP "pll_clk2x" | SETUP       |     0.324ns|     4.676ns|       0|           0
-   TS_Clk1 / 2 HIGH 50%                     | HOLD        |     0.040ns|            |       0|           0
-----------------------------------------------------------------------------------------------------------
-  TIMEGRP "okHostINOUT_grp" OFFSET = OUT 11 | MAXDELAY    |     0.393ns|    11.237ns|       0|           0
+  TIMEGRP "okHostINOUT_grp" OFFSET = OUT 11 | MAXDELAY    |     0.656ns|    10.974ns|       0|           0
   .63 ns AFTER COMP "hi_in<0>"         "RIS |             |            |            |        |            
   ING"                                      |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  TS_pll_clk0 = PERIOD TIMEGRP "pll_clk0" T | SETUP       |     1.046ns|     8.954ns|       0|           0
-  S_Clk1 HIGH 50%                           | HOLD        |     0.376ns|            |       0|           0
+  TS_pll_clk2x = PERIOD TIMEGRP "pll_clk2x" | SETUP       |     1.191ns|     3.809ns|       0|           0
+   TS_Clk1 / 2 HIGH 50%                     | HOLD        |     0.010ns|            |       0|           0
 ----------------------------------------------------------------------------------------------------------
-  COMP "hi_out<0>" OFFSET = OUT 11.93 ns AF | MAXDELAY    |     1.764ns|    10.166ns|       0|           0
+  TS_pll_clk0 = PERIOD TIMEGRP "pll_clk0" T | SETUP       |     1.332ns|     8.668ns|       0|           0
+  S_Clk1 HIGH 50%                           | HOLD        |     0.382ns|            |       0|           0
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_out<0>" OFFSET = OUT 11.93 ns AF | MAXDELAY    |     1.366ns|    10.564ns|       0|           0
   TER COMP "hi_in<0>" "RISING"              |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
   TS_Clk1 = PERIOD TIMEGRP "clk1" 10 ns HIG | MINLOWPULSE |     4.660ns|     5.340ns|       0|           0
   H 50%                                     |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
   TIMEGRP "okHostINOUT_grp" OFFSET = IN 9.8 | SETUP       |     4.110ns|     5.720ns|       0|           0
-  3 ns VALID 9.83 ns BEFORE COMP         "h | HOLD        |     0.470ns|            |       0|           0
+  3 ns VALID 9.83 ns BEFORE COMP         "h | HOLD        |     0.471ns|            |       0|           0
   i_in<0>" "RISING"                         |             |            |            |        |            
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_in<4>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.116ns|     9.214ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.402ns|            |       0|           0
+   "RISING"                                 |             |            |            |        |            
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_in<6>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.181ns|     9.149ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.345ns|            |       0|           0
+   "RISING"                                 |             |            |            |        |            
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_in<5>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.206ns|     9.124ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.212ns|            |       0|           0
+   "RISING"                                 |             |            |            |        |            
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_in<7>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.299ns|     9.031ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.164ns|            |       0|           0
+   "RISING"                                 |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
   TS_Clk_200 = PERIOD TIMEGRP "clk_200" 5 n | MINPERIOD   |     4.520ns|     0.480ns|       0|           0
   s HIGH 50%                                |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<7>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.744ns|     8.586ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.066ns|            |       0|           0
-   "RISING"                                 |             |            |            |        |            
-----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<4>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.763ns|     8.567ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.086ns|            |       0|           0
-   "RISING"                                 |             |            |            |        |            
-----------------------------------------------------------------------------------------------------------
-  TS_okHostClk = PERIOD TIMEGRP "okHostClk" | SETUP       |    19.213ns|     1.617ns|       0|           0
-   20.83 ns HIGH 50%                        | HOLD        |     0.450ns|            |       0|           0
+  TS_okHostClk = PERIOD TIMEGRP "okHostClk" | SETUP       |    18.895ns|     1.935ns|       0|           0
+   20.83 ns HIGH 50%                        | HOLD        |     0.410ns|            |       0|           0
                                             | MINLOWPULSE |     4.830ns|    16.000ns|       0|           0
-----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<6>" OFFSET = IN 13.33 ns VALI | SETUP       |     4.940ns|     8.390ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.005ns|            |       0|           0
-   "RISING"                                 |             |            |            |        |            
-----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<5>" OFFSET = IN 13.33 ns VALI | SETUP       |     5.051ns|     8.279ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     8.816ns|            |       0|           0
-   "RISING"                                 |             |            |            |        |            
-----------------------------------------------------------------------------------------------------------
-  TS_okHI_dcm_clk0 = PERIOD TIMEGRP "okHI_d | SETUP       |     6.132ns|    14.698ns|       0|           0
-  cm_clk0" TS_okHostClk HIGH 50%            | HOLD        |     0.265ns|            |       0|           0
 ----------------------------------------------------------------------------------------------------------
   TS_Clk_100 = PERIOD TIMEGRP "clk_100" 10  | MINPERIOD   |     6.430ns|     3.570ns|       0|           0
   ns HIGH 50%                               |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<1>" OFFSET = IN 14.13 ns VALI | SETUP       |     6.834ns|     7.296ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     9.050ns|            |       0|           0
+  COMP "hi_in<1>" OFFSET = IN 14.13 ns VALI | SETUP       |     6.795ns|     7.335ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     8.943ns|            |       0|           0
    "RISING"                                 |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<2>" OFFSET = IN 14.13 ns VALI | SETUP       |     8.180ns|     5.950ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     7.992ns|            |       0|           0
+  TS_okHI_dcm_clk0 = PERIOD TIMEGRP "okHI_d | SETUP       |     7.430ns|    13.400ns|       0|           0
+  cm_clk0" TS_okHostClk HIGH 50%            | HOLD        |     0.266ns|            |       0|           0
+----------------------------------------------------------------------------------------------------------
+  COMP "hi_in<3>" OFFSET = IN 14.13 ns VALI | SETUP       |     7.884ns|     6.246ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     8.411ns|            |       0|           0
    "RISING"                                 |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  COMP "hi_in<3>" OFFSET = IN 14.13 ns VALI | SETUP       |     8.554ns|     5.576ns|       0|           0
-  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     8.110ns|            |       0|           0
+  COMP "hi_in<2>" OFFSET = IN 14.13 ns VALI | SETUP       |     8.319ns|     5.811ns|       0|           0
+  D 20.83 ns BEFORE COMP "hi_in<0>"         | HOLD        |     7.980ns|            |       0|           0
    "RISING"                                 |             |            |            |        |            
 ----------------------------------------------------------------------------------------------------------
-  TS_pll_clkfx = PERIOD TIMEGRP "pll_clkfx" | SETUP       |    45.687ns|     4.313ns|       0|           0
+  TS_pll_clkfx = PERIOD TIMEGRP "pll_clkfx" | SETUP       |    45.561ns|     4.439ns|       0|           0
    TS_Clk1 / 0.2 HIGH 50%                   | HOLD        |     0.418ns|            |       0|           0
 ----------------------------------------------------------------------------------------------------------
 
@@ -422,8 +422,8 @@ Derived Constraints for TS_okHostClk
 |           Constraint          | Requirement |-------------+-------------|-------------+-------------|-------------+-------------|
 |                               |             |   Direct    | Derivative  |   Direct    | Derivative  |   Direct    | Derivative  |
 +-------------------------------+-------------+-------------+-------------+-------------+-------------+-------------+-------------+
-|TS_okHostClk                   |     20.830ns|     16.000ns|     14.698ns|            0|            0|            3|        27596|
-| TS_okHI_dcm_clk0              |     20.830ns|     14.698ns|          N/A|            0|            0|        27596|            0|
+|TS_okHostClk                   |     20.830ns|     16.000ns|     13.400ns|            0|            0|            3|        27596|
+| TS_okHI_dcm_clk0              |     20.830ns|     13.400ns|          N/A|            0|            0|        27596|            0|
 +-------------------------------+-------------+-------------+-------------+-------------+-------------+-------------+-------------+
 
 Derived Constraints for TS_Clk1
@@ -432,10 +432,10 @@ Derived Constraints for TS_Clk1
 |           Constraint          | Requirement |-------------+-------------|-------------+-------------|-------------+-------------|
 |                               |             |   Direct    | Derivative  |   Direct    | Derivative  |   Direct    | Derivative  |
 +-------------------------------+-------------+-------------+-------------+-------------+-------------+-------------+-------------+
-|TS_Clk1                        |     10.000ns|      5.340ns|      9.352ns|            0|            0|            0|       315395|
-| TS_pll_clk2x                  |      5.000ns|      4.676ns|          N/A|            0|            0|           65|            0|
-| TS_pll_clkfx                  |     50.000ns|      4.313ns|          N/A|            0|            0|          122|            0|
-| TS_pll_clk0                   |     10.000ns|      8.954ns|          N/A|            0|            0|       315208|            0|
+|TS_Clk1                        |     10.000ns|      5.340ns|      8.668ns|            0|            0|            0|       314207|
+| TS_pll_clk2x                  |      5.000ns|      3.809ns|          N/A|            0|            0|           65|            0|
+| TS_pll_clkfx                  |     50.000ns|      4.439ns|          N/A|            0|            0|          122|            0|
+| TS_pll_clk0                   |     10.000ns|      8.668ns|          N/A|            0|            0|       314020|            0|
 +-------------------------------+-------------+-------------+-------------+-------------+-------------+-------------+-------------+
 
 All constraints were met.
@@ -447,10 +447,10 @@ All signals are completely routed.
 
 WARNING:Par:283 - There are 5 loadless signals in this design. This design will cause Bitgen to issue DRC warnings.
 
-Total REAL time to PAR completion: 47 secs 
-Total CPU time to PAR completion: 47 secs 
+Total REAL time to PAR completion: 38 secs 
+Total CPU time to PAR completion: 38 secs 
 
-Peak Memory Usage:  767 MB
+Peak Memory Usage:  765 MB
 
 Placer: Placement generated during map.
 Routing: Completed - No errors found.

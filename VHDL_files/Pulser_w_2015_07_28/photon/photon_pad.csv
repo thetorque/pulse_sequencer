@@ -1,7 +1,7 @@
 #Release 14.7 - par P.20131013 (lin64)
 #Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 
-#Tue Sep  1 23:39:07 2020
+#Sun Feb 14 21:31:17 2021
 
 #
 ## NOTE: This file is designed to be imported into a spreadsheet program
@@ -126,9 +126,9 @@ C16,logic_out<26>,IOB,IO_L62N_VREF_0,OUTPUT,LVCMOS33,0,12,SLOW,,,,LOCATED,NO,NON
 C17,logic_out<5>,IOB,IO_L64P_SCP5_0,OUTPUT,LVCMOS33,0,12,SLOW,,,,LOCATED,NO,NONE,
 C18,,,TMS,,,,,,,,,,,,
 C19,,IOBM,IO_L1P_A25_1,UNUSED,,1,,,,,,,,,
-C20,logic_in<1>,IOB,IO_L32P_A17_M1A8_1,INPUT,LVCMOS33,1,,,,NONE,,LOCATED,NO,NONE,
+C20,logic_in<0>,IOB,IO_L32P_A17_M1A8_1,INPUT,LVCMOS33,1,,,,NONE,,LOCATED,NO,NONE,
 C21,,,VCCO_1,,,1,,,,,3.30,,,,
-C22,logic_in<0>,IOB,IO_L32N_A16_M1A9_1,INPUT,LVCMOS33,1,,,,NONE,,LOCATED,NO,NONE,
+C22,logic_in<1>,IOB,IO_L32N_A16_M1A9_1,INPUT,LVCMOS33,1,,,,NONE,,LOCATED,NO,NONE,
 D1,,IOBS,IO_L53N_M3A12_3,UNUSED,,3,,,,,,,,,
 D2,,IOBM,IO_L53P_M3CKE_3,UNUSED,,3,,,,,,,,,
 D3,,IOBM,IO_L81P_3,UNUSED,,3,,,,,,,,,

@@ -4,15 +4,15 @@ Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 Parameter TMPDIR set to xst/projnav.tmp
 
 
-Total REAL time to Xst completion: 1.00 secs
-Total CPU time to Xst completion: 0.04 secs
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.06 secs
  
 --> 
 Parameter xsthdpdir set to xst
 
 
-Total REAL time to Xst completion: 1.00 secs
-Total CPU time to Xst completion: 0.04 secs
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.06 secs
  
 --> 
 Reading design: photon.prj
@@ -114,12 +114,6 @@ Cores Search Directories           : {"ipcore_dir"  }
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/readout_count_fifo.vhd" into library work
 Parsing entity <readout_count_fifo>.
 Parsing architecture <readout_count_fifo_a> of entity <readout_count_fifo>.
-Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pulse_fifo.vhd" into library work
-Parsing entity <pulse_fifo>.
-Parsing architecture <pulse_fifo_a> of entity <pulse_fifo>.
-Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/pulser_ram.vhd" into library work
-Parsing entity <pulser_ram>.
-Parsing architecture <pulser_ram_a> of entity <pulser_ram>.
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/okLibrary.vhd" into library work
 Parsing entity <okHost>.
 Parsing architecture <archHost> of entity <okhost>.
@@ -129,15 +123,21 @@ Parsing package <FRONTPANEL>.
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/normal_pmt_fifo.vhd" into library work
 Parsing entity <normal_pmt_fifo>.
 Parsing architecture <normal_pmt_fifo_a> of entity <normal_pmt_fifo>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/pulse_fifo.vhd" into library work
+Parsing entity <pulse_fifo>.
+Parsing architecture <pulse_fifo_a> of entity <pulse_fifo>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/pulser_ram.vhd" into library work
+Parsing entity <pulser_ram>.
+Parsing architecture <pulser_ram_a> of entity <pulser_ram>.
+Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/clk_pll_100_in_200_out.vhd" into library work
+Parsing entity <clk_pll_100_in_200_out>.
+Parsing architecture <xilinx> of entity <clk_pll_100_in_200_out>.
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/fifo_photon.vhd" into library work
 Parsing entity <fifo_photon>.
 Parsing architecture <fifo_photon_a> of entity <fifo_photon>.
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/dds_fifo.vhd" into library work
 Parsing entity <dds_fifo>.
 Parsing architecture <dds_fifo_a> of entity <dds_fifo>.
-Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/clk_pll_100_in_200_out.vhd" into library work
-Parsing entity <clk_pll_100_in_200_out>.
-Parsing architecture <xilinx> of entity <clk_pll_100_in_200_out>.
 Parsing VHDL file "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" into library work
 Parsing entity <photon>.
 INFO:HDLCompiler:1676 - "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd" Line 25. declaration of a buffer port will make it difficult for you to validate this design by simulation. It is preferable to declare it as output
@@ -333,7 +333,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
     Found 16-bit comparator greater for signal <delay_count[15]_ep06wire[15]_LessThan_42_o> created at line 552
     Found 16-bit comparator greater for signal <duration_count[15]_GND_8_o_LessThan_45_o> created at line 555
     Found 32-bit comparator equal for signal <time_stamp[31]_time_count[31]_equal_64_o> created at line 620
-    Found 32-bit comparator greater for signal <last_time_line_trigger[31]_GND_8_o_LessThan_66_o> created at line 622
+    Found 32-bit comparator greater for signal <sub_sequence_line_trigger[31]_GND_8_o_LessThan_66_o> created at line 622
     Found 32-bit comparator greater for signal <n0101> created at line 622
     Found 16-bit comparator equal for signal <ep05wire[15]_seq_count[15]_equal_82_o> created at line 656
     Found 32-bit comparator equal for signal <normal_pmt_count_period[15]_GND_8_o_equal_221_o> created at line 898
@@ -349,7 +349,7 @@ WARNING:Xst:653 - Signal <pulser_flag_register<15:1>> is used but never assigned
 Unit <photon> synthesized.
 
 Synthesizing Unit <clk_pll_100_in_200_out>.
-    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/clk_pll_100_in_200_out.vhd".
+    Related source file is "/home/ise/ise_projects/pulse_sequencer/VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/clk_pll_100_in_200_out.vhd".
     Summary:
 	no macro.
 Unit <clk_pll_100_in_200_out> synthesized.
@@ -525,8 +525,8 @@ The following registers are absorbed into counter <_i000055>: 1 register on sign
 The following registers are absorbed into counter <write_ram_address>: 1 register on signal <write_ram_address>.
 The following registers are absorbed into counter <duration_count>: 1 register on signal <duration_count>.
 The following registers are absorbed into counter <delay_count>: 1 register on signal <delay_count>.
-The following registers are absorbed into counter <pmt_count>: 1 register on signal <pmt_count>.
 The following registers are absorbed into counter <pmt_readout_count>: 1 register on signal <pmt_readout_count>.
+The following registers are absorbed into counter <pmt_count>: 1 register on signal <pmt_count>.
 Unit <photon> synthesized (advanced).
 WARNING:Xst:2677 - Node <ram_data_out_2_62> of sequential type is unconnected in block <photon>.
 WARNING:Xst:2677 - Node <ram_data_out_2_63> of sequential type is unconnected in block <photon>.
@@ -874,14 +874,14 @@ Top Level Output File Name         : photon.ngc
 
 Primitive and Black Box Usage:
 ------------------------------
-# BELS                             : 3489
+# BELS                             : 3488
 #      GND                         : 19
 #      INV                         : 94
 #      LUT1                        : 238
 #      LUT2                        : 504
 #      LUT3                        : 201
 #      LUT4                        : 380
-#      LUT5                        : 286
+#      LUT5                        : 285
 #      LUT6                        : 750
 #      LUT6_2                      : 50
 #      MUXCY                       : 567
@@ -933,17 +933,17 @@ Selected Device : 6slx45fgg484-2
 
 Slice Logic Utilization: 
  Number of Slice Registers:            2646  out of  54576     4%  
- Number of Slice LUTs:                 2548  out of  27288     9%  
-    Number used as Logic:              2503  out of  27288     9%  
+ Number of Slice LUTs:                 2547  out of  27288     9%  
+    Number used as Logic:              2502  out of  27288     9%  
     Number used as Memory:               45  out of   6408     0%  
        Number used as RAM:               44
        Number used as SRL:                1
 
 Slice Logic Distribution: 
- Number of LUT Flip Flop pairs used:   3952
-   Number with an unused Flip Flop:    1306  out of   3952    33%  
-   Number with an unused LUT:          1404  out of   3952    35%  
-   Number of fully used LUT-FF pairs:  1242  out of   3952    31%  
+ Number of LUT Flip Flop pairs used:   3950
+   Number with an unused Flip Flop:    1304  out of   3950    33%  
+   Number with an unused LUT:          1403  out of   3950    35%  
+   Number of fully used LUT-FF pairs:  1243  out of   3950    31%  
    Number of unique control sets:       262
 
 IO Utilization: 
@@ -1047,7 +1047,7 @@ All values displayed in nanoseconds (ns)
 =========================================================================
 Timing constraint: Default period analysis for Clock 'clk1'
   Clock period: 8.364ns (frequency: 119.556MHz)
-  Total number of paths / destination ports: 315489 / 1359
+  Total number of paths / destination ports: 314301 / 1359
 -------------------------------------------------------------------------
 Delay:               8.364ns (Levels of Logic = 33)
   Source:            time_count_0 (FF)
@@ -1092,7 +1092,7 @@ Delay:               8.364ns (Levels of Logic = 33)
      LUT6:I3->O            1   0.235   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_lut<9> (Mcompar_time_stamp[31]_time_count[31]_equal_64_o_lut<9>)
      MUXCY:S->O            1   0.215   0.000  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<9> (Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<9>)
      MUXCY:CI->O          69   0.023   1.968  Mcompar_time_stamp[31]_time_count[31]_equal_64_o_cy<10> (time_stamp[31]_time_count[31]_equal_64_o)
-     LUT6:I5->O           58   0.254   1.882  _n1272_inv (_n1272_inv)
+     LUT6:I5->O           58   0.254   1.882  _n1274_inv (_n1274_inv)
      FDE:CE                    0.302          ram_data_out_2_0
     ----------------------------------------
     Total                      8.364ns (2.835ns logic, 5.530ns route)
@@ -1147,7 +1147,7 @@ Delay:               6.269ns (Levels of Logic = 3)
      FDCE:C->Q             2   0.525   1.181  duration_count_9 (duration_count_9)
      LUT6:I0->O            1   0.254   1.137  line_triggering_pulse_PWR_8_o_MUX_160_o21 (line_triggering_pulse_PWR_8_o_MUX_160_o2)
      LUT6:I0->O            2   0.254   1.181  line_triggering_pulse_PWR_8_o_MUX_160_o23 (line_triggering_pulse_PWR_8_o_MUX_160_o)
-     LUT6:I0->O           16   0.254   1.181  _n0936_inv1 (_n0936_inv)
+     LUT6:I0->O           16   0.254   1.181  _n0938_inv1 (_n0938_inv)
      FDCE:CE                   0.302          duration_count_0
     ----------------------------------------
     Total                      6.269ns (1.589ns logic, 4.680ns route)
@@ -1828,13 +1828,13 @@ pmt_synced     |         |         |    2.729|         |
 =========================================================================
 
 
-Total REAL time to Xst completion: 26.00 secs
-Total CPU time to Xst completion: 22.49 secs
+Total REAL time to Xst completion: 25.00 secs
+Total CPU time to Xst completion: 22.23 secs
  
 --> 
 
 
-Total memory usage is 528780 kilobytes
+Total memory usage is 528476 kilobytes
 
 Number of errors   :    0 (   0 filtered)
 Number of warnings :   97 (   0 filtered)

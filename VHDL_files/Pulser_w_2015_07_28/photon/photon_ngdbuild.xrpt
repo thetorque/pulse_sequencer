@@ -5,7 +5,7 @@
     The structure and the elements are likely to change over the next few releases.
     This means code written to parse this file will need to be revisited each subsequent release.-->
 
-  <application stringID="NgdBuild" timeStamp="Tue Sep  1 23:37:10 2020">
+  <application stringID="NgdBuild" timeStamp="Sun Feb 14 21:29:32 2021">
     <section stringID="User_Env">
       <table stringID="User_EnvVar">
         <column stringID="variable"/>
@@ -49,7 +49,7 @@
         <column stringID="speed"/>
         <row stringID="row" value="0">
           <item stringID="arch" value="AMD Ryzen 7 1700 Eight-Core Processor          "/>
-          <item stringID="speed" value="2994.372 MHz"/>
+          <item stringID="speed" value="2994.376 MHz"/>
         </row>
       </table>
     </section>
@@ -97,7 +97,7 @@
         <item dataType="int" stringID="NGDBUILD_NUM_LUT2" value="504"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT3" value="201"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT4" value="380"/>
-        <item dataType="int" stringID="NGDBUILD_NUM_LUT5" value="286"/>
+        <item dataType="int" stringID="NGDBUILD_NUM_LUT5" value="285"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT6" value="750"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT6_2" value="50"/>
         <item dataType="int" stringID="NGDBUILD_NUM_MUXCY" value="567"/>
@@ -139,7 +139,7 @@
         <item dataType="int" stringID="NGDBUILD_NUM_LUT2" value="504"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT3" value="201"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT4" value="380"/>
-        <item dataType="int" stringID="NGDBUILD_NUM_LUT5" value="286"/>
+        <item dataType="int" stringID="NGDBUILD_NUM_LUT5" value="285"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT6" value="750"/>
         <item dataType="int" stringID="NGDBUILD_NUM_LUT6_2" value="50"/>
         <item dataType="int" stringID="NGDBUILD_NUM_MUXCY" value="567"/>

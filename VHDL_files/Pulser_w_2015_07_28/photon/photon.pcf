@@ -1,5 +1,5 @@
 //! **************************************************************************
-// Written by: Map P.20131013 on Tue Sep 01 23:38:18 2020
+// Written by: Map P.20131013 on Sun Feb 14 21:30:37 2021
 //! **************************************************************************
 
 SCHEMATIC START;
@@ -96,8 +96,8 @@ COMP "logic_out<29>" LOCATE = SITE "D6" LEVEL 1;
 COMP "dds_logic_fifo_rd_clk" LOCATE = SITE "P21" LEVEL 1;
 PIN dds_logic_fifo_rd_clk_pin<0> = BEL "dds_logic_fifo_rd_clk" PINNAME PAD;
 PIN "dds_logic_fifo_rd_clk_pin<0>" CLOCK_DEDICATED_ROUTE = FALSE;
-COMP "logic_in<0>" LOCATE = SITE "C22" LEVEL 1;
-COMP "logic_in<1>" LOCATE = SITE "C20" LEVEL 1;
+COMP "logic_in<0>" LOCATE = SITE "C20" LEVEL 1;
+COMP "logic_in<1>" LOCATE = SITE "C22" LEVEL 1;
 COMP "logic_in<2>" LOCATE = SITE "C8" LEVEL 1;
 COMP "logic_in<3>" LOCATE = SITE "D17" LEVEL 1;
 COMP "logic_out<0>" LOCATE = SITE "B18" LEVEL 1;
