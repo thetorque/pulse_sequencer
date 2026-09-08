@@ -17,3 +17,8 @@ webtalk*.jou
 usage_statistics_webtalk.html
 vivado*.backup.log
 vivado_pid*.debug
+
+# XEM7305 Phase 2: Clocking Wizard IP is fully reproducible from the
+# CONFIG.* properties embedded in create_project.tcl, so its generated
+# output isn't checked in.
+VHDL_files/XEM7305_Pulser_2026_09_07/src/ip/

@@ -30,11 +30,18 @@ Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module.
 """
 import os
 import sys
+import time
 
 import ok
 
 
 PIPE_BLOCK_SIZE = 16  # bytes; matches the block size used elsewhere in this project's api.py
+
+# Phase 2 clocking bring-up: expected frequency (Hz) of each free-running
+# counter exposed at WireOut 0x24-0x26 (see src/photon.vhd).
+CLOCK_CHECKS = {0x24: 200e6, 0x25: 100e6, 0x26: 20e6}
+CLOCK_MEASURE_SECONDS = 1.0
+CLOCK_TOLERANCE = 0.05  # 5%; generous margin for wall-clock jitter over a 1s window
 
 
 def connect(bit_path):
@@ -94,6 +101,30 @@ def test_pipe_out_patterns(xem):
         print(f"  Pipe {addr:#04x}: expected {exp:#010x}, got {got:#010x}  [{status}]")
 
 
+def test_clocking(xem):
+    print("\n--- Phase 2 clocking (WireOut 0x23-0x26) ---")
+    xem.UpdateWireOuts()
+    locked = xem.GetWireOutValue(0x23) & 0x1
+    print(f"  MMCM locked (0x23 bit 0) = {locked}")
+    assert locked == 1, "clk_wiz_0 is not reporting locked"
+
+    start = {addr: xem.GetWireOutValue(addr) for addr in CLOCK_CHECKS}
+    time.sleep(CLOCK_MEASURE_SECONDS)
+    xem.UpdateWireOuts()
+    end = {addr: xem.GetWireOutValue(addr) for addr in CLOCK_CHECKS}
+
+    for addr, expected_hz in CLOCK_CHECKS.items():
+        delta = (end[addr] - start[addr]) & 0xFFFFFFFF  # counters are 32-bit, wrap safely over 1s
+        measured_hz = delta / CLOCK_MEASURE_SECONDS
+        error = abs(measured_hz - expected_hz) / expected_hz
+        status = "OK" if error <= CLOCK_TOLERANCE else "MISMATCH"
+        print(f"  WireOut {addr:#04x}: expected ~{expected_hz/1e6:.1f} MHz, "
+              f"measured ~{measured_hz/1e6:.2f} MHz (error {error:.1%})  [{status}]")
+        assert error <= CLOCK_TOLERANCE, (
+            f"clock at WireOut {addr:#04x} measured {measured_hz/1e6:.2f} MHz, "
+            f"expected ~{expected_hz/1e6:.1f} MHz")
+
+
 def test_pipe_in_writes(xem):
     print("\n--- BTPipeIn writes (0x80 pulse program, 0x81 DDS program) ---")
     dummy = bytearray(PIPE_BLOCK_SIZE)
@@ -110,6 +141,7 @@ if __name__ == "__main__":
     xem = connect(sys.argv[1])
     test_wire_in_leds(xem)
     test_wire_out_echo(xem)
+    test_clocking(xem)
     test_pipe_out_patterns(xem)
     test_pipe_in_writes(xem)
     print("\nAll checks completed.")

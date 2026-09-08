@@ -1,11 +1,11 @@
 --------------------------------------------------------------------------
--- photon.vhd — XEM7305 pulse sequencer, Phase 1 scaffold
+-- photon.vhd — XEM7305 pulse sequencer, Phase 1 + Phase 2 scaffold
 --
--- PORT MIGRATION PHASE ONLY. This instantiates the full legacy endpoint
+-- PORT MIGRATION PHASES ONLY. This instantiates the full legacy endpoint
 -- map (same addresses as VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd)
--- against the new-generation okHost interface, so the host-interface
--- migration can be verified on real hardware before the RAM/FIFO/PMT
--- sequencer logic (Phases 2-5) is ported in.
+-- against the new-generation okHost interface, plus the new clocking
+-- tree (Phase 2), so both can be verified on real hardware before the
+-- RAM/FIFO/PMT sequencer logic (Phases 3-5) is ported in.
 --
 -- Endpoints are stubbed: WireIns/TriggerIn are read into signals and
 -- partially shown on LEDs; BTPipeIn writes are accepted but discarded
@@ -31,6 +31,18 @@
 -- std_logic_vector(31 downto 0)) instead of the legacy design's 16-bit
 -- wires/pipes. The real FIFOs ported in Phase 3 will need to widen to
 -- match, which is a throughput improvement but a real interface change.
+--
+-- Phase 2 adds the clocking tree: a Clocking Wizard (MMCM) IP
+-- (src/ip/clk_wiz_0) replaces the legacy design's clk_pll_100_in_200_out,
+-- producing the same three clocks (clk_200, clk_100, clk_20) used by
+-- later phases (PMT oversampling / main sequencer state machine /
+-- DDS+line-trigger), but from the XEM7305's 200 MHz sys_clk instead of
+-- the XEM6010's 100 MHz Cypress clock. Endpoints 0x23-0x26 are
+-- bring-up-only additions (no legacy equivalent) so this phase can be
+-- verified from Python without an oscilloscope: 0x23 reports MMCM lock
+-- status, 0x24-0x26 are free-running counters on clk_200/clk_100/clk_20
+-- whose count rate a host script can measure against a wall-clock delay
+-- to confirm each clock's actual frequency.
 --------------------------------------------------------------------------
 
 library IEEE;
@@ -60,11 +72,43 @@ end photon;
 architecture arch of photon is
 	signal sys_clk    : STD_LOGIC;
 
+	-- Phase 2 clocking tree (see src/ip/clk_wiz_0), replacing the legacy
+	-- clk_pll_100_in_200_out. Component/port names match Vivado's
+	-- standard Clocking Wizard wrapper; confirm against the generated
+	-- src/ip/clk_wiz_0/clk_wiz_0.vhd after running create_project.tcl.
+	component clk_wiz_0 port (
+		clk_in1  : in  STD_LOGIC;
+		clk_out1 : out STD_LOGIC; -- 200 MHz, PMT oversampling (Phase 5)
+		clk_out2 : out STD_LOGIC; -- 100 MHz, main sequencer state machine
+		clk_out3 : out STD_LOGIC; -- 20 MHz, DDS FIFO / line-trigger logic
+		locked   : out STD_LOGIC
+	);
+	end component;
+
+	signal clk_200    : STD_LOGIC;
+	signal clk_100    : STD_LOGIC;
+	signal clk_20     : STD_LOGIC;
+	signal clk_locked : STD_LOGIC;
+
+	-- Free-running counters, one per new clock domain, so a host script
+	-- can measure actual frequency (count delta / wall-clock delta)
+	-- instead of trusting the MMCM configuration blindly.
+	signal cnt_200 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal cnt_100 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal cnt_20  : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+
+	-- WireOut endpoints (0x23-0x26) — Phase 2 bring-up only, no legacy
+	-- equivalent; see file header comment.
+	signal ep23wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep24wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep25wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep26wire : STD_LOGIC_VECTOR(31 downto 0);
+
 	-- Target interface bus (new-generation okHost)
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*7-1 downto 0); -- 7 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*11-1 downto 0); -- 11 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -122,7 +166,47 @@ begin
 	ep21wire <= ep00wire;
 	ep22wire <= ep40wire;
 
+	------------------------------------------------------------------
+	-- Phase 2 clocking bring-up (0x23-0x26): MMCM lock status plus one
+	-- free-running counter per new clock domain, each wrapping every
+	-- ~2^32 cycles (~21.5s at 200 MHz, up to ~3.6min at 20 MHz) — ample
+	-- headroom for a short host-side measurement window.
+	------------------------------------------------------------------
+	ep23wire <= (0 => clk_locked, others => '0');
+	ep24wire <= cnt_200;
+	ep25wire <= cnt_100;
+	ep26wire <= cnt_20;
+
+	process (clk_200)
+	begin
+		if rising_edge(clk_200) then
+			cnt_200 <= cnt_200 + 1;
+		end if;
+	end process;
+
+	process (clk_100)
+	begin
+		if rising_edge(clk_100) then
+			cnt_100 <= cnt_100 + 1;
+		end if;
+	end process;
+
+	process (clk_20)
+	begin
+		if rising_edge(clk_20) then
+			cnt_20 <= cnt_20 + 1;
+		end if;
+	end process;
+
 	osc_clk : IBUFGDS port map (O => sys_clk, I => sys_clkp, IB => sys_clkn);
+
+	clk_gen : clk_wiz_0 port map (
+		clk_in1  => sys_clk,
+		clk_out1 => clk_200,
+		clk_out2 => clk_100,
+		clk_out3 => clk_20,
+		locked   => clk_locked
+	);
 
 	-- Instantiate the okHost and connect endpoints
 	okHI : okHost port map (
@@ -136,7 +220,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 7) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 11) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -177,5 +261,11 @@ begin
 		okHE => okHE, okEH => okEHx(7*65-1 downto 6*65), ep_addr => x"A2",
 		ep_read => open, ep_blockstrobe => open, ep_datain => pipeA2_data, ep_ready => pipeOut_ready
 	);
+
+	-- WireOut endpoints (Phase 2 clocking bring-up, see file header comment)
+	wo23 : okWireOut port map (okHE => okHE, okEH => okEHx(8*65-1 downto 7*65), ep_addr => x"23", ep_datain => ep23wire);
+	wo24 : okWireOut port map (okHE => okHE, okEH => okEHx(9*65-1 downto 8*65), ep_addr => x"24", ep_datain => ep24wire);
+	wo25 : okWireOut port map (okHE => okHE, okEH => okEHx(10*65-1 downto 9*65), ep_addr => x"25", ep_datain => ep25wire);
+	wo26 : okWireOut port map (okHE => okHE, okEH => okEHx(11*65-1 downto 10*65), ep_addr => x"26", ep_datain => ep26wire);
 
 end arch;
