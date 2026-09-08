@@ -379,3 +379,29 @@ word 0 afterward, so that word is only visible for a handful of
 making that word identical to word 0 (ON), so the brief flicker is
 indistinguishable from the loop simply continuing (see
 `loop_test_demo.py`'s module docstring for the full trace).
+
+**Manual override mux (`ep02wire`/`ep03wire`, channels 0-11), confirmed
+via `test_manual_override()` in `test/smoke_test.py`:** the last
+previously-unexercised Phase 5a control path. Cycles all 4 override
+modes (follow / invert / force-0 / force-1) across the 12 overridable
+channels and checks `logic_out` against Python-computed expected
+values at two `master_logic` values:
+
+1. ✅ `master_logic = 0` (via reset, sequencer not started): `logic_out`
+   reads `0x00000AAA`, exactly as computed.
+2. ✅ `master_logic = 0xFFFFFFFF` (via a 2-word program parked
+   indefinitely on word 0 — word 1's timestamp of 0 can never be
+   "reached", the same arithmetic quirk `test_sequencer_basic` works
+   around, which conveniently gives a long-lived stable value to read
+   here): `logic_out` reads `0xFFFF3999`, exactly as computed.
+3. ✅ Visually confirmed: `led_ext[1,3,5]` ON for phase 1, `led_ext[0,3,4]`
+   ON for phase 2, matching `logic_out`'s low 6 bits in each case.
+
+Between the two phases this exercises all 4 modes against both a 0 and
+a 1 input on every one of the 12 overridable channels — full
+truth-table coverage in two WireOut reads, both held stable by the FSM
+so there's no time pressure to check the LEDs.
+
+With this, all of Phase 5a's control paths have been exercised on real
+hardware: core sequencer timing, `logic_out`/`led_ext`, `pulse_fifo`'s
+word order, repeat mode and loop count, and the manual override mux.
