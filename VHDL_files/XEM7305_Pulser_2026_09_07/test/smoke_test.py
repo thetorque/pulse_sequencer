@@ -28,6 +28,7 @@ Usage:
 
 Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module.
 """
+import os
 import sys
 
 import ok
@@ -44,9 +45,16 @@ def connect(bit_path):
     xem.OpenBySerial(serial)
     print(f"Connected to device ID '{xem.GetDeviceID()}' (serial {serial})")
 
+    exists = os.path.exists(bit_path)
+    size = os.path.getsize(bit_path) if exists else "n/a"
+    print(f"Bitstream path: {bit_path!r} (repr, to reveal any hidden/odd characters)")
+    print(f"  os.path.exists: {exists}, size: {size} bytes")
+
     result = xem.ConfigureFPGA(bit_path)
     if result:
-        sys.exit(f"Failed to configure FPGA with {bit_path} (ConfigureFPGA returned {result})")
+        sys.exit(f"Failed to configure FPGA with {bit_path} "
+                  f"(ConfigureFPGA returned {result} -- see "
+                  f"https://docs.opalkelly.com/fpsdk/frontpanel-api/error-codes/ for what it means)")
     print(f"Configured FPGA with {bit_path}")
     return xem
 
