@@ -301,7 +301,7 @@ def test_manual_override(xem):
     # word order (PULSE_WORD_ORDER_CONFIRMED): first write -> high 32
     # bits (timestamp, ignored for word 0 either way), second write ->
     # low 32 bits (logic).
-    program = struct.pack('<II', 0, 0xFFFFFFFF) + bytearray(8)
+    program = bytearray(struct.pack('<II', 0, 0xFFFFFFFF)) + bytearray(8)
     n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
     assert n == len(program), f"WriteToBlockPipeIn returned {n}, expected {len(program)}"
     for attempt in range(1, DRAIN_POLL_ATTEMPTS + 1):
