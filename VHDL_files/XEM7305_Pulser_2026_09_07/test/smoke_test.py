@@ -1,7 +1,16 @@
 """
-Phase 1 bring-up smoke test for the XEM7305 pulser host-interface scaffold
-(../src/photon.vhd). Exercises every endpoint address in the legacy map
-and checks the fixed/echoed values the scaffold is expected to return.
+Phase 1/2/3 bring-up smoke test for the XEM7305 pulser scaffold
+(../src/photon.vhd). Exercises every endpoint address in the legacy map,
+plus the Phase 2 clocking and Phase 3 RAM/FIFO bring-up-only endpoints,
+and checks the fixed/echoed/measured values the scaffold is expected to
+return.
+
+Phase 3 note: BTPipeOut 0xA0/0xA1/0xA2 used to return a fixed test
+pattern (Phase 1 stub); they now reach real FIFOs instead, but nothing
+writes to those FIFOs yet (that's Phase 5's PMT-counting logic), so
+this script now expects them to read back empty rather than checking
+for a fixed pattern. BTPipeIn 0x80 now reaches a real pulse_fifo ->
+pulser_ram write path, which this script exercises directly.
 
 This is standalone and does NOT reuse Python_files/servers/pulser/ok.py —
 that module is compiled against the old XEM6010-era FrontPanel SDK and
@@ -42,6 +51,13 @@ PIPE_BLOCK_SIZE = 16  # bytes; matches the block size used elsewhere in this pro
 CLOCK_CHECKS = {0x24: 200e6, 0x25: 100e6, 0x26: 20e6}
 CLOCK_MEASURE_SECONDS = 1.0
 CLOCK_TOLERANCE = 0.05  # 5%; generous margin for wall-clock jitter over a 1s window
+
+# Phase 3 RAM/FIFO bring-up: WireOut address reporting each FIFO's
+# read-side occupancy (rd_data_count), see src/photon.vhd.
+FIFO_STATUS = {"pulse_fifo": 0x27, "fifo_photon": 0x28,
+               "normal_pmt_fifo": 0x29, "readout_count_fifo": 0x2A}
+DRAIN_POLL_ATTEMPTS = 20
+DRAIN_POLL_INTERVAL = 0.01  # seconds; pulse_fifo drains in low microseconds at 100 MHz, this is generous
 
 
 def connect(bit_path):
@@ -90,15 +106,54 @@ def test_wire_out_echo(xem):
     print("  OK: WireOut 0x21 matches WireIn 0x00")
 
 
-def test_pipe_out_patterns(xem):
-    print("\n--- BTPipeOut fixed test patterns ---")
-    expected = {0xA0: 0xA0A0A0A0, 0xA1: 0xA1A1A1A1, 0xA2: 0xA2A2A2A2}
-    for addr, exp in expected.items():
+def test_pulse_fifo_drain(xem):
+    print("\n--- BTPipeIn 0x80 -> pulse_fifo -> pulser_ram (Phase 3) ---")
+    xem.UpdateWireOuts()
+    occupancy = xem.GetWireOutValue(FIFO_STATUS["pulse_fifo"])
+    print(f"  WireOut {FIFO_STATUS['pulse_fifo']:#04x} (pulse_fifo occupancy) before write = {occupancy}")
+    assert occupancy == 0, (
+        f"expected pulse_fifo empty before this test, got occupancy {occupancy} "
+        f"-- a previous run may have left it stuck")
+
+    pattern = bytearray(range(PIPE_BLOCK_SIZE))  # 16 distinct bytes, easy to eyeball on a scope/ILA later
+    n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, pattern)
+    status = "OK" if n == PIPE_BLOCK_SIZE else "UNEXPECTED RETURN"
+    print(f"  Wrote {n} bytes to pipe 0x80  [{status}]")
+    assert n == PIPE_BLOCK_SIZE, f"WriteToBlockPipeIn returned {n}, expected {PIPE_BLOCK_SIZE}"
+
+    for attempt in range(1, DRAIN_POLL_ATTEMPTS + 1):
+        xem.UpdateWireOuts()
+        occupancy = xem.GetWireOutValue(FIFO_STATUS["pulse_fifo"])
+        if occupancy == 0:
+            print(f"  WireOut {FIFO_STATUS['pulse_fifo']:#04x} back to 0 after {attempt} poll(s) "
+                  f"-- pulse_fifo drained into pulser_ram  [OK]")
+            break
+        time.sleep(DRAIN_POLL_INTERVAL)
+    else:
+        raise AssertionError(
+            f"pulse_fifo never drained: WireOut {FIFO_STATUS['pulse_fifo']:#04x} still reports "
+            f"{occupancy} after {DRAIN_POLL_ATTEMPTS} polls -- the RAM-writer drain process may be stuck")
+
+
+def test_pipe_out_empty(xem):
+    print("\n--- BTPipeOut 0xA0-0xA2 (Phase 3: real FIFOs, no producer yet) ---")
+    pipe_addrs = {0xA0: "fifo_photon", 0xA1: "normal_pmt_fifo", 0xA2: "readout_count_fifo"}
+    for pipe_addr, fifo_name in pipe_addrs.items():
         buf = bytearray(PIPE_BLOCK_SIZE)
-        xem.ReadFromBlockPipeOut(addr, PIPE_BLOCK_SIZE, buf)
-        got = int.from_bytes(buf[0:4], byteorder="little")
-        status = "OK" if got == exp else "MISMATCH"
-        print(f"  Pipe {addr:#04x}: expected {exp:#010x}, got {got:#010x}  [{status}]")
+        n = xem.ReadFromBlockPipeOut(pipe_addr, PIPE_BLOCK_SIZE, buf)
+        status = "OK" if n == PIPE_BLOCK_SIZE else "UNEXPECTED RETURN"
+        print(f"  Pipe {pipe_addr:#04x} ({fifo_name}): read {n} bytes  [{status}]")
+        assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut on {pipe_addr:#04x} returned {n}"
+
+        status_addr = FIFO_STATUS[fifo_name]
+        xem.UpdateWireOuts()
+        occupancy = xem.GetWireOutValue(status_addr)
+        status = "OK" if occupancy == 0 else "UNEXPECTED"
+        print(f"  WireOut {status_addr:#04x} ({fifo_name} occupancy) = {occupancy} "
+              f"(expected 0 -- Phase 5 hasn't wired a producer yet)  [{status}]")
+        assert occupancy == 0, (
+            f"WireOut {status_addr:#04x} reports {occupancy} words queued in {fifo_name}, "
+            f"expected 0 since no Phase 5 producer exists yet")
 
 
 def test_clocking(xem):
@@ -125,13 +180,12 @@ def test_clocking(xem):
             f"expected ~{expected_hz/1e6:.1f} MHz")
 
 
-def test_pipe_in_writes(xem):
-    print("\n--- BTPipeIn writes (0x80 pulse program, 0x81 DDS program) ---")
+def test_pipe_in_stub(xem):
+    print("\n--- BTPipeIn 0x81 (DDS program, still a discard-everything stub) ---")
     dummy = bytearray(PIPE_BLOCK_SIZE)
-    for addr in (0x80, 0x81):
-        n = xem.WriteToBlockPipeIn(addr, PIPE_BLOCK_SIZE, dummy)
-        status = "OK" if n == PIPE_BLOCK_SIZE else "UNEXPECTED RETURN"
-        print(f"  Pipe {addr:#04x}: wrote {n} bytes  [{status}]")
+    n = xem.WriteToBlockPipeIn(0x81, PIPE_BLOCK_SIZE, dummy)
+    status = "OK" if n == PIPE_BLOCK_SIZE else "UNEXPECTED RETURN"
+    print(f"  Pipe 0x81: wrote {n} bytes  [{status}]")
 
 
 if __name__ == "__main__":
@@ -142,6 +196,7 @@ if __name__ == "__main__":
     test_wire_in_leds(xem)
     test_wire_out_echo(xem)
     test_clocking(xem)
-    test_pipe_out_patterns(xem)
-    test_pipe_in_writes(xem)
+    test_pulse_fifo_drain(xem)
+    test_pipe_out_empty(xem)
+    test_pipe_in_stub(xem)
     print("\nAll checks completed.")
