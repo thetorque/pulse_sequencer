@@ -351,3 +351,31 @@ above (the word transitioning in is skipped if the *next* word is the
 zero-timestamp terminator) by repeating its final LED5 word once
 before the real terminator — otherwise LED5 would never actually be
 displayed.
+
+**Repeat mode (`ep00wire(1)`) and loop count (WireIn 0x05), confirmed
+via `test/loop_test_demo.py`:** neither had been exercised by any
+prior test. `loop_test_demo.py` programs a simple `led_ext[0]` blink
+(0.5 s on, 0.5 s off, repeating) and confirms two things on real
+hardware:
+
+1. ✅ With `ep05wire = 3`: `seq_count` (WireOut 0x2C bits 15:0)
+   increments once per completed loop (0→1→2→3), and
+   `pulser_sequence_done` (bit 16) asserts in the exact same wrap event
+   `seq_count` reaches 3 — not a loop early or late — with `logic_out`
+   correctly at 0 once stopped.
+2. ✅ With `ep05wire = 0`: `seq_count` keeps climbing (reached 3 within
+   the ~3.5 s sampling window) and `pulser_sequence_done` never
+   asserts, confirming true loop-forever behavior.
+3. ✅ Visually confirmed: `led_ext[0]` blinks at a steady ~1 Hz rate
+   throughout both runs, stopping dark after the third blink in the
+   finite-count case and continuing indefinitely in the loop-forever
+   case.
+
+Repeat mode has its own version of the same "word right before the
+terminator is skipped" FSM quirk: the transitioning-in word *is*
+applied (unlike one-shot mode), but the FSM immediately re-fetches
+word 0 afterward, so that word is only visible for a handful of
+`clk_100` cycles — not its programmed duration. Worked around by
+making that word identical to word 0 (ON), so the brief flicker is
+indistinguishable from the loop simply continuing (see
+`loop_test_demo.py`'s module docstring for the full trace).
