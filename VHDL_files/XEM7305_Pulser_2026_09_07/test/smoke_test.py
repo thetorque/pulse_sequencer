@@ -12,17 +12,19 @@ this script now expects them to read back empty rather than checking
 for a fixed pattern. BTPipeIn 0x80 now reaches a real pulse_fifo ->
 pulser_ram write path, which this script exercises directly.
 
-Phase 5a note: test_sequencer_basic() writes a minimal 2-word pulse
-program (both words all-zero) and confirms the new sequencer FSM runs
-it to completion (pulser_sequence_done asserts). Both words are
-deliberately all-zero bytes so the test doesn't depend on knowing
-pulse_fifo's actual 32-bit-write -> 64-bit-read word-concatenation
-order (first write in the low 32 bits vs. the high 32 bits) -- that
-convention is assumed (not yet verified against real hardware)
-elsewhere but doesn't matter when every byte is zero either way.
-Testing an actual non-trivial logic_out pattern requires nailing down
-that word order first; see the comment on PULSE_WORD_ORDER_ASSUMED
-below.
+Phase 5a note: test_sequencer_basic() writes a minimal 3-word pulse
+program (dummy, non-zero, all-zero terminator -- see the comment in
+the function itself for why a 2-word all-zero program can never
+terminate) and confirms the new sequencer FSM runs it to completion
+(pulser_sequence_done asserts). The one non-zero word repeats the same
+byte pattern in both 32-bit halves, so the test doesn't depend on
+knowing pulse_fifo's actual 32-bit-write -> 64-bit-read word-
+concatenation order (first write in the low 32 bits vs. the high 32
+bits) -- that convention is assumed (not yet verified against real
+hardware) elsewhere but doesn't matter here since neither half comes
+out zero regardless of order. Testing an actual non-trivial logic_out
+pattern requires nailing down that word order first; see the comment
+on PULSE_WORD_ORDER_ASSUMED below.
 
 This is standalone and does NOT reuse Python_files/servers/pulser/ok.py —
 that module is compiled against the old XEM6010-era FrontPanel SDK and
@@ -50,6 +52,7 @@ Usage:
 Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module.
 """
 import os
+import struct
 import sys
 import time
 
@@ -166,7 +169,7 @@ def test_pulse_fifo_drain(xem):
 
 
 def test_sequencer_basic(xem):
-    print("\n--- Phase 5a sequencer: run a minimal 2-word program to completion ---")
+    print("\n--- Phase 5a sequencer: run a minimal 3-word program to completion ---")
 
     # Make sure pulser_start_bit (WireIn 0x00 bit 2) is low before touching
     # the RAM below -- test_wire_out_echo leaves it set to 1, and if it's
@@ -187,14 +190,34 @@ def test_sequencer_basic(xem):
     assert logic_out == 0, f"expected logic_out 0 after reset, got {logic_out:#x}"
     assert status == 0, f"expected seq status 0 after reset (done=0, seq_count=0), got {status:#x}"
 
-    # Two all-zero 64-bit RAM words (word 0 is never applied per the
-    # sequencer's own convention; word 1's time_stamp=0 is the
-    # end-of-sequence sentinel) -- all-zero bytes sidestep the unverified
-    # PULSE_WORD_ORDER_ASSUMED question entirely, see module docstring.
-    program = bytearray(16)
+    # Three 64-bit RAM words. time_count starts at 0 and only ever
+    # increases, so a time_stamp=0 word can only ever be recognized as
+    # "end of sequence" the moment it's freshly read -- which requires
+    # at least one earlier, non-zero-timestamp transition to have
+    # already happened (see the explanation this replaced: an all-zero
+    # 2-word program can never terminate, because the very first
+    # transition check needs time_count=0, but time_count has already
+    # become 1 by the time that check first runs). So:
+    #   word 0: dummy (never applied per the sequencer's own convention)
+    #   word 1: non-zero, so the first transition can actually fire
+    #   word 2: all-zero -- the real end-of-sequence sentinel
+    # word 1 writes the SAME small value (100) to both of its 32-bit
+    # halves, so regardless of pulse_fifo's write order (still
+    # unverified, see PULSE_WORD_ORDER_ASSUMED), whichever half becomes
+    # the timestamp reads back 100 -- small enough to finish in ~4 us
+    # (100 ticks * 40 ns), not the ~674 ms an earlier, badly-chosen
+    # "order-robust" value (0x01010101) would have caused. This does
+    # assume standard little-endian packing *within* each 32-bit write
+    # (first byte sent = LSB) -- a much more standard, lower-risk
+    # assumption than the inter-word ordering this sidesteps. A
+    # trailing all-zero word 3 pads the total to 32 bytes (2 blocks of
+    # PIPE_BLOCK_SIZE); it's never read since the sequence already ends
+    # at word 2.
+    nonzero_half = struct.pack('<I', 100)
+    program = bytearray(8) + nonzero_half * 2 + bytearray(16)
     n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
-    assert n == PIPE_BLOCK_SIZE, f"WriteToBlockPipeIn returned {n}, expected {PIPE_BLOCK_SIZE}"
-    print(f"  Wrote {n} bytes (2 all-zero RAM words) to pipe 0x80  [OK]")
+    assert n == len(program), f"WriteToBlockPipeIn returned {n}, expected {len(program)}"
+    print(f"  Wrote {n} bytes (4 RAM words: dummy, non-zero, zero terminator, zero padding) to pipe 0x80  [OK]")
 
     for attempt in range(1, DRAIN_POLL_ATTEMPTS + 1):
         xem.UpdateWireOuts()
