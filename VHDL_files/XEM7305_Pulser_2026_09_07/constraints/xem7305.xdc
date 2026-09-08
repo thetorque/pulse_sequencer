@@ -124,6 +124,21 @@ set_property DIFF_TERM FALSE [get_ports {sys_clkp}]
 create_clock -name sys_clk -period 5 [get_ports sys_clkp]
 set_clock_groups -asynchronous -group [get_clocks {sys_clk}] -group [get_clocks {mmcm0_clk0 okUH0}]
 
+# Phase 2 gap, only now surfaced by Vivado's timing report: clk_wiz_0's
+# output clocks (clk_200/clk_100/clk_20, Vivado-named clk_out1/2/3_clk_wiz_0)
+# are derived from sys_clk, but declaring sys_clk asynchronous to
+# mmcm0_clk0/okUH0 above does NOT automatically propagate through clk_wiz_0
+# to ITS output clocks -- that needs its own declaration. mmcm0_clk0 is
+# okClk's source (see src/okLibrary.vhd's mmcm0 MMCME2_BASE, CLKOUT0 ->
+# okHC(0) -> okClk), so this is exactly the clock pair our Phase 3 FIFOs
+# (pulse_fifo/fifo_photon/normal_pmt_fifo/readout_count_fifo) cross between
+# on their host-facing side -- safe to declare truly asynchronous here since
+# those crossings already go through the FIFO Generator's own internal
+# synchronizers (Synchronization Stages: 2, set when each was generated) or
+# Opal Kelly's own WireIn/WireOut/TriggerIn primitives, not raw combinational
+# logic that would need synchronous timing closure.
+set_clock_groups -asynchronous -group [get_clocks {clk_out1_clk_wiz_0 clk_out2_clk_wiz_0 clk_out3_clk_wiz_0}] -group [get_clocks {mmcm0_clk0 okUH0}]
+
 # LEDs #####################################################################
 set_property PACKAGE_PIN J5 [get_ports {led[0]}]
 set_property PACKAGE_PIN G6 [get_ports {led[1]}]
