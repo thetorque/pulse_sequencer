@@ -23,6 +23,14 @@ now confirmed, see PULSE_WORD_ORDER_CONFIRMED below and
 ../test/led_walk_demo.py, which determines it empirically and uses it
 to run a real (non-symmetric) pulse program.
 
+test_manual_override() exercises the per-channel force/invert override
+mux (ep02wire/ep03wire, channels 0-11) against two known master_logic
+values (0 and all-ones) and asserts logic_out against a
+Python-computed expected value for each -- see loop_test_demo.py and
+led_walk_demo.py for the two other Phase 5a control paths (repeat
+mode/loop count, and a real non-symmetric pulse program) exercised in
+separate standalone scripts rather than here.
+
 This is standalone and does NOT reuse Python_files/servers/pulser/ok.py —
 that module is compiled against the old XEM6010-era FrontPanel SDK and
 won't work with the XEM7305. Point PYTHONPATH (or copy the module next
@@ -255,6 +263,80 @@ def test_sequencer_basic(xem):
     xem.UpdateWireIns()
 
 
+def test_manual_override(xem):
+    print("\n--- Manual override mux (ep02wire/ep03wire, channels 0-11) ---")
+
+    # Cycle all 4 override modes across channels 0-11 (4 repeats of the
+    # 4-mode pattern): (ep02,ep03) = (0,0)=follow master_logic,
+    # (0,1)=invert, (1,0)=force 0, (1,1)=force 1. This gives
+    # ep02wire(11:0)=0xCCC, ep03wire(11:0)=0xAAA (verified: each nibble
+    # is 1100/1010, i.e. mode n%4 in order for every group of 4 bits).
+    xem.SetWireInValue(0x02, 0xCCC, 0xFFF)
+    xem.SetWireInValue(0x03, 0xAAA, 0xFFF)
+    xem.UpdateWireIns()
+
+    # Phase A: master_logic held at 0 via reset, sequencer not started.
+    # follow/force-0 modes read 0; invert/force-1 modes read 1 (since
+    # NOT 0 = 1) -- computed expected value: 0x00000AAA (channels 0-11
+    # only; nothing else drives logic_out's other bits when
+    # master_logic is 0).
+    xem.SetWireInValue(0x00, 0, 1 << 2)
+    xem.UpdateWireIns()
+    xem.ActivateTriggerIn(0x40, 0)
+    xem.ActivateTriggerIn(0x40, 1)
+    xem.UpdateWireOuts()
+    logic_out = xem.GetWireOutValue(LOGIC_OUT_WIRE)
+    expected = 0x00000AAA
+    print(f"  master_logic=0: logic_out (0x2B) = {logic_out:#010x} (expect {expected:#010x})")
+    assert logic_out == expected, f"expected {expected:#x} with master_logic=0, got {logic_out:#x}"
+
+    # Phase B: drive master_logic to all-ones via a 2-word program. Word
+    # 0 is applied immediately and unconditionally (the initial-fill
+    # path, not the "peek at next word" transition logic), and since
+    # word 1's own timestamp is 0, time_count can never "reach" it (see
+    # test_sequencer_basic's comment for why) -- so the sequencer just
+    # stays parked showing word 0's value indefinitely. That's exactly
+    # what this test wants: a long-lived, stable non-zero master_logic
+    # to read at leisure, not a bug here. Uses the confirmed pulse_fifo
+    # word order (PULSE_WORD_ORDER_CONFIRMED): first write -> high 32
+    # bits (timestamp, ignored for word 0 either way), second write ->
+    # low 32 bits (logic).
+    program = struct.pack('<II', 0, 0xFFFFFFFF) + bytearray(8)
+    n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
+    assert n == len(program), f"WriteToBlockPipeIn returned {n}, expected {len(program)}"
+    for attempt in range(1, DRAIN_POLL_ATTEMPTS + 1):
+        xem.UpdateWireOuts()
+        if xem.GetWireOutValue(FIFO_STATUS["pulse_fifo"]) == 0:
+            break
+        time.sleep(DRAIN_POLL_INTERVAL)
+    else:
+        raise AssertionError("pulse_fifo never drained before the override-mux test's second phase")
+
+    xem.SetWireInValue(0x00, 1 << 2, 1 << 2)
+    xem.UpdateWireIns()
+    time.sleep(0.01)  # word 0 applies within microseconds; this is generous
+    xem.UpdateWireOuts()
+    logic_out = xem.GetWireOutValue(LOGIC_OUT_WIRE)
+    # channels 0-11: follow/force-1 modes read 1, invert/force-0 modes
+    # read 0 (0x999); bits 12/13 = master_logic(18)/(19) = 1 (DDS
+    # step/reset, no override); bits 14/15 fixed 0; bits 16-31 =
+    # master_logic(31:16) = 0xFFFF (straight passthrough, no override).
+    expected = 0xFFFF3999
+    print(f"  master_logic=0xFFFFFFFF: logic_out (0x2B) = {logic_out:#010x} (expect {expected:#010x})")
+    assert logic_out == expected, f"expected {expected:#x} with master_logic=0xFFFFFFFF, got {logic_out:#x}"
+
+    # Housekeeping: stop and reset the sequencer, and put ep02wire/
+    # ep03wire back to "normal" (no override) so later tests see
+    # logic_out follow master_logic unmodified.
+    xem.SetWireInValue(0x00, 0, 1 << 2)
+    xem.UpdateWireIns()
+    xem.ActivateTriggerIn(0x40, 0)
+    xem.ActivateTriggerIn(0x40, 1)
+    xem.SetWireInValue(0x02, 0, 0xFFF)
+    xem.SetWireInValue(0x03, 0, 0xFFF)
+    xem.UpdateWireIns()
+
+
 def test_pipe_out_empty(xem):
     print("\n--- BTPipeOut 0xA0-0xA2 (Phase 3: real FIFOs, no producer yet) ---")
     pipe_addrs = {0xA0: "fifo_photon", 0xA1: "normal_pmt_fifo", 0xA2: "readout_count_fifo"}
@@ -318,6 +400,7 @@ if __name__ == "__main__":
     test_clocking(xem)
     test_pulse_fifo_drain(xem)
     test_sequencer_basic(xem)
+    test_manual_override(xem)
     test_pipe_out_empty(xem)
     test_pipe_in_stub(xem)
     print("\nAll checks completed.")
