@@ -289,6 +289,9 @@ def test_manual_override(xem):
     expected = 0x00000AAA
     print(f"  master_logic=0: logic_out (0x2B) = {logic_out:#010x} (expect {expected:#010x})")
     assert logic_out == expected, f"expected {expected:#x} with master_logic=0, got {logic_out:#x}"
+    # logic_out(5:0) = 0x2a = 101010b -- held stable (sequencer not
+    # started), so there's no rush to look.
+    input("  led_ext[1], [3], [5] should be ON; [0], [2], [4] OFF -- press Enter to continue")
 
     # Phase B: drive master_logic to all-ones via a 2-word program. Word
     # 0 is applied immediately and unconditionally (the initial-fill
@@ -324,6 +327,10 @@ def test_manual_override(xem):
     expected = 0xFFFF3999
     print(f"  master_logic=0xFFFFFFFF: logic_out (0x2B) = {logic_out:#010x} (expect {expected:#010x})")
     assert logic_out == expected, f"expected {expected:#x} with master_logic=0xFFFFFFFF, got {logic_out:#x}"
+    # logic_out(5:0) = 0x19 = 011001b -- held stable (word 1's
+    # timestamp=0 can never be "reached", see comment above), so again
+    # no rush to look.
+    input("  led_ext[0], [3], [4] should be ON; [1], [2], [5] OFF -- press Enter to continue")
 
     # Housekeeping: stop and reset the sequencer, and put ep02wire/
     # ep03wire back to "normal" (no override) so later tests see
