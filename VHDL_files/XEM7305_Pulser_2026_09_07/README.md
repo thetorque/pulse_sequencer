@@ -21,10 +21,11 @@ the rest of Phase 5 are blocked on a breakout board — see below).
 - Phase 5a (pulse-sequence FSM + `logic_out`): **complete and verified
   on real XEM7305 hardware** — the sequencer reads a RAM-programmed
   sequence, respects its timing, and correctly signals completion via
-  `test/smoke_test.py`. Two things this doesn't cover yet: `logic_out`
-  on a real non-zero pattern (untested — see the note in the Phase 5a
-  bring-up section), and `pulse_fifo`'s write-order convention (still
-  unverified).
+  `test/smoke_test.py`. `test/led_walk_demo.py` further confirmed a
+  real, non-symmetric `logic_out` pattern on real hardware — `led_ext`
+  visibly lights `[0]` through `[5]` in turn, 0.5 s apart — and
+  resolved `pulse_fifo`'s write-order convention empirically along the
+  way (see Phase 5a bring-up section below).
 
 ## Scope of these phases
 
@@ -325,14 +326,28 @@ already happened first. The same limitation exists in the legacy
 design's arithmetic; real compiled pulse programs just never hit it.
 Fixed by giving the test a real 3-word program instead (see above).
 
-**Two things not yet confirmed on hardware:**
-- `pulse_fifo`'s 32-bit-write → 64-bit-read word-concatenation order
-  (which pipe write lands in the RAM word's low vs. high 32 bits) is
-  still unverified — the Phase 5a test deliberately used values that
-  don't depend on it (see `PULSE_WORD_ORDER_ASSUMED` in
-  `test/smoke_test.py`).
-- `led_ext` hasn't been visually confirmed — the test program above
-  completes in ~4 µs, far too fast to see anything light up. Testing
-  an actual non-zero, human-visible `logic_out` pattern needs the word
-  order above nailed down first (or a program with a much longer
-  timestamp, e.g. seconds, to hold a state long enough to see).
+**`pulse_fifo` word order and `led_ext`, both confirmed via
+`test/led_walk_demo.py`:** the `test_sequencer_basic()` test above
+deliberately used values that don't depend on `pulse_fifo`'s
+32-bit-write → 64-bit-read word-concatenation order, so it was still
+an open question after Phase 5a's initial bring-up. `led_walk_demo.py`
+resolves it empirically instead of guessing: it writes one word with
+distinct values in each half, applies it (a word's first application
+is always unambiguous — see the initial-fill states in `photon.vhd`),
+and reads `logic_out` back to see which value landed in the logic-bits
+half. **Confirmed on real hardware: the *second* pipe write lands in
+the low 32 bits (logic_out), the *first* in the high 32 bits
+(timestamp)** — `PULSE_WORD_ORDER_CONFIRMED = "high_word_first"` in
+`test/smoke_test.py` — the opposite of Xilinx FIFO Generator's
+commonly-cited default, so worth having actually checked rather than
+assumed. Using that confirmed order, the same script then programs a
+real 6-step pulse sequence and `led_ext[0]` through `[5]` were
+confirmed to visibly light up in turn, 0.5 s apart, exactly as
+programmed — the first real (non-symmetric, human-visible) `logic_out`
+pattern run on this hardware.
+
+`led_walk_demo.py` also had to work around the same FSM quirk noted
+above (the word transitioning in is skipped if the *next* word is the
+zero-timestamp terminator) by repeating its final LED5 word once
+before the real terminator — otherwise LED5 would never actually be
+displayed.

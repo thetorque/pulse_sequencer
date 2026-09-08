@@ -17,14 +17,11 @@ program (dummy, non-zero, all-zero terminator -- see the comment in
 the function itself for why a 2-word all-zero program can never
 terminate) and confirms the new sequencer FSM runs it to completion
 (pulser_sequence_done asserts). The one non-zero word repeats the same
-byte pattern in both 32-bit halves, so the test doesn't depend on
-knowing pulse_fifo's actual 32-bit-write -> 64-bit-read word-
-concatenation order (first write in the low 32 bits vs. the high 32
-bits) -- that convention is assumed (not yet verified against real
-hardware) elsewhere but doesn't matter here since neither half comes
-out zero regardless of order. Testing an actual non-trivial logic_out
-pattern requires nailing down that word order first; see the comment
-on PULSE_WORD_ORDER_ASSUMED below.
+byte pattern in both 32-bit halves, so this test still doesn't need to
+care about pulse_fifo's write order either way -- though that order is
+now confirmed, see PULSE_WORD_ORDER_CONFIRMED below and
+../test/led_walk_demo.py, which determines it empirically and uses it
+to run a real (non-symmetric) pulse program.
 
 This is standalone and does NOT reuse Python_files/servers/pulser/ok.py —
 that module is compiled against the old XEM6010-era FrontPanel SDK and
@@ -82,15 +79,17 @@ SEQ_DONE_BIT = 1 << 16  # ep2Cwire bit 16, see photon.vhd
 SEQ_POLL_ATTEMPTS = 50
 SEQ_POLL_INTERVAL = 0.01
 
-# NOT YET VERIFIED against real hardware: assumed pulse_fifo (32-bit write ->
-# 64-bit read) concatenates the first 32-bit pipe write into the RAM word's
-# low bits and the second into the high bits, matching Xilinx FIFO
-# Generator's documented behavior for asymmetric write-narrower-than-read
-# widths. test_sequencer_basic() below only writes all-zero words, so it
-# doesn't depend on this being right -- but a future test that checks an
-# actual non-zero logic_out pattern will, and should swap the two halves
-# below if the observed pattern comes out looking time/logic-swapped.
-PULSE_WORD_ORDER_ASSUMED = "low_word_first"
+# CONFIRMED on real hardware via led_walk_demo.py's diagnostic step:
+# pulse_fifo (32-bit write -> 64-bit read) concatenates the SECOND 32-bit
+# pipe write into the RAM word's low bits (logic_out) and the FIRST into
+# the high bits (timestamp) -- the opposite of Xilinx FIFO Generator's
+# commonly-cited default (first write -> low bits), so this was worth
+# actually checking rather than assuming. test_sequencer_basic() below
+# still doesn't depend on this (its one non-zero word repeats the same
+# value in both halves), but any future test constructing a real,
+# non-symmetric pulse_fifo word should follow this order -- see
+# led_walk_demo.py's pack_word() for a working example.
+PULSE_WORD_ORDER_CONFIRMED = "high_word_first"  # first pipe write -> high 32 bits (timestamp)
 
 
 def connect(bit_path):
@@ -202,9 +201,10 @@ def test_sequencer_basic(xem):
     #   word 1: non-zero, so the first transition can actually fire
     #   word 2: all-zero -- the real end-of-sequence sentinel
     # word 1 writes the SAME small value (100) to both of its 32-bit
-    # halves, so regardless of pulse_fifo's write order (still
-    # unverified, see PULSE_WORD_ORDER_ASSUMED), whichever half becomes
-    # the timestamp reads back 100 -- small enough to finish in ~4 us
+    # halves, so this test doesn't need to care about pulse_fifo's write
+    # order (now confirmed, see PULSE_WORD_ORDER_CONFIRMED above) --
+    # whichever half becomes the timestamp reads back 100 -- small
+    # enough to finish in ~4 us
     # (100 ticks * 40 ns), not the ~674 ms an earlier, badly-chosen
     # "order-robust" value (0x01010101) would have caused. This does
     # assume standard little-endian packing *within* each 32-bit write

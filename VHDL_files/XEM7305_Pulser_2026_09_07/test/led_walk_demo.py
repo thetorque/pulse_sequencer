@@ -4,15 +4,21 @@ by programming a real pulse sequence through BTPipeIn 0x80 -> pulse_fifo
 -> pulser_ram (Phase 3) and running it on the Phase 5a sequencer FSM.
 
 This also resolves, empirically, an open question noted in README.md
-and test/smoke_test.py (PULSE_WORD_ORDER_ASSUMED): which of pulse_fifo's
-two 32-bit pipe writes lands in pulser_ram's low 32 bits (logic_out) vs.
-high 32 bits (timestamp) when the 64-bit RAM word is assembled. Rather
-than guess, this script writes one word with two distinct values, one
-per half, applies it (a RAM word's *first* word is always applied
-immediately on start -- no ambiguity there, see src/photon.vhd's
-initial-fill states 0-4), and reads logic_out (WireOut 0x2B) back to
-see which value ended up in the logic-bits half. That confirmed order
-is then used to build the real LED-walk program.
+and test/smoke_test.py (PULSE_WORD_ORDER_CONFIRMED): which of
+pulse_fifo's two 32-bit pipe writes lands in pulser_ram's low 32 bits
+(logic_out) vs. high 32 bits (timestamp) when the 64-bit RAM word is
+assembled. Rather than guess, this script writes one word with two
+distinct values, one per half, applies it (a RAM word's *first* word
+is always applied immediately on start -- no ambiguity there, see
+src/photon.vhd's initial-fill states 0-4), and reads logic_out
+(WireOut 0x2B) back to see which value ended up in the logic-bits
+half. That confirmed order is then used to build the real LED-walk
+program. Confirmed on real hardware: the SECOND pipe write lands in
+the low 32 bits (logic_out), the FIRST in the high 32 bits
+(timestamp) -- 'high_word_first', the opposite of Xilinx FIFO
+Generator's commonly-cited default. The script re-derives this itself
+each run rather than hardcoding it, so it stays correct even if the
+IP is ever regenerated with different settings.
 
 Timing-model note: src/photon.vhd advances time_count once every 4
 clk_100 cycles (40 ns/tick @ 100 MHz) -- see the Phase 5a header
