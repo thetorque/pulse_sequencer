@@ -148,7 +148,7 @@ begin
 	wi06 : okWireIn port map (okHE => okHE, ep_addr => x"06", ep_dataout => ep06wire);
 
 	-- TriggerIn endpoint
-	tr40 : okTriggerIn port map (okHE => okHE, ep_addr => x"40", ep_clk => okClk, ep_trigger => ep40wire);
+	tr40 : okTriggerIn port map (okHE => okHE, ep_addr => x"40", ep_clk => sys_clk, ep_trigger => ep40wire);
 
 	-- WireOut endpoints
 	wo21 : okWireOut port map (okHE => okHE, okEH => okEHx(1*65-1 downto 0*65), ep_addr => x"21", ep_datain => ep21wire);

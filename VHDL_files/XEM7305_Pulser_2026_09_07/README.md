@@ -50,10 +50,16 @@ transfers.
 ## Files
 
 - `src/photon.vhd` — new top-level (this phase's actual work)
-- `src/okLibrary.vhd`, `okLibrary.v`, `okCoreHarness.v`, `okWireIn.v`,
-  `okWireOut.v`, `okTriggerIn.v`, `okBTPipeIn.v`, `okBTPipeOut.v` —
-  Opal Kelly IP, copied verbatim from `../XEM7305_references/Locally_compiled_photon_2026`
-  (already proven on this hardware). Do not hand-edit these.
+- `src/okLibrary.vhd`, `okCoreHarness.v`, `okWireIn.v`, `okWireOut.v`,
+  `okTriggerIn.v`, `okBTPipeIn.v`, `okBTPipeOut.v` — Opal Kelly IP,
+  copied verbatim from `../XEM7305_references/Locally_compiled_photon_2026`
+  (already proven on this hardware). Do not hand-edit these. Note:
+  Opal Kelly also ships `okLibrary.v`, a Verilog reimplementation of
+  the same `okHost`/`okWireOR` defined in `okLibrary.vhd` — meant for
+  Verilog-only projects, not to be added alongside the VHDL version.
+  Deliberately **not** included here since `photon.vhd` is VHDL and
+  resolves those via `okLibrary.vhd`'s `FRONTPANEL` package; adding
+  both gives Vivado two conflicting definitions of the same module.
 - `constraints/xem7305.xdc` — host interface, clock, and LED pins only
   (copied from `../XEM7305_references/Counter/XEM7305-VHDL`). Pulser
   I/O pins are not yet defined — see Phase 4.
