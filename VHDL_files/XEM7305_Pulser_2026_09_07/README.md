@@ -1,8 +1,9 @@
-# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3
+# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3 + Phase 5a
 
 Port of the pulse sequencer from XEM6010 (`VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd`)
 to the XEM7305. See the full port plan discussion for all phases; this
-folder currently implements **Phases 1, 2, and 3**.
+folder currently implements **Phases 1, 2, 3, and 5a** (Phase 4 and
+the rest of Phase 5 are blocked on a breakout board — see below).
 
 **Status:**
 - Phase 1 (host interface migration): **complete and verified on real
@@ -17,6 +18,13 @@ folder currently implements **Phases 1, 2, and 3**.
   (`fifo_photon`, `normal_pmt_fifo`, `readout_count_fifo`) respond
   correctly with empty occupancy (no Phase 5 producer yet) via
   `test/smoke_test.py`.
+- Phase 5a (pulse-sequence FSM + `logic_out`): **complete and verified
+  on real XEM7305 hardware** — the sequencer reads a RAM-programmed
+  sequence, respects its timing, and correctly signals completion via
+  `test/smoke_test.py`. Two things this doesn't cover yet: `logic_out`
+  on a real non-zero pattern (untested — see the note in the Phase 5a
+  bring-up section), and `pulse_fifo`'s write-order convention (still
+  unverified).
 
 ## Scope of these phases
 
@@ -54,16 +62,43 @@ All 5 IP cores were generated manually in the Vivado GUI (not via
 `create_project.tcl`) with settings cross-checked against the legacy
 `.xco` configs in `VHDL_files/Pulser_w_2015_07_28/photon/ipcore_dir/`.
 
-**Not yet implemented** (later phases):
-`pmt_input`/`logic_out`/`logic_in`/`dds_logic_*` I/O and their pin
-mapping, plus `dds_fifo` (Phase 4 — blocked on a breakout
-board/pinout for the XEM7305, see the port-plan discussion), and the
-actual sequencer/counting state machines that drive `pulser_ram`'s
-read port and produce data into the read FIFOs (Phase 5).
+**Phase 5a** ports the legacy design's main pulse-sequence FSM: it
+reads `pulser_ram`'s read port (unused since Phase 3) two words ahead,
+applies each 64-bit word's low 32 bits to `master_logic` for the
+duration given by its high 30 bits, and derives `logic_out` from
+`master_logic` through the same per-channel force/invert override mux
+(`ep02wire`/`ep03wire`) as the legacy design. The legacy design drove
+`pulser_ram`'s read-port clock as a manually-toggled pulse from its own
+FSM; our Vivado-generated `pulser_ram` has a real, continuously-running
+read clock instead (fixed 1-cycle latency, no enable pin), so that
+toggle scheme couldn't be ported literally — the read-ahead pipeline
+was redesigned around this simpler always-on port, while preserving
+the legacy 40 ns/tick (4 `clk_100` cycles) timing exactly, so existing
+pulse programs keep meaning the same real-world durations. See the
+`photon.vhd` file header for the full explanation.
+
+`logic_out`'s low 6 bits reach real pins: `led_ext`, a 6-LED add-on
+header (pins copied from `../XEM7305_references/Locally_compiled_ramtester`,
+LVCMOS33 — a different bank/voltage than the onboard `led[3:0]`, so a
+separate board/header, not more onboard LEDs). The rest of `logic_out`
+has no pins yet (Phase 4); the full 32-bit value plus sequence-done/
+loop-count status are exposed on bring-up-only WireOuts (0x2B/0x2C)
+regardless, so the FSM can be verified independent of `led_ext`.
+`pmt_input`/`logic_in`/`dds_logic_*` and their pin mapping, plus
+`dds_fifo`, are still blocked on a breakout board/pinout for the
+XEM7305 — see the port-plan discussion.
+
+**Not yet implemented** (later phases): line-trigger conditioning
+(Phase 5b — the legacy design's `logic_in(0)` debounce/delay/pulse
+chain that gates the sequencer's wait-to-start state; stubbed to
+always-disabled for now), PMT oversampling and the three FIFOs'
+write-side counting logic (Phase 5c), and DDS step/reset control
+routing (Phase 5d) — all blocked on the same breakout board as Phase 4.
 [src/photon.vhd](src/photon.vhd) stubs the rest: WireIn/TriggerIn
 values are only partially shown on LEDs, the DDS program pipe (0x81)
-is accepted and discarded, and the RAM-writer drain process used to
-bring up Phase 3 is a bring-up-only stand-in for the real sequencer.
+is accepted and discarded, and the three read FIFOs' write sides are
+unconnected (their bring-up occupancy WireOuts will correctly read 0
+until Phase 5c exists).
 
 ## Endpoint map
 
@@ -71,7 +106,7 @@ bring up Phase 3 is a bring-up-only stand-in for the real sequencer.
 design and preserved exactly so `Python_files/servers/pulser/api.py`
 needs no address changes once this is wired up for real — though as
 of Phase 3, 0x80 and 0xA0-0xA2 now reach real FIFOs/RAM instead of
-stub logic (see Phase 3 scope above). 0x23-0x2A are new, Phase 2/3
+stub logic (see Phase 3 scope above). 0x23-0x2C are new, Phase 2/3/5a
 bring-up additions with no legacy equivalent.
 
 | Address | Type | Role |
@@ -82,11 +117,17 @@ bring-up additions with no legacy equivalent.
 | 0x23 | WireOut | *(Phase 2 bring-up only)* MMCM `locked` (bit 0) |
 | 0x24-0x26 | WireOut | *(Phase 2 bring-up only)* free-running counters on clk_200/clk_100/clk_20 |
 | 0x27-0x2A | WireOut | *(Phase 3 bring-up only)* `rd_data_count` occupancy for `pulse_fifo`/`fifo_photon`/`normal_pmt_fifo`/`readout_count_fifo` |
+| 0x2B | WireOut | *(Phase 5a bring-up only)* full 32-bit `logic_out` readback |
+| 0x2C | WireOut | *(Phase 5a bring-up only)* bit 16 = sequence-done, bits 15:0 = running loop count |
 | 0x80 | BTPipeIn | pulse sequence program → `pulse_fifo` → `pulser_ram` |
 | 0x81 | BTPipeIn | DDS program (still a discard-everything stub) |
 | 0xA0 | BTPipeOut | time-resolved photon counts, from `fifo_photon` |
 | 0xA1 | BTPipeOut | normal PMT counts, from `normal_pmt_fifo` |
 | 0xA2 | BTPipeOut | readout counts, from `readout_count_fifo` |
+
+`logic_out(5 downto 0)` is also driven out to the `led_ext` output
+port (see Files below) — not a FrontPanel endpoint, but the only part
+of `logic_out` with physical pins so far.
 
 ## Important interface change to carry into later phases
 
@@ -104,7 +145,8 @@ packs bytes for the pipe transfers once Phase 5 wires up real data.
 
 ## Files
 
-- `src/photon.vhd` — top-level (Phase 1 host interface + Phase 2 clocking)
+- `src/photon.vhd` — top-level (Phase 1 host interface + Phase 2
+  clocking + Phase 3 RAM/FIFO + Phase 5a sequencer FSM)
 - `src/okLibrary.vhd`, `okCoreHarness.v`, `okWireIn.v`, `okWireOut.v`,
   `okTriggerIn.v`, `okBTPipeIn.v`, `okBTPipeOut.v` — Opal Kelly IP,
   copied verbatim from `../XEM7305_references/Locally_compiled_photon_2026`
@@ -126,9 +168,21 @@ packs bytes for the pipe transfers once Phase 5 wires up real data.
   checked in, same as `clk_wiz_0` — regenerate from the settings
   documented in the Phase 3 scope section above if the project is
   rebuilt from scratch.
-- `constraints/xem7305.xdc` — host interface, clock, and LED pins only
-  (copied from `../XEM7305_references/Counter/XEM7305-VHDL`). Pulser
-  I/O pins are not yet defined — see Phase 4.
+- `constraints/xem7305.xdc` — host interface, clock, and LED pins
+  (copied from `../XEM7305_references/Counter/XEM7305-VHDL`), plus
+  `led_ext`'s 6 pins (Phase 5a, copied from
+  `../XEM7305_references/Locally_compiled_ramtester`) and the
+  `set_clock_groups -asynchronous` declaration for `clk_wiz_0`'s output
+  clocks vs. `mmcm0_clk0`/`okUH0` (a Phase 2 gap — those clocks were
+  never declared asynchronous to `okClk`'s source, which Vivado doesn't
+  infer automatically through a second PLL stage; only surfaced once
+  Phase 5a added enough paths to show up in the timing summary as
+  widespread setup failures. Safe to declare truly asynchronous since
+  every real crossing between these domains goes through the FIFO
+  Generator cores' own internal synchronizers or Opal Kelly's
+  WireIn/WireOut/TriggerIn primitives — see the comment in the `.xdc`
+  itself). Pulser I/O pins beyond `led_ext` are not yet defined — see
+  Phase 4.
 - `create_project.tcl` — recreates the Vivado project from these
   sources (`vivado -mode batch -source create_project.tcl`), including
   generating the Phase 2 `clk_wiz_0` IP. Targets `xc7s50csga324-1`,
@@ -232,3 +286,53 @@ the `clk_100` domain, but that TriggerIn is generated with
 principle be missed by the `clk_100` domain. Not exercised by the
 current test (nothing triggers this reset bit), but worth revisiting
 before Phase 5 relies on that reset path.
+
+## Bring-up test plan — Phase 5a
+
+All steps below confirmed via `test/smoke_test.py` on real XEM7305
+hardware.
+
+1. ✅ After a full reset (TriggerIn 0x40 bits 0 and 1), confirm
+   `logic_out` (WireOut 0x2B) and sequence status (WireOut 0x2C) both
+   read 0.
+2. ✅ Write a 3-word pulse program (dummy word, one word with a
+   non-zero timestamp, an all-zero end-of-sequence sentinel word) to
+   BTPipeIn 0x80 and confirm it drains into `pulser_ram` (WireOut 0x27
+   back to 0).
+3. ✅ Start the sequencer (WireIn 0x00 bit 2) and poll WireOut 0x2C
+   until bit 16 (sequence-done) asserts — confirmed after 1 poll,
+   consistent with the ~4 µs (100-tick) program duration used.
+4. ✅ Confirm `logic_out` reads 0 once done (the sentinel word's logic
+   bits, and one-shot-mode end-of-sequence forces `master_logic` to
+   all-zero).
+5. ✅ Re-confirm all Phase 1/2/3 checks still pass (no regression from
+   the added FSM or the `okWireOR`/`okEHx` width changes needed for the
+   new WireOut endpoints).
+
+**Timing closure note:** the first post-Phase-5a build failed timing
+badly (WNS -5.06 ns, 625 failing endpoints) — not a logic bug, but a
+Phase 2 gap: `clk_wiz_0`'s output clocks were never declared
+asynchronous to `okClk`'s source (`mmcm0_clk0`), only `sys_clk` was.
+Adding that declaration (see Files above) brought timing fully clean
+(WNS +0.387 ns, 0 failing endpoints) with no RTL changes needed.
+
+**Test-writing note, not an RTL bug:** the first version of the
+sequencer test used a 2-word all-zero program and hung forever, since
+`time_count` starts at 0 and only increases — a `time_stamp = 0` word
+can only be recognized as "end of sequence" the moment it's freshly
+read, which requires an earlier non-zero-timestamp transition to have
+already happened first. The same limitation exists in the legacy
+design's arithmetic; real compiled pulse programs just never hit it.
+Fixed by giving the test a real 3-word program instead (see above).
+
+**Two things not yet confirmed on hardware:**
+- `pulse_fifo`'s 32-bit-write → 64-bit-read word-concatenation order
+  (which pipe write lands in the RAM word's low vs. high 32 bits) is
+  still unverified — the Phase 5a test deliberately used values that
+  don't depend on it (see `PULSE_WORD_ORDER_ASSUMED` in
+  `test/smoke_test.py`).
+- `led_ext` hasn't been visually confirmed — the test program above
+  completes in ~4 µs, far too fast to see anything light up. Testing
+  an actual non-zero, human-visible `logic_out` pattern needs the word
+  order above nailed down first (or a program with a much longer
+  timestamp, e.g. seconds, to hold a state long enough to see).
