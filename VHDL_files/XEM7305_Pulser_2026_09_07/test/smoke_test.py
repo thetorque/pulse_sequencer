@@ -44,8 +44,9 @@ def connect(bit_path):
     xem.OpenBySerial(serial)
     print(f"Connected to device ID '{xem.GetDeviceID()}' (serial {serial})")
 
-    if xem.ConfigureFPGA(bit_path):
-        sys.exit(f"Failed to configure FPGA with {bit_path}")
+    result = xem.ConfigureFPGA(bit_path)
+    if result:
+        sys.exit(f"Failed to configure FPGA with {bit_path} (ConfigureFPGA returned {result})")
     print(f"Configured FPGA with {bit_path}")
     return xem
 
