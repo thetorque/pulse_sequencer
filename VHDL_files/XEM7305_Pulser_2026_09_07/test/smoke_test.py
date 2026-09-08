@@ -1,9 +1,9 @@
 """
-Phase 1/2/3 bring-up smoke test for the XEM7305 pulser scaffold
+Phase 1/2/3/5a bring-up smoke test for the XEM7305 pulser scaffold
 (../src/photon.vhd). Exercises every endpoint address in the legacy map,
-plus the Phase 2 clocking and Phase 3 RAM/FIFO bring-up-only endpoints,
-and checks the fixed/echoed/measured values the scaffold is expected to
-return.
+plus the Phase 2 clocking, Phase 3 RAM/FIFO, and Phase 5a sequencer
+bring-up-only endpoints, and checks the fixed/echoed/measured values the
+scaffold is expected to return.
 
 Phase 3 note: BTPipeOut 0xA0/0xA1/0xA2 used to return a fixed test
 pattern (Phase 1 stub); they now reach real FIFOs instead, but nothing
@@ -11,6 +11,18 @@ writes to those FIFOs yet (that's Phase 5's PMT-counting logic), so
 this script now expects them to read back empty rather than checking
 for a fixed pattern. BTPipeIn 0x80 now reaches a real pulse_fifo ->
 pulser_ram write path, which this script exercises directly.
+
+Phase 5a note: test_sequencer_basic() writes a minimal 2-word pulse
+program (both words all-zero) and confirms the new sequencer FSM runs
+it to completion (pulser_sequence_done asserts). Both words are
+deliberately all-zero bytes so the test doesn't depend on knowing
+pulse_fifo's actual 32-bit-write -> 64-bit-read word-concatenation
+order (first write in the low 32 bits vs. the high 32 bits) -- that
+convention is assumed (not yet verified against real hardware)
+elsewhere but doesn't matter when every byte is zero either way.
+Testing an actual non-trivial logic_out pattern requires nailing down
+that word order first; see the comment on PULSE_WORD_ORDER_ASSUMED
+below.
 
 This is standalone and does NOT reuse Python_files/servers/pulser/ok.py —
 that module is compiled against the old XEM6010-era FrontPanel SDK and
@@ -58,6 +70,24 @@ FIFO_STATUS = {"pulse_fifo": 0x27, "fifo_photon": 0x28,
                "normal_pmt_fifo": 0x29, "readout_count_fifo": 0x2A}
 DRAIN_POLL_ATTEMPTS = 20
 DRAIN_POLL_INTERVAL = 0.01  # seconds; pulse_fifo drains in low microseconds at 100 MHz, this is generous
+
+# Phase 5a sequencer bring-up: logic_out readback and sequence-done/loop-count
+# status, see src/photon.vhd WireOut 0x2B/0x2C.
+LOGIC_OUT_WIRE = 0x2B
+SEQ_STATUS_WIRE = 0x2C
+SEQ_DONE_BIT = 1 << 16  # ep2Cwire bit 16, see photon.vhd
+SEQ_POLL_ATTEMPTS = 50
+SEQ_POLL_INTERVAL = 0.01
+
+# NOT YET VERIFIED against real hardware: assumed pulse_fifo (32-bit write ->
+# 64-bit read) concatenates the first 32-bit pipe write into the RAM word's
+# low bits and the second into the high bits, matching Xilinx FIFO
+# Generator's documented behavior for asymmetric write-narrower-than-read
+# widths. test_sequencer_basic() below only writes all-zero words, so it
+# doesn't depend on this being right -- but a future test that checks an
+# actual non-zero logic_out pattern will, and should swap the two halves
+# below if the observed pattern comes out looking time/logic-swapped.
+PULSE_WORD_ORDER_ASSUMED = "low_word_first"
 
 
 def connect(bit_path):
@@ -135,6 +165,73 @@ def test_pulse_fifo_drain(xem):
             f"{occupancy} after {DRAIN_POLL_ATTEMPTS} polls -- the RAM-writer drain process may be stuck")
 
 
+def test_sequencer_basic(xem):
+    print("\n--- Phase 5a sequencer: run a minimal 2-word program to completion ---")
+
+    # Make sure pulser_start_bit (WireIn 0x00 bit 2) is low before touching
+    # the RAM below -- test_wire_out_echo leaves it set to 1, and if it's
+    # still high here the sequencer would start fetching from pulser_ram
+    # immediately on reset, racing against the pipe write that hasn't
+    # happened yet.
+    xem.SetWireInValue(0x00, 0, 1 << 2)
+    xem.UpdateWireIns()
+
+    # Full reset: sequencer state (bit 0) and the RAM write pointer (bit 1).
+    xem.ActivateTriggerIn(0x40, 0)
+    xem.ActivateTriggerIn(0x40, 1)
+    xem.UpdateWireOuts()
+    logic_out = xem.GetWireOutValue(LOGIC_OUT_WIRE)
+    status = xem.GetWireOutValue(SEQ_STATUS_WIRE)
+    print(f"  After reset: logic_out (0x2B) = {logic_out:#010x}, "
+          f"seq status (0x2C) = {status:#010x} (expect both 0)")
+    assert logic_out == 0, f"expected logic_out 0 after reset, got {logic_out:#x}"
+    assert status == 0, f"expected seq status 0 after reset (done=0, seq_count=0), got {status:#x}"
+
+    # Two all-zero 64-bit RAM words (word 0 is never applied per the
+    # sequencer's own convention; word 1's time_stamp=0 is the
+    # end-of-sequence sentinel) -- all-zero bytes sidestep the unverified
+    # PULSE_WORD_ORDER_ASSUMED question entirely, see module docstring.
+    program = bytearray(16)
+    n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
+    assert n == PIPE_BLOCK_SIZE, f"WriteToBlockPipeIn returned {n}, expected {PIPE_BLOCK_SIZE}"
+    print(f"  Wrote {n} bytes (2 all-zero RAM words) to pipe 0x80  [OK]")
+
+    for attempt in range(1, DRAIN_POLL_ATTEMPTS + 1):
+        xem.UpdateWireOuts()
+        occupancy = xem.GetWireOutValue(FIFO_STATUS["pulse_fifo"])
+        if occupancy == 0:
+            break
+        time.sleep(DRAIN_POLL_INTERVAL)
+    else:
+        raise AssertionError("pulse_fifo never drained before starting the sequencer test")
+
+    # Start the sequencer (WireIn 0x00 bit 2, ep00wire(2) = pulser_start_bit).
+    xem.SetWireInValue(0x00, 1 << 2, 1 << 2)
+    xem.UpdateWireIns()
+    print("  Started sequencer (WireIn 0x00 bit 2)")
+
+    for attempt in range(1, SEQ_POLL_ATTEMPTS + 1):
+        xem.UpdateWireOuts()
+        status = xem.GetWireOutValue(SEQ_STATUS_WIRE)
+        if status & SEQ_DONE_BIT:
+            print(f"  WireOut 0x2C reports sequence done after {attempt} poll(s)  [OK]")
+            break
+        time.sleep(SEQ_POLL_INTERVAL)
+    else:
+        raise AssertionError(
+            f"sequencer never signaled done: WireOut {SEQ_STATUS_WIRE:#04x} still reports "
+            f"{status:#x} after {SEQ_POLL_ATTEMPTS} polls -- the FSM may be stuck")
+
+    logic_out = xem.GetWireOutValue(LOGIC_OUT_WIRE)
+    print(f"  logic_out (0x2B) after done = {logic_out:#010x} (expect 0, the sentinel word's logic bits)")
+    assert logic_out == 0, f"expected logic_out 0 once done, got {logic_out:#x}"
+
+    # Housekeeping: clear the start bit so later tests don't find the
+    # sequencer still marked "running".
+    xem.SetWireInValue(0x00, 0, 1 << 2)
+    xem.UpdateWireIns()
+
+
 def test_pipe_out_empty(xem):
     print("\n--- BTPipeOut 0xA0-0xA2 (Phase 3: real FIFOs, no producer yet) ---")
     pipe_addrs = {0xA0: "fifo_photon", 0xA1: "normal_pmt_fifo", 0xA2: "readout_count_fifo"}
@@ -197,6 +294,7 @@ if __name__ == "__main__":
     test_wire_out_echo(xem)
     test_clocking(xem)
     test_pulse_fifo_drain(xem)
+    test_sequencer_basic(xem)
     test_pipe_out_empty(xem)
     test_pipe_in_stub(xem)
     print("\nAll checks completed.")

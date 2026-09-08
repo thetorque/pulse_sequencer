@@ -133,3 +133,15 @@ set_property PACKAGE_PIN R12 [get_ports {led[2]}]
 set_property PACKAGE_PIN L13 [get_ports {led[3]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {led[2]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {led[3]}]
+
+# led_ext: add-on 6-LED header, pins copied from
+# ../XEM7305_references/Locally_compiled_ramtester/ramtester.srcs/sources_1/new/xem7305.xdc
+# (a different bank/voltage than the onboard led[3:0] above -- confirms
+# this is a separate board/header, not more onboard LEDs).
+set_property PACKAGE_PIN V2 [get_ports {led_ext[0]}]
+set_property PACKAGE_PIN T4 [get_ports {led_ext[1]}]
+set_property PACKAGE_PIN T5 [get_ports {led_ext[2]}]
+set_property PACKAGE_PIN P5 [get_ports {led_ext[3]}]
+set_property PACKAGE_PIN P2 [get_ports {led_ext[4]}]
+set_property PACKAGE_PIN R4 [get_ports {led_ext[5]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {led_ext[*]}]

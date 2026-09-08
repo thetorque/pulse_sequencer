@@ -66,6 +66,35 @@
 -- (rd_data_count) so a host script can watch data move through the
 -- pulse-sequence RAM path and confirm the three counting FIFOs are
 -- reachable, without needing real PMT/DDS hardware.
+--
+-- Phase 5a adds the real pulse-sequence FSM: it reads pulser_ram's
+-- read port (unused since Phase 3), applies each 64-bit RAM word's
+-- low 32 bits to master_logic for the duration given by its high 30
+-- bits (a time_stamp = 0 word ends the sequence), and derives
+-- logic_out from master_logic through the same per-channel
+-- force/invert override mux (ep02wire/ep03wire) as the legacy
+-- design. logic_out is a full 32-bit internal signal, but only its
+-- low 6 bits have physical pins so far, on led_ext (a separate add-on
+-- LED header, not more onboard LEDs -- see the entity port comment);
+-- the rest still has no pins to go to until Phase 4's breakout board.
+-- The full 32-bit value is also exposed on a new bring-up-only
+-- WireOut (0x2B) for host-side verification, alongside
+-- sequence-done/loop-count status (0x2C).
+--
+-- IMPORTANT read-timing adaptation: the legacy design drove
+-- pulser_ram's read-port clock (there called pulser_ram_clkb) as a
+-- manually-toggled pulse from its own FSM -- effectively a
+-- software-generated clock, strobed only when a new word was
+-- needed. Our Vivado-generated pulser_ram has a real, continuously
+-- running clkb (tied to clk_100, "Always Enabled", fixed 1-cycle
+-- read latency, no enable pin), so that toggle scheme can't be
+-- ported literally. The FSM below was redesigned around this
+-- simpler always-on read port, but preserves the one thing that
+-- must match exactly for existing pulse programs to keep meaning
+-- the same real-world timing: time_count still advances once every
+-- 4 clk_100 cycles (40 ns/tick @ 100 MHz), identical to the legacy
+-- tick rate. This should be double-checked (scope on logic_out, or
+-- simulation) before trusting it for real experiment timing.
 --------------------------------------------------------------------------
 
 library IEEE;
@@ -88,7 +117,14 @@ entity photon is
 		sys_clkp  : in     STD_LOGIC;
 		sys_clkn  : in     STD_LOGIC;
 
-		led       : out    STD_LOGIC_VECTOR(3 downto 0)
+		led       : out    STD_LOGIC_VECTOR(3 downto 0);
+
+		-- 6-bit LED header (see constraints/xem7305.xdc, pins copied from
+		-- ../XEM7305_references/Locally_compiled_ramtester -- LVCMOS33, a
+		-- different bank/voltage than the onboard led[3:0] above, so this
+		-- is a separate add-on LED board/header, not more onboard LEDs).
+		-- Carries logic_out(5 downto 0) for Phase 5a bring-up -- see below.
+		led_ext   : out    STD_LOGIC_VECTOR(5 downto 0)
 	);
 end photon;
 
@@ -276,11 +312,45 @@ architecture arch of photon is
 	signal readout_count_fifo_rd_data_count : STD_LOGIC_VECTOR(9 downto 0);
 	signal readout_count_fifo_reset : STD_LOGIC;
 
+	-- Phase 5a: pulse-sequence FSM. master_logic holds the RAM word
+	-- currently in effect; logic_out is master_logic run through the
+	-- per-channel force/invert override mux (ep02wire/ep03wire), same
+	-- as the legacy design's LOGIC_OUT. master_logic itself has no
+	-- pins; logic_out's low 6 bits reach led_ext (see entity port
+	-- comment), the rest has no pins until Phase 4 -- see 0x2B/0x2C
+	-- below for full-width host-side observation either way.
+	signal master_logic : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal logic_out    : STD_LOGIC_VECTOR(31 downto 0);
+
+	-- Sequencer control, wired from the same WireIn/TriggerIn bits as
+	-- the legacy design (ep00wire(1)/(2), ep40wire(0)).
+	signal pulser_counter_reset : STD_LOGIC;
+	signal pulser_infinite_loop : STD_LOGIC;
+	signal pulser_start_bit     : STD_LOGIC;
+	signal pulser_sequence_done : STD_LOGIC;
+	signal seq_count_bit        : STD_LOGIC_VECTOR(15 downto 0);
+
+	-- Phase 5b stub: the legacy FSM's state-0 wait gates on this pulse
+	-- when line-triggering is enabled (ep00wire(3)='1'). The real
+	-- line-trigger conditioning chain (logic_in(0) -> debounce -> user
+	-- delay -> pulse) is Phase 5b, blocked on the same breakout-board
+	-- pin as Phase 4. Tied to '0' for now: if a host enables
+	-- line-triggering before Phase 5b exists, the sequencer will simply
+	-- wait in state 0 forever rather than ever falsely triggering.
+	signal line_triggering_pulse : STD_LOGIC := '0';
+
+	-- WireOut endpoints (0x2B, 0x2C) — Phase 5a bring-up only, no
+	-- legacy equivalent. logic_out has no pins to observe on yet
+	-- (Phase 4), so it's exposed here instead; 0x2C bundles
+	-- sequence-done and the running loop count into one word.
+	signal ep2Bwire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep2Cwire : STD_LOGIC_VECTOR(31 downto 0);
+
 	-- Target interface bus (new-generation okHost)
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*15-1 downto 0); -- 15 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*17-1 downto 0); -- 17 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -389,6 +459,104 @@ begin
 	normal_pmt_fifo_reset    <= ep40wire(2);
 	readout_count_fifo_reset <= ep40wire(4);
 
+	-- Note: master_logic(17) is the legacy "TimeResolvedCount" bit --
+	-- fifo_photon_wr_en would be wired to it directly in the legacy
+	-- design, but fifo_photon_din (photon_time_tag) doesn't exist until
+	-- Phase 5c's PMT-oversampling logic is built. Left tied to '0' for
+	-- now (unchanged from Phase 3) rather than wired to master_logic(17)
+	-- with nothing valid to write, which would silently stuff zeros into
+	-- fifo_photon whenever a real pulse program sets that bit.
+
+	------------------------------------------------------------------
+	-- Phase 5a: sequencer control, same WireIn/TriggerIn bits as the
+	-- legacy design. pulser_counter_reset is used as an async reset
+	-- below, same as legacy -- same ep40wire/sys_clk-domain CDC caveat
+	-- already flagged for ep40wire(1) in Phase 3 also applies here.
+	------------------------------------------------------------------
+	pulser_counter_reset <= ep40wire(0);
+	pulser_infinite_loop <= ep00wire(1);
+	pulser_start_bit     <= ep00wire(2);
+
+	------------------------------------------------------------------
+	-- Phase 5a: logic_out override mux, ported directly from the
+	-- legacy design's LOGIC_OUT assignments. Channels 0-11 support
+	-- per-channel manual override via ep02wire/ep03wire (00=follow
+	-- master_logic, 01=invert, 10=force 0, 11=force 1); channels 12/13
+	-- echo the DDS step/reset bits (master_logic(18)/(19)) same as the
+	-- legacy design's "729 DDS BNC" outputs; 14/15 are unused (tied 0,
+	-- matching legacy); 16-31 are a straight passthrough, no override.
+	------------------------------------------------------------------
+	logic_out(0) <= master_logic(0)     WHEN (ep02wire(0)='0' AND ep03wire(0)='0') ELSE
+	                NOT master_logic(0) WHEN (ep02wire(0)='0' AND ep03wire(0)='1') ELSE
+	                '0'                 WHEN (ep02wire(0)='1' AND ep03wire(0)='0') ELSE
+	                '1';
+	logic_out(1) <= master_logic(1)     WHEN (ep02wire(1)='0' AND ep03wire(1)='0') ELSE
+	                NOT master_logic(1) WHEN (ep02wire(1)='0' AND ep03wire(1)='1') ELSE
+	                '0'                 WHEN (ep02wire(1)='1' AND ep03wire(1)='0') ELSE
+	                '1';
+	logic_out(2) <= master_logic(2)     WHEN (ep02wire(2)='0' AND ep03wire(2)='0') ELSE
+	                NOT master_logic(2) WHEN (ep02wire(2)='0' AND ep03wire(2)='1') ELSE
+	                '0'                 WHEN (ep02wire(2)='1' AND ep03wire(2)='0') ELSE
+	                '1';
+	logic_out(3) <= master_logic(3)     WHEN (ep02wire(3)='0' AND ep03wire(3)='0') ELSE
+	                NOT master_logic(3) WHEN (ep02wire(3)='0' AND ep03wire(3)='1') ELSE
+	                '0'                 WHEN (ep02wire(3)='1' AND ep03wire(3)='0') ELSE
+	                '1';
+	logic_out(4) <= master_logic(4)     WHEN (ep02wire(4)='0' AND ep03wire(4)='0') ELSE
+	                NOT master_logic(4) WHEN (ep02wire(4)='0' AND ep03wire(4)='1') ELSE
+	                '0'                 WHEN (ep02wire(4)='1' AND ep03wire(4)='0') ELSE
+	                '1';
+	logic_out(5) <= master_logic(5)     WHEN (ep02wire(5)='0' AND ep03wire(5)='0') ELSE
+	                NOT master_logic(5) WHEN (ep02wire(5)='0' AND ep03wire(5)='1') ELSE
+	                '0'                 WHEN (ep02wire(5)='1' AND ep03wire(5)='0') ELSE
+	                '1';
+	logic_out(6) <= master_logic(6)     WHEN (ep02wire(6)='0' AND ep03wire(6)='0') ELSE
+	                NOT master_logic(6) WHEN (ep02wire(6)='0' AND ep03wire(6)='1') ELSE
+	                '0'                 WHEN (ep02wire(6)='1' AND ep03wire(6)='0') ELSE
+	                '1';
+	logic_out(7) <= master_logic(7)     WHEN (ep02wire(7)='0' AND ep03wire(7)='0') ELSE
+	                NOT master_logic(7) WHEN (ep02wire(7)='0' AND ep03wire(7)='1') ELSE
+	                '0'                 WHEN (ep02wire(7)='1' AND ep03wire(7)='0') ELSE
+	                '1';
+	logic_out(8) <= master_logic(8)     WHEN (ep02wire(8)='0' AND ep03wire(8)='0') ELSE
+	                NOT master_logic(8) WHEN (ep02wire(8)='0' AND ep03wire(8)='1') ELSE
+	                '0'                 WHEN (ep02wire(8)='1' AND ep03wire(8)='0') ELSE
+	                '1';
+	logic_out(9) <= master_logic(9)     WHEN (ep02wire(9)='0' AND ep03wire(9)='0') ELSE
+	                NOT master_logic(9) WHEN (ep02wire(9)='0' AND ep03wire(9)='1') ELSE
+	                '0'                 WHEN (ep02wire(9)='1' AND ep03wire(9)='0') ELSE
+	                '1';
+	logic_out(10) <= master_logic(10)     WHEN (ep02wire(10)='0' AND ep03wire(10)='0') ELSE
+	                  NOT master_logic(10) WHEN (ep02wire(10)='0' AND ep03wire(10)='1') ELSE
+	                  '0'                  WHEN (ep02wire(10)='1' AND ep03wire(10)='0') ELSE
+	                  '1';
+	logic_out(11) <= master_logic(11)     WHEN (ep02wire(11)='0' AND ep03wire(11)='0') ELSE
+	                  NOT master_logic(11) WHEN (ep02wire(11)='0' AND ep03wire(11)='1') ELSE
+	                  '0'                  WHEN (ep02wire(11)='1' AND ep03wire(11)='0') ELSE
+	                  '1';
+	logic_out(12) <= master_logic(18); -- DDS step-to-next-value
+	logic_out(13) <= master_logic(19); -- DDS reset
+	logic_out(14) <= '0';
+	logic_out(15) <= '0';
+	logic_out(31 downto 16) <= master_logic(31 downto 16);
+
+	------------------------------------------------------------------
+	-- Phase 5a bring-up (0x2B/0x2C): logic_out has no pins yet
+	-- (Phase 4), so expose it directly on a WireOut for host-side
+	-- verification, plus sequence-done (bit 16) and the running loop
+	-- count (bits 15:0, same as legacy's seq_count_bit).
+	------------------------------------------------------------------
+	ep2Bwire <= logic_out;
+	ep2Cwire <= (31 downto 17 => '0') & pulser_sequence_done & seq_count_bit;
+
+	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
+	-- above which are active-low. led_ext is presumed a separate add-on LED
+	-- board wired the ordinary way (LED positive lead to the FPGA pin
+	-- through a series resistor) rather than Opal Kelly's own onboard
+	-- open-drain-style LEDs -- if channels appear inverted on hardware,
+	-- change this to "not logic_out(5 downto 0)".
+	led_ext <= logic_out(5 downto 0);
+
 	-- Phase 3 bring-up only: drains pulse_fifo into pulser_ram at an
 	-- auto-incrementing address. pulse_fifo is First-Word-Fall-Through,
 	-- so dout is already valid whenever empty='0' -- no extra wait state
@@ -422,6 +590,136 @@ begin
 		end if;
 	end process;
 
+	------------------------------------------------------------------
+	-- Phase 5a: main pulse-sequence FSM. See file header comment for
+	-- the RAM-read-timing adaptation this makes relative to the
+	-- legacy design. ram_process_count states 0-4 mirror the legacy
+	-- design's initial two-word pipeline fill 1:1 (state numbering and
+	-- intent unchanged, only the RAM-read mechanics inside states 1/3
+	-- differ -- see comments below); state 5 is the main run loop,
+	-- restructured around an unconditional 4-cycle count1 heartbeat
+	-- (preserving the legacy 40 ns/tick rate) with the RAM
+	-- read-ahead/word-transition work happening only at the count1=3
+	-- tick boundary, since our RAM's data is already valid (no
+	-- separate strobe/latency to hide) by the time we get there;
+	-- state 6 is the same "limbo" done-state as legacy.
+	------------------------------------------------------------------
+	process (clk_100, pulser_counter_reset)
+		variable seq_count         : INTEGER range 0 to 65535 := 0;
+		variable count1            : INTEGER range 0 to 3 := 0;
+		variable time_count        : INTEGER := 0;
+		variable time_stamp        : INTEGER := 0;
+		variable ram_read_address  : INTEGER range 0 to 1023 := 0;
+		variable ram_process_count : INTEGER range 0 to 6 := 0;
+		variable ram_data_out_1    : STD_LOGIC_VECTOR(63 downto 0);
+		variable ram_data_out_2    : STD_LOGIC_VECTOR(63 downto 0);
+	begin
+		if pulser_counter_reset = '1' then
+			ram_process_count := 0;
+			ram_read_address  := 0;
+			count1             := 0;
+			time_count         := 0;
+			time_stamp         := 0;
+			master_logic      <= (others => '0');
+			pulser_sequence_done <= '0';
+			seq_count          := 0;
+		elsif rising_edge(clk_100) then
+			if pulser_start_bit = '1' then
+				case ram_process_count is
+
+					-- wait for line trigger (Phase 5b stub, see
+					-- line_triggering_pulse declaration) or fall
+					-- through immediately if disabled
+					when 0 =>
+						ram_read_address := 0;
+						if (ep00wire(3) = '1' and line_triggering_pulse = '1') or ep00wire(3) = '0' then
+							ram_process_count := 1;
+						end if;
+
+					-- word 0: address 0 is now on pulser_ram_addrb
+					-- (driven below from ram_read_address); wait one
+					-- clk_100 cycle for our RAM's read latency
+					when 1 =>
+						ram_process_count := 2;
+
+					when 2 =>
+						master_logic      <= pulser_ram_doutb(31 downto 0);
+						ram_data_out_1    := pulser_ram_doutb;
+						ram_read_address  := 1; -- prefetch word 1
+						ram_process_count := 3;
+
+					-- word 1: same one-cycle wait as above
+					when 3 =>
+						ram_process_count := 4;
+
+					when 4 =>
+						ram_data_out_2    := pulser_ram_doutb;
+						time_stamp        := CONV_INTEGER(UNSIGNED(ram_data_out_2(61 downto 32)));
+						ram_read_address  := 2; -- prefetch word 2, needed for the first run-loop transition
+						count1             := 0;
+						ram_process_count := 5;
+
+					-- main run loop: count1 advances every clk_100
+					-- cycle unconditionally (4 cycles = 40 ns/tick,
+					-- matching the legacy design's tick rate exactly
+					-- so existing pulse programs' timestamps mean the
+					-- same real-world duration); the word transition
+					-- only happens at the count1=3 tick boundary, and
+					-- only when time_count is about to reach time_stamp
+					when 5 =>
+						if count1 = 3 then
+							count1     := 0;
+							time_count := time_count + 1;
+							if time_count = time_stamp then
+								-- ram_read_address hasn't changed since
+								-- the last transition, so pulser_ram_doutb
+								-- has been valid for several cycles already
+								ram_data_out_1   := ram_data_out_2;
+								ram_data_out_2   := pulser_ram_doutb;
+								ram_read_address := ram_read_address + 1;
+								time_stamp       := CONV_INTEGER(UNSIGNED(ram_data_out_2(61 downto 32)));
+								if time_stamp = 0 then
+									-- end-of-sequence sentinel word reached
+									if pulser_infinite_loop = '1' then
+										ram_process_count := 0;
+										ram_read_address  := 0;
+										count1             := 0;
+										time_count         := 0;
+										time_stamp         := 0;
+										master_logic      <= ram_data_out_1(31 downto 0);
+										seq_count          := seq_count + 1;
+										if CONV_INTEGER(UNSIGNED(ep05wire(15 downto 0))) /= 0 and
+										   seq_count = CONV_INTEGER(UNSIGNED(ep05wire(15 downto 0))) then
+											master_logic      <= (others => '0');
+											ram_process_count := 6;
+										end if;
+									else
+										-- one-shot mode: done, go to limbo
+										master_logic      <= (others => '0');
+										ram_process_count := 6;
+									end if;
+								else
+									master_logic <= ram_data_out_1(31 downto 0);
+								end if;
+							end if;
+						else
+							count1 := count1 + 1;
+						end if;
+
+					-- limbo: sequence done, stays here until pulser_counter_reset
+					when 6 =>
+						pulser_sequence_done <= '1';
+
+					when others => null;
+
+				end case;
+			end if;
+
+			pulser_ram_addrb <= CONV_STD_LOGIC_VECTOR(ram_read_address, 10);
+			seq_count_bit    <= CONV_STD_LOGIC_VECTOR(seq_count, 16);
+		end if;
+	end process;
+
 	osc_clk : IBUFGDS port map (O => sys_clk, I => sys_clkp, IB => sys_clkn);
 
 	clk_gen : clk_wiz_0 port map (
@@ -444,7 +742,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 15) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 17) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -500,6 +798,10 @@ begin
 	wo28 : okWireOut port map (okHE => okHE, okEH => okEHx(13*65-1 downto 12*65), ep_addr => x"28", ep_datain => ep28wire);
 	wo29 : okWireOut port map (okHE => okHE, okEH => okEHx(14*65-1 downto 13*65), ep_addr => x"29", ep_datain => ep29wire);
 	wo2A : okWireOut port map (okHE => okHE, okEH => okEHx(15*65-1 downto 14*65), ep_addr => x"2A", ep_datain => ep2Awire);
+
+	-- WireOut endpoints (Phase 5a sequencer bring-up, see file header comment)
+	wo2B : okWireOut port map (okHE => okHE, okEH => okEHx(16*65-1 downto 15*65), ep_addr => x"2B", ep_datain => ep2Bwire);
+	wo2C : okWireOut port map (okHE => okHE, okEH => okEHx(17*65-1 downto 16*65), ep_addr => x"2C", ep_datain => ep2Cwire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (
