@@ -8,7 +8,9 @@ folder currently implements **Phases 1 and 2**.
 - Phase 1 (host interface migration): **complete and verified on real
   XEM7305 hardware** (see Bring-up test plan below — every step
   confirmed via `test/smoke_test.py`).
-- Phase 2 (clocking): scaffolded, **not yet built/tested on hardware**.
+- Phase 2 (clocking): **complete and verified on real XEM7305
+  hardware** — MMCM locked, and clk_200/clk_100/clk_20 measured at
+  200.16/100.08/20.02 MHz (0.1% of nominal) via `test/smoke_test.py`.
 
 ## Scope of these phases
 
@@ -125,26 +127,19 @@ hardware (FrontPanel SDK 5.3.7).
 6. ✅ Write to BTPipeIn 0x80/0x81 and confirm the transfer completes
    without hardware hang (content is discarded at this phase).
 
-## Bring-up test plan — Phase 2 (not yet run on hardware)
+## Bring-up test plan — Phase 2
 
-Covered by `test_clocking()` in `test/smoke_test.py`, but the design
-has not been synthesized/tested since these changes were added — needs
-a rebuild in Vivado (`vivado -mode batch -source create_project.tcl`,
-which now also generates the `clk_wiz_0` IP) before any of this can be
-confirmed.
+All steps below confirmed via `test/smoke_test.py` on real XEM7305
+hardware.
 
-1. ⬜ Read WireOut 0x23 bit 0 and confirm the MMCM reports `locked`.
-2. ⬜ Read WireOut 0x24/0x25/0x26 twice, ~1s apart, and confirm the
-   counter deltas correspond to ~200 MHz / ~100 MHz / ~20 MHz
-   (`test_clocking()` does this with a 5% tolerance).
-3. ⬜ Re-confirm all Phase 1 checks still pass (the `okWireOR` fan-in
+1. ✅ Read WireOut 0x23 bit 0 and confirm the MMCM reports `locked`.
+2. ✅ Read WireOut 0x24/0x25/0x26 twice, ~1s apart, and confirm the
+   counter deltas correspond to ~200 MHz / ~100 MHz / ~20 MHz —
+   measured 200.16/100.08/20.02 MHz (0.1% error).
+3. ✅ Re-confirm all Phase 1 checks still pass (the `okWireOR` fan-in
    width and `okEHx` slot count changed to make room for the new
-   WireOut endpoints — a regression here would mean a slot-indexing
-   mistake).
+   WireOut endpoints — no regression observed).
 
-Before building: `src/photon.vhd` declares a `clk_wiz_0` component with
-ports (`clk_in1`, `clk_out1`, `clk_out2`, `clk_out3`, `locked`) matching
-Vivado's standard Clocking Wizard wrapper naming, but this hasn't been
-checked against the actual generated `src/ip/clk_wiz_0/clk_wiz_0.vhd`
-on real Vivado — if synthesis reports a missing/mismatched component,
-compare port names there first.
+`src/photon.vhd`'s `clk_wiz_0` component declaration (`clk_in1`,
+`clk_out1`, `clk_out2`, `clk_out3`, `locked`) matched the actual
+generated wrapper as-is — no `reset` port, no adjustments needed.
