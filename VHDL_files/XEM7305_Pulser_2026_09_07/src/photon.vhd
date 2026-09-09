@@ -412,6 +412,14 @@ architecture arch of photon is
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
+	-- DIAGNOSTIC (temporary, WireOut 0x30): counts every
+	-- mig_app_rd_data_valid pulse regardless of rd_pf_state, to test
+	-- whether each MIG read command asserts it once (as assumed) or
+	-- twice (which would mean state 2 only ever captures the first of
+	-- two beats, explaining the observed "each high shifted by one
+	-- entry" readback pattern).
+	signal dbg_valid_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
 	-- mid-transaction (address already advanced past MIG's app_rdy but
@@ -425,6 +433,10 @@ architecture arch of photon is
 	-- legacy equivalent; see file header comment.
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
+
+	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
+	-- dbg_valid_count declaration comment.
+	signal ep30wire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -631,7 +643,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*21-1 downto 0); -- 21 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*22-1 downto 0); -- 22 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -852,6 +864,23 @@ begin
 	-- ep00wire(4) back to write mode, see rd_pf_idle declaration
 	-- comment. bits 5:0: ddr3_read_rd_data_count.
 	ep2Fwire <= (31 downto 17 => '0') & rd_pf_idle & (15 downto 6 => '0') & ddr3_read_rd_data_count;
+
+	------------------------------------------------------------------
+	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count
+	-- declaration comment.
+	------------------------------------------------------------------
+	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
+
+	process (ui_clk)
+	begin
+		if rising_edge(ui_clk) then
+			if ep40wire(5) = '1' then
+				dbg_valid_count <= (others => '0');
+			elsif mig_app_rd_data_valid = '1' then
+				dbg_valid_count <= dbg_valid_count + 1;
+			end if;
+		end if;
+	end process;
 
 	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
 	-- above which are active-low. led_ext is presumed a separate add-on LED
@@ -1275,7 +1304,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 21) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 22) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1349,6 +1378,10 @@ begin
 		okHE => okHE, okEH => okEHx(21*65-1 downto 20*65), ep_addr => x"A3",
 		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => pipeOut_ready
 	);
+
+	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
+	-- dbg_valid_count declaration comment.
+	wo30 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"30", ep_datain => ep30wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (
