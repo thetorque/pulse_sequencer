@@ -445,6 +445,16 @@ architecture arch of photon is
 	-- channel via this host-controlled bit instead of a runtime arbiter.
 	signal rd_pf_state      : INTEGER range 0 to 2 := 0;
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	-- Lost-command retry: MIG 7 occasionally counts a read command as
+	-- accepted (app_rdy sampled high) but never returns app_rd_data_valid
+	-- for it -- a known app_rdy edge-timing issue (falling edge right at
+	-- the clock edge). To recover, the address advance and command count
+	-- are committed on VALID (not on app_rdy), and state 2 times out after
+	-- rd_pf_wait_ctr cycles -- far beyond any real read latency, so a
+	-- merely-slow valid always arrives first -- and re-issues the same
+	-- (un-advanced) address. RD_PF_TIMEOUT ~2047 ui_clk (~25 us at
+	-- 81 MHz) vs. a normal read latency well under 1 us.
+	signal rd_pf_wait_ctr   : INTEGER range 0 to 2047 := 0;
 
 	-- DIAGNOSTIC (temporary, WireOut 0x30): counts rising edges of
 	-- mig_app_rd_data_valid (not every cycle it's held high -- a first
@@ -462,6 +472,11 @@ architecture arch of photon is
 	-- dbg_valid_count -- if they don't match, the mismatch is between
 	-- issuing and MIG's response, not in how we process a response.
 	signal dbg_cmd_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+
+	-- DIAGNOSTIC (temporary, WireOut 0x31 bits 15:8): how many times the
+	-- lost-command retry fired (state-2 timeout re-issuing a read). Nonzero
+	-- confirms the MIG app_rdy edge-timing issue was hit and recovered.
+	signal dbg_retry_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
 	-- DIAGNOSTIC (temporary, WireOut 0x32/0x33): the raw high-32 bits
 	-- mig_app_rd_data actually returns for the first two commands'
@@ -995,7 +1010,7 @@ begin
 	-- declaration comment.
 	------------------------------------------------------------------
 	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
-	ep31wire <= (31 downto 8 => '0') & dbg_cmd_count;
+	ep31wire <= (31 downto 16 => '0') & dbg_retry_count & dbg_cmd_count;
 	ep32wire <= dbg_high0;
 	ep33wire <= dbg_high1;
 	-- bits 31:16: dbg_dup_at_cmd. bits 15:1: dbg_dup_count. bit 0:
@@ -1261,6 +1276,8 @@ begin
 				dbg_resp_count <= 0;
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
+				rd_pf_wait_ctr <= 0;
+				dbg_retry_count    <= (others => '0');
 				dbg_dup_count      <= (others => '0');
 				dbg_dup_at_cmd     <= (others => '0');
 				dbg_dup_addr_match <= '0';
@@ -1359,24 +1376,29 @@ begin
 						-- Assert app_en ONLY while the command has not yet
 						-- been accepted -- deasserting it the cycle app_rdy
 						-- accepts prevents MIG from latching the same read
-						-- twice (the double-issue bug: valid=cmd+1, which
-						-- desynced the readback). Matches ramtester's
-						-- s_read_1 and the write-assembler's state-3 logic.
+						-- twice (the double-issue bug). Matches ramtester's
+						-- s_read_1. NOTE: the address advance and command
+						-- count are NOT done here -- they are committed on
+						-- VALID in state 2, so a command MIG counts as
+						-- accepted but never completes (the lost-command
+						-- issue) can be retried at the same address.
 						if mig_app_rdy = '1' then
-							rd_pf_addr    <= rd_pf_addr + 8;
-							rd_pf_state   <= 2;
-							dbg_cmd_count <= dbg_cmd_count + 1;
-							rd_pf_issued  <= rd_pf_issued + 1;
-							dbg_cmd_addr  <= rd_pf_addr;
+							rd_pf_state    <= 2;
+							rd_pf_wait_ctr <= 0;
 						else
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
 						end if;
-					when others => -- 2: wait for the response, push it whole
+					when others => -- 2: wait for the response (with a
+						-- lost-command timeout), push it whole, then commit.
 						if mig_app_rd_data_valid = '1' then
 							ddr3_read_din   <= mig_app_rd_data;
 							ddr3_read_wr_en <= '1';
+							rd_pf_addr      <= rd_pf_addr + 8;
+							rd_pf_issued    <= rd_pf_issued + 1;
+							dbg_cmd_count   <= dbg_cmd_count + 1;
+							dbg_cmd_addr    <= rd_pf_addr;
 							rd_pf_state     <= 0;
 							-- DIAGNOSTIC: raw high-32 of the first two
 							-- responses (WireOut 0x32/0x33).
@@ -1398,6 +1420,15 @@ begin
 							end if;
 							dbg_prev_rd_data <= mig_app_rd_data;
 							dbg_prev_addr    <= dbg_cmd_addr;
+						elsif rd_pf_wait_ctr = 2047 then
+							-- lost command: MIG counted app_rdy but never
+							-- returned a valid. Re-issue the SAME address
+							-- (rd_pf_addr was not advanced). See
+							-- rd_pf_wait_ctr declaration comment.
+							dbg_retry_count <= dbg_retry_count + 1;
+							rd_pf_state     <= 0;
+						else
+							rd_pf_wait_ctr <= rd_pf_wait_ctr + 1;
 						end if;
 				end case;
 			end if;

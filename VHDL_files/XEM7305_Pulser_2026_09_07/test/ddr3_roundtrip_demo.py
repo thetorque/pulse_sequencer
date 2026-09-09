@@ -375,12 +375,16 @@ def print_dup_diagnostics(xem):
 
     xem.UpdateWireOuts()
     valid_count = xem.GetWireOutValue(VALID_COUNT_WIRE) & 0xFF
-    cmd_count = xem.GetWireOutValue(CMD_COUNT_WIRE) & 0xFF
+    cmd31 = xem.GetWireOutValue(CMD_COUNT_WIRE)
+    cmd_count = cmd31 & 0xFF
+    retry_count = (cmd31 >> 8) & 0xFF   # dbg_retry_count, bits 15:8
     print(
         f"  app_rd_data_valid diagnostic: dbg_valid_count={valid_count}, "
         f"dbg_cmd_count={cmd_count} "
         f"({'MATCH -- one valid pulse per command' if valid_count == cmd_count else 'MISMATCH -- valid fired a different number of times than commands issued'})"
     )
+    print(f"  lost-command retry diagnostic: dbg_retry_count={retry_count} "
+          f"({'no lost commands' if retry_count == 0 else 'MIG app_rdy edge-timing issue hit and recovered'})")
 
 
 def make_test_words(n, tag, rng=None):
