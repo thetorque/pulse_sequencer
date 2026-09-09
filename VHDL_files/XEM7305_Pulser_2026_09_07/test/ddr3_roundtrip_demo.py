@@ -56,6 +56,15 @@ Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit [n_words] [--random[=SEED]]
     python ddr3_roundtrip_demo.py path/to/photon.bit soak [n_batches] [words_per_batch] [--random[=SEED]]
     python ddr3_roundtrip_demo.py path/to/photon.bit endurance [duration_sec] [words_per_batch] [--random[=SEED]]
+    python ddr3_roundtrip_demo.py path/to/photon.bit memtest [mib] [chunk_words] [seed]
+
+memtest is the rigorous memory-integrity pass: it writes address-derived
+data across `mib` MiB (default 512 = whole device) in one write phase,
+then reads it ALL back and verifies. Unlike endurance/soak (which read
+each chunk right after writing it), this proves retention (early writes
+survive the whole write phase) and no aliasing (each location holds only
+its own value). Takes ~30-40 min for the full 512 MiB; pass a smaller
+mib for a quick check. chunk_words <= 256 (read-FIFO headroom).
 
 endurance runs continuously for duration_sec (default 3600 = 1 hr),
 sweeping the whole 512 MiB device by letting the DDR3 address advance
@@ -460,6 +469,21 @@ def make_test_words(n, tag, rng=None):
     return [0xA5A5_0000_0000_0000 | (tag << 16) | i for i in range(n)]
 
 
+MASK64 = (1 << 64) - 1
+
+
+def memtest_value(index, seed):
+    """splitmix64 hash of a global 64-bit word index -> a 64-bit value.
+    Address-derived: the host recomputes it to write AND to verify, so
+    it never stores the whole device. Good bit diffusion means a stuck
+    bit, a mis-decoded address (aliasing), a write that disturbed a
+    neighbour, or a retention failure all surface as a mismatch."""
+    x = (index + seed) & MASK64
+    x = ((x ^ (x >> 30)) * 0xBF58476D1CE4E5B9) & MASK64
+    x = ((x ^ (x >> 27)) * 0x94D049BB133111EB) & MASK64
+    return (x ^ (x >> 31)) & MASK64
+
+
 def run_soak_test(xem, n_batches, words_per_batch, rng=None):
     """Writes and immediately verifies n_batches batches of
     words_per_batch words each, without resetting pointers in between
@@ -548,6 +572,75 @@ def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
         raise AssertionError(f"endurance test saw {mismatches} mismatch(es)")
 
 
+def run_memtest(xem, mib, chunk_words, seed):
+    """Rigorous memory-integrity test: write address-derived data
+    (memtest_value(word_index)) across `mib` MiB of DDR3 in a single
+    write phase (write mode throughout, no reads), THEN read it all
+    back and verify. Unlike the sweep/soak tests -- which read each
+    chunk back immediately -- this proves data RETENTION (every early
+    write survives the whole write phase, then the read phase, kept
+    alive only by DRAM refresh) and NO ALIASING/DISTURBANCE (each
+    location holds exactly its own value, so no write corrupted a
+    different address). Write and read both advance from address 0 in
+    identical chunk strides, so chunk c reads back exactly what chunk c
+    wrote."""
+    total_words = (mib * 1024 * 1024) // 8
+    total_words -= total_words % chunk_words        # whole chunks only
+    n_chunks = total_words // chunk_words
+    print(f"\n--- DDR3 memtest: write all {mib} MiB, then verify all "
+          f"(seed={seed:#010x}) ---")
+    print(f"    {total_words} words in {n_chunks} chunks of {chunk_words} "
+          f"(each location must survive the whole write phase)")
+    reset_ddr3(xem)  # zero wr_asm_addr AND rd_pf_addr
+
+    # ---- write phase (write mode throughout; no reads) ----
+    print("  write phase...")
+    t0 = time.time()
+    nxt = t0 + 15.0
+    for c in range(n_chunks):
+        base = c * chunk_words
+        write_words(xem, [memtest_value(base + i, seed) for i in range(chunk_words)])
+        if time.time() >= nxt:
+            done = (c + 1) / n_chunks
+            print(f"    write {done*100:5.1f}%  {(c+1)*chunk_words*8/1e6:7.0f} MB  "
+                  f"{time.time()-t0:5.0f}s")
+            nxt = time.time() + 15.0
+    print(f"  write phase done: {mib} MiB in {time.time()-t0:.0f}s")
+
+    # ---- read/verify phase (data has now sat in DRAM) ----
+    print("  read/verify phase...")
+    t1 = time.time()
+    nxt = t1 + 15.0
+    mismatches = 0
+    first_fail = None
+    for c in range(n_chunks):
+        base = c * chunk_words
+        expected = [memtest_value(base + i, seed) for i in range(chunk_words)]
+        got = read_words(xem, chunk_words)
+        if got != expected:
+            mismatches += 1
+            bad = next(i for i in range(chunk_words) if got[i] != expected[i])
+            if first_fail is None:
+                first_fail = (c, bad, expected[bad], got[bad])
+            print(f"    [MISMATCH] chunk {c}, word #{bad}: "
+                  f"expected {expected[bad]:#018x} got {got[bad]:#018x}")
+        if time.time() >= nxt:
+            done = (c + 1) / n_chunks
+            print(f"    read  {done*100:5.1f}%  {time.time()-t1:5.0f}s  "
+                  f"mismatches={mismatches}")
+            nxt = time.time() + 15.0
+    print(f"  read phase done in {time.time()-t1:.0f}s")
+
+    print("\n--- Memtest summary ---")
+    if mismatches == 0:
+        print(f"  RESULT: PASS -- wrote and verified {mib} MiB, no mismatches")
+    else:
+        c, bad, exp, got = first_fail
+        print(f"  RESULT: FAIL -- {mismatches} chunk(s) mismatched; first at "
+              f"chunk {c} word #{bad}: expected {exp:#018x} got {got:#018x}")
+        raise AssertionError(f"memtest saw {mismatches} mismatched chunk(s)")
+
+
 def parse_random_flag(argv):
     """Extracts a trailing --random or --random=SEED flag from argv
     (any position), returning (remaining_argv, rng_or_None). Prints
@@ -601,6 +694,20 @@ def main():
                      "corrupts near the full boundary.")
         xem = connect(argv[1])
         run_endurance_test(xem, duration_sec, words_per_batch, rng)
+        return
+
+    if len(argv) >= 3 and argv[2] == "memtest":
+        if len(argv) not in (3, 4, 5, 6):
+            sys.exit(f"Usage: {argv[0]} path/to/photon.bit memtest [mib] [chunk_words] [seed]")
+        mib = int(argv[3]) if len(argv) >= 4 else 512
+        chunk_words = int(argv[4]) if len(argv) >= 5 else 256
+        seed = int(argv[5], 0) if len(argv) == 6 else 0xA5A5A5A5
+        if chunk_words % 2 != 0 or chunk_words > 256:
+            sys.exit("chunk_words must be even and <= 256 (read-FIFO headroom)")
+        if not 1 <= mib <= 512:
+            sys.exit("mib must be 1..512 (the device is 512 MiB)")
+        xem = connect(argv[1])
+        run_memtest(xem, mib, chunk_words, seed)
         return
 
     if len(argv) not in (2, 3):
