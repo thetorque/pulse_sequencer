@@ -1,9 +1,10 @@
-# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3 + Phase 5a
+# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3 + Phase 5a + Phase 6a
 
 Port of the pulse sequencer from XEM6010 (`VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd`)
 to the XEM7305. See the full port plan discussion for all phases; this
-folder currently implements **Phases 1, 2, 3, and 5a** (Phase 4 and
-the rest of Phase 5 are blocked on a breakout board — see below).
+folder currently implements **Phases 1, 2, 3, 5a, and 6a** (Phase 4 and
+the rest of Phase 5 are blocked on a breakout board — see below; Phase
+6b onward is the rest of the DDR3 migration for `pulser_ram`).
 
 **Status:**
 - Phase 1 (host interface migration): **complete and verified on real
@@ -26,6 +27,14 @@ the rest of Phase 5 are blocked on a breakout board — see below).
   visibly lights `[0]` through `[5]` in turn, 0.5 s apart — and
   resolved `pulse_fifo`'s write-order convention empirically along the
   way (see Phase 5a bring-up section below).
+- Phase 6a (DDR3 MIG bring-up): **complete and verified on real XEM7305
+  hardware** — `ddr3_256_16` (Xilinx MIG 7-series) instantiated with
+  its `app_*` command interface tied fully inert (nothing reads/writes
+  DDR3 yet — that's Phase 6b), MIG owns the physical `sys_clk_p`/
+  `sys_clk_n` pins directly, `clk_wiz_0` re-sourced from MIG's `ui_clk`,
+  and `init_calib_complete` (WireOut 0x2D) confirmed asserting via
+  `test/smoke_test.py` — real calibration against the XEM7305's actual
+  DDR3 chip, not just a clean build.
 
 ## Scope of these phases
 
@@ -101,14 +110,33 @@ is accepted and discarded, and the three read FIFOs' write sides are
 unconnected (their bring-up occupancy WireOuts will correctly read 0
 until Phase 5c exists).
 
+**Phase 6a** begins the DDR3 migration for `pulser_ram` (currently
+1024×64-bit BRAM — fine for bring-up, but a hard ceiling for real
+experiment sequences): instantiates the DDR3 SDRAM controller
+(`src/ip/ddr3_256_16`, Xilinx MIG 7-series, generated from
+`../XEM7305_references/Locally_compiled_ramtester`'s proven `mig_b.prj`
+configuration unmodified) as pure bring-up. Its `app_*` command
+interface is tied fully inert (`app_en`/`app_wdf_wren` = `'0'`) —
+nothing reads or writes DDR3 yet; that's Phase 6b's read-prefetch-
+buffer/write-burst-assembler adapters. MIG now owns the physical
+`sys_clk_p`/`sys_clk_n` differential pins directly (System Clock =
+Differential, matching the proven reference design exactly), replacing
+the old `IBUFGDS`/`sys_clk` path; `clk_wiz_0` (Phase 2) is re-sourced
+from MIG's `ui_clk` (~81.25 MHz) instead of raw `sys_clk`, and the
+heartbeat counter and `TriggerIn` 0x40's `ep_clk` both move to `ui_clk`
+too — it's the earliest clock in the whole chain that's independent of
+USB traffic (available once just MIG's own PLL locks, without needing
+full DDR3 calibration or `clk_wiz_0`'s own lock). A new bring-up-only
+WireOut (0x2D) exposes `init_calib_complete` for host-side polling.
+
 ## Endpoint map
 
 0x00-0x22, 0x40, 0x80-0xA2 are unchanged *addresses* from the legacy
 design and preserved exactly so `Python_files/servers/pulser/api.py`
 needs no address changes once this is wired up for real — though as
 of Phase 3, 0x80 and 0xA0-0xA2 now reach real FIFOs/RAM instead of
-stub logic (see Phase 3 scope above). 0x23-0x2C are new, Phase 2/3/5a
-bring-up additions with no legacy equivalent.
+stub logic (see Phase 3 scope above). 0x23-0x2D are new, Phase
+2/3/5a/6a bring-up additions with no legacy equivalent.
 
 | Address | Type | Role |
 |---|---|---|
@@ -120,6 +148,7 @@ bring-up additions with no legacy equivalent.
 | 0x27-0x2A | WireOut | *(Phase 3 bring-up only)* `rd_data_count` occupancy for `pulse_fifo`/`fifo_photon`/`normal_pmt_fifo`/`readout_count_fifo` |
 | 0x2B | WireOut | *(Phase 5a bring-up only)* full 32-bit `logic_out` readback |
 | 0x2C | WireOut | *(Phase 5a bring-up only)* bit 16 = sequence-done, bits 15:0 = running loop count |
+| 0x2D | WireOut | *(Phase 6a bring-up only)* MIG `init_calib_complete` (bit 0) |
 | 0x80 | BTPipeIn | pulse sequence program → `pulse_fifo` → `pulser_ram` |
 | 0x81 | BTPipeIn | DDS program (still a discard-everything stub) |
 | 0xA0 | BTPipeOut | time-resolved photon counts, from `fifo_photon` |
@@ -147,7 +176,8 @@ packs bytes for the pipe transfers once Phase 5 wires up real data.
 ## Files
 
 - `src/photon.vhd` — top-level (Phase 1 host interface + Phase 2
-  clocking + Phase 3 RAM/FIFO + Phase 5a sequencer FSM)
+  clocking + Phase 3 RAM/FIFO + Phase 5a sequencer FSM + Phase 6a DDR3
+  MIG bring-up)
 - `src/okLibrary.vhd`, `okCoreHarness.v`, `okWireIn.v`, `okWireOut.v`,
   `okTriggerIn.v`, `okBTPipeIn.v`, `okBTPipeOut.v` — Opal Kelly IP,
   copied verbatim from `../XEM7305_references/Locally_compiled_photon_2026`
@@ -160,7 +190,24 @@ packs bytes for the pipe transfers once Phase 5 wires up real data.
   both gives Vivado two conflicting definitions of the same module.
 - `src/ip/clk_wiz_0/` — Vivado Clocking Wizard IP (Phase 2), generated
   by `create_project.tcl`. Not checked in — regenerated fresh each time
-  the Tcl script runs, like any other Vivado-managed IP.
+  the Tcl script runs, like any other Vivado-managed IP. As of Phase
+  6a, its input is `ui_clk` (~81.25 MHz, MIG-derived, not a clean
+  number) instead of raw `sys_clk` — `PRIM_IN_FREQ`/`PRIM_SOURCE`
+  updated accordingly (see `create_project.tcl` below); the requested
+  200/100/20 MHz outputs land ~0.02% off exactly clean, which Vivado
+  reports as an unavoidable warning (81.25 MHz doesn't divide back into
+  the MMCM's 0.125-step multiply grid evenly) — negligible for this
+  design's timing needs.
+- `src/ip/ddr3_256_16/` — Xilinx MIG 7-series DDR3 SDRAM controller IP
+  (Phase 6a), generated by `create_project.tcl` via
+  `CONFIG.XML_INPUT_FILE` loading
+  `../XEM7305_references/Locally_compiled_ramtester`'s proven
+  `mig_b.prj` unmodified — this bypasses the interactive Pin Selection
+  wizard's DRC, which fails validating `ddr3_ba[0]`'s pin placement due
+  to a MIG-version-strictness mismatch (see AR#45588) even though the
+  pinout is proven correct on real hardware. Not checked in, same as
+  the other Vivado-managed IP. Native (non-AXI4) `app_*` interface, not
+  yet used for anything (Phase 6b).
 - `pulse_fifo`, `pulser_ram`, `fifo_photon`, `normal_pmt_fifo`,
   `readout_count_fifo` — Phase 3 FIFO Generator / Block Memory
   Generator IP, generated manually in the Vivado IP catalog (not by
@@ -183,12 +230,25 @@ packs bytes for the pipe transfers once Phase 5 wires up real data.
   Generator cores' own internal synchronizers or Opal Kelly's
   WireIn/WireOut/TriggerIn primitives — see the comment in the `.xdc`
   itself). Pulser I/O pins beyond `led_ext` are not yet defined — see
-  Phase 4.
+  Phase 4. As of Phase 6a: `sys_clkp`/`sys_clkn` renamed to
+  `sys_clk_p`/`sys_clk_n` (MIG/ramtester convention), the DDR3 pin
+  block copied verbatim from ramtester's `.xdc`, the old `create_clock`
+  on that pin removed (MIG's own generated IP constraints supply it
+  now), and a second `set_clock_groups -asynchronous` declaration added
+  for `clk_pll_i` (MIG's internal PLL domain) vs. `clk_wiz_0`'s output
+  clocks — the same "Phase 2 gap" pattern one hop further down the
+  clock tree, since cascading MIG's PLL into `clk_wiz_0`'s own MMCM
+  means Vivado no longer infers that relationship either; this one
+  surfaced as a real implementation run's WNS -2.722 ns / 266 failing
+  endpoints (all `clk_pll_i` → `clk_out2_clk_wiz_0`, landing on
+  `pulser_ram`'s write-port registers) before the declaration was added.
 - `create_project.tcl` — recreates the Vivado project from these
   sources (`vivado -mode batch -source create_project.tcl`), including
-  generating the Phase 2 `clk_wiz_0` IP. Targets `xc7s50csga324-1`,
-  matching `Locally_compiled_ramtester` and the `Device:` comment
-  embedded in the copied encrypted OK netlists.
+  generating the Phase 2 `clk_wiz_0` IP (Phase 6a: `PRIM_IN_FREQ`
+  81.25 MHz, `PRIM_SOURCE` `No_buffer` — see `src/ip/clk_wiz_0/` above)
+  and the Phase 6a `ddr3_256_16` IP via `CONFIG.XML_INPUT_FILE`.
+  Targets `xc7s50csga324-1`, matching `Locally_compiled_ramtester` and
+  the `Device:` comment embedded in the copied encrypted OK netlists.
   `Locally_compiled_photon_2026` was instead built for `csga324-2` —
   confirm your board's actual speed grade before building for hardware.
 
@@ -405,3 +465,35 @@ so there's no time pressure to check the LEDs.
 With this, all of Phase 5a's control paths have been exercised on real
 hardware: core sequencer timing, `logic_out`/`led_ext`, `pulse_fifo`'s
 word order, repeat mode and loop count, and the manual override mux.
+
+## Bring-up test plan — Phase 6a
+
+All steps below confirmed via `test/smoke_test.py` on real XEM7305
+hardware.
+
+1. ✅ Read WireOut 0x2D bit 0 and confirm MIG reports
+   `init_calib_complete` — asserted well within the 2 s poll margin,
+   confirming real calibration against the XEM7305's actual DDR3 chip,
+   not just a clean build.
+2. ✅ Re-confirm all Phase 1/2/3/5a checks still pass — clocking
+   measured 200.21/100.10/20.02 MHz (all within tolerance), Phase 3
+   RAM/FIFO drain, Phase 5a sequencer completion, and the manual
+   override mux all unaffected by moving the heartbeat counter,
+   `TriggerIn` 0x40's `ep_clk`, and `clk_wiz_0`'s input off `sys_clk`
+   and onto MIG's `ui_clk`.
+
+**Two timing/clocking gaps found and fixed before this passed clean:**
+
+- MMCM VCO out of range (`clk_gen/inst/mmcm_adv_inst`, computed
+  2708.333 MHz vs. the valid 600-1200 MHz range): not a real bug —
+  `clk_wiz_0`'s IP had already been reconfigured for an 81.25 MHz
+  `ui_clk` input, but a stale, not-yet-synced copy of `photon.vhd` was
+  still wiring `clk_in1` to the old 200 MHz `sys_clk` directly (2708.333
+  = 200 × 40.625 / 3, the coefficients solved for 81.25 MHz fed a
+  200 MHz signal instead). Fixed by syncing the updated `photon.vhd`.
+- Bogus setup violations after that (WNS -2.722 ns, 266 failing
+  endpoints, all `clk_pll_i` → `clk_out2_clk_wiz_0`): see the
+  `constraints/xem7305.xdc` entry under Files above — the same
+  "Phase 2 gap" pattern as Phase 5a's timing note, one hop further down
+  the clock tree. Fixed with one more `set_clock_groups -asynchronous`
+  declaration; brought timing fully clean with no RTL changes needed.
