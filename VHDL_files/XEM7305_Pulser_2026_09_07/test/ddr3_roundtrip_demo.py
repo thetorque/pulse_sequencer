@@ -309,15 +309,23 @@ def drain_read_fifo(xem):
     """Reads (and discards) whatever's left in ddr3_read_fifo, in whole
     blocks. Only safe to call once read mode is off (ep00wire(4)=0) --
     otherwise read-prefetch keeps eagerly refilling it from
-    ever-increasing addresses and this would never terminate."""
+    ever-increasing addresses and this would never terminate. Returns
+    (pre_count, pre_empty, blocks_drained) for the per-batch drift
+    diagnostic (see read_words)."""
+    xem.UpdateWireOuts()
+    status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
+    pre_count = status & DDR3_READ_COUNT_MASK
+    pre_empty = bool(status & DDR3_READ_EMPTY_BIT)
+    blocks_drained = 0
     buf = bytearray(PIPE_BLOCK_SIZE)
     while True:
         xem.UpdateWireOuts()
         count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
         if count < PIPE_BLOCK_SIZE // 4:  # fewer than one block's worth of halves left
-            return
+            return pre_count, pre_empty, blocks_drained
         n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
         assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
+        blocks_drained += 1
 
 
 def read_words(xem, n_words):
@@ -375,7 +383,11 @@ def read_words(xem, n_words):
     wait_read_idle(xem)
     xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
-    drain_read_fifo(xem)
+    pre_count, pre_empty, blocks_drained = drain_read_fifo(xem)
+    # DIAGNOSTIC (temporary): per-batch drift. If drain removes a
+    # variable number of blocks across batches, that's the read-window
+    # misalignment source -- see the batch-N mismatch analysis.
+    print(f"    [drain diag] pre-drain count={pre_count} empty={pre_empty} blocks_drained={blocks_drained}")
 
     return words
 
