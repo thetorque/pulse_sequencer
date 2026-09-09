@@ -1412,9 +1412,19 @@ begin
 							rd_pf_state      <= 3;
 						end if;
 					when 1 =>
-						mig_app_addr <= rd_pf_addr;
-						mig_app_cmd  <= "001";
-						mig_app_en   <= '1';
+						-- Assert app_en ONLY while the command has not yet
+						-- been accepted. The earlier version set app_en
+						-- unconditionally here, so on the cycle app_rdy
+						-- accepted the command it also re-latched app_en
+						-- high for the next (state-2) cycle with the same
+						-- app_addr still held -- and if app_rdy stayed high
+						-- (DRAM-traffic dependent), MIG latched the SAME
+						-- read command a second time. That extra response
+						-- (valid=cmd+1) desynced the whole readback stream,
+						-- appearing as nondeterministic shifted/duplicated/
+						-- all-zero batches. This conditional handshake
+						-- matches the write-assembler's state-3 logic, which
+						-- was always correct (hence writes never failed).
 						if mig_app_rdy = '1' then
 							rd_pf_addr    <= rd_pf_addr + 8;
 							rd_pf_state   <= 2;
@@ -1424,6 +1434,12 @@ begin
 							-- the duplicate-response check in state 2
 							-- below (see dbg_cmd_addr declaration comment).
 							dbg_cmd_addr  <= rd_pf_addr;
+						else
+							-- not yet accepted: keep the read command
+							-- presented (app_en held high) until app_rdy.
+							mig_app_addr <= rd_pf_addr;
+							mig_app_cmd  <= "001";
+							mig_app_en   <= '1';
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
