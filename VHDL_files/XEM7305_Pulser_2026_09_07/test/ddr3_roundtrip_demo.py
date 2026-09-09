@@ -44,7 +44,16 @@ offset in the lifetime push sequence, not something re-established per
 read call.
 
 Usage:
-    python ddr3_roundtrip_demo.py path/to/photon.bit
+    python ddr3_roundtrip_demo.py path/to/photon.bit [n_words]
+
+n_words (optional, default N_WORDS below) must be even. Practical
+ceilings: ddr3_write_fifo's actual depth (~33 64-bit entries) bounds
+how many words can be buffered before draining to MIG, and
+ddr3_read_fifo's occupancy gate (<48 halves, see photon.vhd's
+rd_pf_state comment) bounds how many words' worth of halves
+(n_words*2+3) can accumulate before read-prefetch stalls -- pushing
+past either ceiling is expected to fail with a clear timeout, not
+silent corruption.
 
 Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module
 (see smoke_test.py's docstring for how to point PYTHONPATH at it).
@@ -232,10 +241,11 @@ def read_words(xem, n_words):
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit")
-    if N_WORDS % 2 != 0:
-        sys.exit("N_WORDS must be even -- see module docstring")
+    if len(sys.argv) not in (2, 3):
+        sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit [n_words]")
+    n_words = int(sys.argv[2]) if len(sys.argv) == 3 else N_WORDS
+    if n_words % 2 != 0:
+        sys.exit("n_words must be even -- see module docstring")
 
     xem = connect(sys.argv[1])
 
@@ -243,12 +253,12 @@ def main():
     reset_ddr3(xem)
 
     # Distinct, easy-to-recognize 64-bit test patterns.
-    test_words = [0xA5A5_0000_0000_0000 | i for i in range(N_WORDS)]
-    print(f"  Writing {N_WORDS} test words: " + ", ".join(f"{w:#018x}" for w in test_words))
+    test_words = [0xA5A5_0000_0000_0000 | i for i in range(n_words)]
+    print(f"  Writing {n_words} test words: " + ", ".join(f"{w:#018x}" for w in test_words))
     write_words(xem, test_words)
     print("  pulse_fifo drained and ddr3 write path idle  [OK]")
 
-    readback_words = read_words(xem, N_WORDS)
+    readback_words = read_words(xem, n_words)
 
     print("  Readback: " + ", ".join(f"{w:#018x}" for w in readback_words))
     status = "OK" if readback_words == test_words else "MISMATCH"
