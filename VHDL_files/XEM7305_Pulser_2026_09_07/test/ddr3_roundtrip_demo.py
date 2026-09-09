@@ -640,20 +640,33 @@ def run_memtest(xem, mib, chunk_words, seed):
         got = read_words(xem, chunk_words)
         if got != expected:
             mismatches += 1
-            bad = next(i for i in range(chunk_words) if got[i] != expected[i])
+            bad_offsets = [i for i in range(chunk_words) if got[i] != expected[i]]
+            bad = bad_offsets[0]
             fi = base + bad  # failing global word index
             if first_fail is None:
                 first_fail = (c, bad, expected[bad], got[bad])
-            msg = (f"    [MISMATCH] chunk {c}, word #{bad} (idx 0x{fi:x}): "
-                   f"expected {expected[bad]:#018x} got {got[bad]:#018x}")
-            if mismatches <= 20:  # identify the alias source for the first few
-                alias = _find_alias_index(got[bad], total_words, seed)
-                if alias is not None:
-                    msg += (f"  <- holds value of idx 0x{alias:x} "
-                            f"(delta {alias-fi:+d} words, xor 0x{fi^alias:x})")
-                else:
-                    msg += "  <- value not from any written index (data corruption, not alias)"
-            print(msg)
+            # Report EVERY bad word in this chunk, not just the first. The
+            # sibling half of a 128-bit beat is word offset (i ^ 1); if a beat
+            # aliased to a wrong DRAM row, BOTH its halves shift together. If
+            # only one half shifts, it's a data-path artifact, not row aliasing.
+            print(f"    [MISMATCH] chunk {c}: {len(bad_offsets)} bad word(s) "
+                  f"at offsets {bad_offsets[:8]}"
+                  f"{' ...' if len(bad_offsets) > 8 else ''}  "
+                  f"(beat 0 = words 0,1)")
+            for off in bad_offsets[:8]:
+                gi = base + off
+                sib = off ^ 1  # other 64-bit half of the same 128-bit beat
+                sib_state = ("OK" if got[sib] == expected[sib] else "ALSO-BAD")
+                msg = (f"        word #{off} (idx 0x{gi:x}): "
+                       f"exp {expected[off]:#018x} got {got[off]:#018x}  "
+                       f"[beat-sibling #{sib}: {sib_state}]")
+                if mismatches <= 20:  # identify the alias source for the first few
+                    alias = _find_alias_index(got[off], total_words, seed)
+                    if alias is not None:
+                        msg += (f"  <- idx 0x{alias:x} (delta {alias-gi:+d} w)")
+                    else:
+                        msg += "  <- not any written index (corruption, not alias)"
+                print(msg)
         if time.time() >= nxt:
             done = (c + 1) / n_chunks
             print(f"    read  {done*100:5.1f}%  {time.time()-t1:5.0f}s  "
