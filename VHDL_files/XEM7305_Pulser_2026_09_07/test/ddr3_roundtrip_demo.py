@@ -13,33 +13,33 @@ Mode switching: MIG's app_addr/app_cmd/app_en command channel is shared
 between the write-assembler and read-prefetch, so they're time-
 multiplexed via ep00wire(4) (0=write mode, 1=read mode) rather than a
 runtime arbiter. This script MUST confirm the write path is fully idle
-(WireOut 0x2E bit 5) before switching to read mode -- switching early
-would abandon an in-flight write command mid-transaction. See
-photon.vhd's Phase 6b file header comment for the full explanation.
+(WireOut 0x2E bit 5) before switching to read mode, and the read path
+idle (WireOut 0x2F bit 16) before switching back -- see photon.vhd's
+Phase 6b file header comment for the full explanation.
 
 Even word count requirement: the write-assembler only completes a
 burst after popping a *pair* of words (two 64-bit words -> one 128-bit
-MIG write), so this script always writes an even count -- an odd count
-would leave the write-assembler stuck waiting for a word that never
-comes, and WireOut 0x2E bit 5 would never reassert.
+MIG write), so this script always writes an even count.
 
-Word order -- overall sequence confirmed by construction, but the
-32-bit split direction is empirically determined, not assumed:
-each 64-bit word is written as two 32-bit pipe writes (first -> high
-32 bits, second -> low 32 bits, the same PULSE_WORD_ORDER_CONFIRMED =
-"high_word_first" convention already established in smoke_test.py for
-pulse_fifo's 32-bit write side), and the write-assembler/read-prefetch
-pipeline preserves the overall word sequence end to end (word N
-written is word N read back, in order -- traced through the VHDL, not
-just assumed). BUT ddr3_read_fifo is a natively asymmetric FIFO
-(64-bit write / 32-bit read, see photon.vhd's ddr3_read_fifo component
-comment for why -- an earlier hand-rolled splitter broke okBTPipeOut's
-timing assumptions on real hardware), so which 32-bit half of each
-64-bit word comes out of BTPipeOut 0xA3 *first* is Vivado's own
-FIFO Generator convention, not something controlled in the VHDL. This
-script determines it empirically first (determine_read_order(), same
-approach as led_walk_demo.py's determine_word_order() for pulse_fifo)
-rather than guessing.
+ddr3_read_fifo readback ordering: ddr3_read_fifo is a natively
+asymmetric FIFO (64-bit write / 32-bit read, FWFT). Per AMD/Xilinx
+PG057 ("Non-symmetric Aspect Ratio and First-Word Fall-Through"), a
+FWFT FIFO has 2 extra read words available versus a standard FIFO --
+for this 2:1 width ratio, that's exactly one extra 64-bit write's
+worth of look-ahead built into the core itself, confirmed empirically:
+every "high" 32-bit read structurally showed the *next* pushed entry's
+high half rather than the current one, with the very first entry's own
+high half permanently unavailable otherwise. photon.vhd's read-prefetch
+absorbs this with a one-time throwaway priming push immediately after
+reset, before any real data (see rd_pf_primed's declaration comment
+there). That shifts the whole readback stream by exactly one 32-bit
+position: after discarding the priming push's own low half (the very
+first 32-bit value ever read back after a reset), each real word's
+HIGH half comes first and its LOW half second -- the opposite of a
+naive "low first" assumption, and only correct for the first read
+session following a reset (ep40wire(5)), since the shift is a one-time
+offset in the lifetime push sequence, not something re-established per
+read call.
 
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit
@@ -132,7 +132,7 @@ def wait_read_ready(xem, min_count):
             return count
         time.sleep(READ_POLL_INTERVAL)
     raise RuntimeError(
-        f"ddr3_read_fifo never reached {min_count} words (WireOut 0x2F)")
+        f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F)")
 
 
 def wait_read_idle(xem):
@@ -185,69 +185,42 @@ def drain_read_fifo(xem):
         assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
 
 
-def read_halves(xem, n_words):
-    """Switches to read mode, waits for n_words to be ready, reads them
-    back as a flat list of 32-bit halves (2 per word), switches back to
-    write mode, then drains any leftover prefetched words so the next
-    read phase starts from a clean ddr3_read_fifo -- see
-    drain_read_fifo() docstring for why this ordering matters."""
+def read_words(xem, n_words):
+    """Switches to read mode, waits for the priming push plus n_words
+    real words to be ready, reads them back as a list of n_words 64-bit
+    integers (see module docstring for the priming-push/shift
+    reconstruction), switches back to write mode, then drains any
+    leftover prefetched words. Only valid as the FIRST read call since
+    the last reset_ddr3() -- see module docstring."""
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
-    wait_read_ready(xem, n_words * 2)  # WireOut 0x2F counts 32-bit halves
+    needed_halves = n_words * 2 + 1  # +1 for the priming push's own low half
+    wait_read_ready(xem, needed_halves)
 
-    total_bytes = n_words * 8  # 2x 32-bit halves per word, 4 bytes each
+    total_bytes = needed_halves * 4
     if total_bytes % PIPE_BLOCK_SIZE:
         total_bytes += PIPE_BLOCK_SIZE - total_bytes % PIPE_BLOCK_SIZE
     buf = bytearray(total_bytes)
     n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
     assert n == total_bytes, f"ReadFromBlockPipeOut returned {n}, expected {total_bytes}"
 
-    result = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))[:n_words * 2]
+    halves = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))
+
+    # halves[0] is the priming push's own (unused) low half. Each real
+    # word k's high half is at halves[1 + 2k], low half at halves[2 + 2k].
+    words = []
+    for k in range(n_words):
+        high = halves[1 + 2 * k]
+        low = halves[2 + 2 * k]
+        words.append((high << 32) | low)
 
     wait_read_idle(xem)
     xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
     drain_read_fifo(xem)
 
-    return result
-
-
-def determine_read_order(xem):
-    """DIAGNOSTIC version: writes four words with clearly distinct,
-    recognizable halves (no zeros, so a wrong value is easy to
-    recognize by which word/half it actually came from -- two bursts'
-    worth, to see whether a shift/skip pattern is a one-time first-
-    burst glitch or systematic) and prints all 8 halves read back --
-    see the temporary diagnostic note in the module docstring."""
-    print("\n--- Determining ddr3_read_fifo 32-bit split order (diagnostic) ---")
-    reset_ddr3(xem)
-
-    words = [
-        0xAAAAAAAA_55555555,
-        0x11112222_33334444,
-        0x66667777_88889999,
-        0xCCCCDDDD_EEEEFFFF,
-    ]
-    write_words(xem, words)
-
-    halves = read_halves(xem, len(words))
-    xem.UpdateWireOuts()
-    valid_count = xem.GetWireOutValue(0x30)
-    cmd_count = xem.GetWireOutValue(0x31)
-    dbg_high0 = xem.GetWireOutValue(0x32)
-    dbg_high1 = xem.GetWireOutValue(0x33)
-    for i, w in enumerate(words):
-        print(f"  Wrote word{i} high={(w>>32)&0xFFFFFFFF:#010x} low={w&0xFFFFFFFF:#010x}")
-    print("  Readback halves: " + ", ".join(f"{h:#010x}" for h in halves))
-    print(f"  Commands issued (WireOut 0x31) = {cmd_count} (expect {len(words)//2})")
-    print(f"  mig_app_rd_data_valid rising-edge count (WireOut 0x30) = {valid_count} "
-          f"(expect same as commands issued, if 1 pulse/command)")
-    print(f"  Raw high-32 MIG returned for command0 (WireOut 0x32) = {dbg_high0:#010x} "
-          f"(expect {0xAAAAAAAA:#010x} = word0's true high)")
-    print(f"  Raw high-32 MIG returned for command1 (WireOut 0x33) = {dbg_high1:#010x} "
-          f"(expect {0xCCCCDDDD:#010x} = word3's true high)")
-    sys.exit("Diagnostic run -- inspect the halves above, not a real failure.")
+    return words
 
 
 def main():
@@ -258,8 +231,6 @@ def main():
 
     xem = connect(sys.argv[1])
 
-    low_first = determine_read_order(xem)
-
     print("\n--- Phase 6b DDR3 write/read adapter round-trip test ---")
     reset_ddr3(xem)
 
@@ -269,12 +240,7 @@ def main():
     write_words(xem, test_words)
     print("  pulse_fifo drained and ddr3 write path idle  [OK]")
 
-    halves = read_halves(xem, N_WORDS)
-    readback_words = []
-    for i in range(0, len(halves), 2):
-        a, b = halves[i], halves[i + 1]
-        low, high = (a, b) if low_first else (b, a)
-        readback_words.append((high << 32) | low)
+    readback_words = read_words(xem, N_WORDS)
 
     print("  Readback: " + ", ".join(f"{w:#018x}" for w in readback_words))
     status = "OK" if readback_words == test_words else "MISMATCH"

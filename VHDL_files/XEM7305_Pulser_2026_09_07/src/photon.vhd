@@ -454,6 +454,20 @@ architecture arch of photon is
 	-- read mode later would deadlock forever waiting for it.
 	signal rd_pf_idle : STD_LOGIC := '1';
 
+	-- rd_pf_primed: ddr3_read_fifo is configured with Write Width=64,
+	-- Read Width=32 (asymmetric) in FWFT mode. Per AMD/Xilinx PG057
+	-- ("Non-symmetric Aspect Ratio and First-Word Fall-Through"), a
+	-- FWFT FIFO has 2 extra read words available versus a standard
+	-- FIFO -- for our 2:1 width ratio, that's exactly one extra 64-bit
+	-- write's worth of built-in look-ahead. Confirmed on hardware: every
+	-- "high" 32-bit read structurally shows the *next* pushed entry's
+	-- high half, not the current one -- meaning the very first real
+	-- entry's high half is permanently unavailable unless something has
+	-- already been pushed before it. Fixed by pushing one throwaway
+	-- "priming" 64-bit write immediately after reset, before any real
+	-- data -- see state 0's use of this flag below.
+	signal rd_pf_primed : STD_LOGIC := '0';
+
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
@@ -1142,6 +1156,7 @@ begin
 				rd_pf_addr    <= (others => '0');
 				dbg_cmd_count  <= (others => '0');
 				dbg_resp_count <= 0;
+				rd_pf_primed   <= '0';
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1201,6 +1216,16 @@ begin
 				case rd_pf_state is
 					when 0 =>
 						rd_pf_idle <= '1';
+						if rd_pf_primed = '0' then
+							-- one-time priming push, see rd_pf_primed
+							-- declaration comment -- reuses state 3's
+							-- existing "push rd_pf_pending_hi" logic
+							-- for the dummy's second half.
+							ddr3_read_din    <= (others => '0');
+							ddr3_read_wr_en  <= '1';
+							rd_pf_pending_hi <= (others => '0');
+							rd_pf_primed     <= '1';
+							rd_pf_state      <= 3;
 						-- gate on occupancy well below actual capacity
 						-- (~33 entries, confirmed via the IP's Data
 						-- Counts tab) rather than ddr3_read_full alone --
@@ -1214,7 +1239,7 @@ begin
 						-- overflowing it -- writing past a FIFO's true
 						-- fullness point is undefined/corrupting
 						-- behavior, not just "extra data lost".
-						if ddr3_read_rd_data_count < 16 then
+						elsif ddr3_read_rd_data_count < 16 then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
