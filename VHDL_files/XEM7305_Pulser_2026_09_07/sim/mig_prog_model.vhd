@@ -28,7 +28,8 @@ entity mig_prog_model is
   generic (
     ADDR_WIDTH   : natural := 29;
     ADDR_INC     : natural := 8;
-    READ_LATENCY : natural := 24
+    READ_LATENCY : natural := 24;
+    PROG_SEL     : natural := 0    -- 0 = 3-pulse demo; 1 = 11-pulse short-dwell stress
   );
   port (
     ui_clk            : in  std_logic;
@@ -52,7 +53,7 @@ architecture behav of mig_prog_model is
 
   constant NLINES : integer := 32;
   type prog_t is array(0 to NLINES-1) of std_logic_vector(63 downto 0);
-  constant PROG : prog_t := (
+  constant PROG0 : prog_t := (
     0 => mk(16#1#, 0),      -- L0.time unused
     1 => mk(16#2#, 3),      -- change to 0x2 at t=3
     2 => mk(16#4#, 8),      -- change to 0x4 at t=8
@@ -60,6 +61,26 @@ architecture behav of mig_prog_model is
     4 => mk(0, 0),          -- terminator (time field 0)
     others => (others => '0')
   );
+
+  -- 11 pulses, channels 1..11, each held exactly one 40 ns tick (abs times
+  -- 1,2,3,...). Consumes 1 line/40 ns -- faster than the streamer produces
+  -- (~166 ns/line) -- so once the small prime buffer drains the sequencer must
+  -- stall. Emitted channels must still be 1,2,...,11 in order (stretched, but
+  -- never garbage or out of order).
+  function stress return prog_t is
+    variable p : prog_t := (others => (others => '0'));
+  begin
+    for k in 0 to 11 loop p(k) := mk(k+1, k); end loop;  -- L0.time=0 unused
+    p(12) := mk(0, 0);                                    -- terminator
+    return p;
+  end function;
+
+  function sel_prog return prog_t is
+  begin
+    if PROG_SEL = 0 then return PROG0; else return stress; end if;
+  end function;
+
+  constant PROG : prog_t := sel_prog;
 
   signal pend_active : std_logic := '0';
   signal pend_addr   : unsigned(ADDR_WIDTH-1 downto 0) := (others => '0');

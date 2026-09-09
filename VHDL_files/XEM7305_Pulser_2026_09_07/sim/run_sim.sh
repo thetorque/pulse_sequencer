@@ -24,12 +24,12 @@ cd "$(dirname "$0")"
 SRCS="line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd \
       ddr3_line_streamer.vhd pulse_sequencer.vhd pulse_cdc.vhd \
       tb_line_streamer.vhd tb_streamer_throughput.vhd \
-      tb_sequencer.vhd tb_sequencer_loop.vhd"
+      tb_sequencer.vhd tb_sequencer_loop.vhd tb_sequencer_stall.vhd"
 
 echo "== analyze =="
 "$GHDL" -a --std=08 $SRCS
 
-for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop; do
+for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop tb_sequencer_stall; do
   echo "== run $tb =="
   "$GHDL" --elab-run --std=08 "$tb" --stop-time=20ms
 done
