@@ -342,17 +342,32 @@ architecture arch of photon is
 	-- against the generated IP's Data Counts tab) -- wider than
 	-- ddr3_write_fifo's 5, since one 64-bit write yields two 32-bit
 	-- reads.
+	-- Phase 6b (ramtester refactor): 128-bit write / 32-bit read,
+	-- STANDARD FIFO (not FWFT), independent clocks -- matches
+	-- Locally_compiled_ramtester's fifo_w128_256_r32_1024. Read-prefetch
+	-- pushes the whole 128-bit MIG response in one write; the FIFO does
+	-- the 128->32 conversion so BTPipeOut 0xA3 reads 32 bits directly
+	-- (with an rd_data_count-gated ep_ready, see ddr3_read_pipe_ready).
+	-- Standard (not FWFT) is deliberate: it has none of the asymmetric-
+	-- FWFT lookahead quirks that made the earlier 64/32 FWFT FIFO need
+	-- priming/flush/offset gymnastics. Regenerate the IP to match the
+	-- ramtester settings: Fifo Implementation Independent Clocks Block
+	-- RAM, Read Mode Standard FIFO, Write Width 128 / Write Depth 256,
+	-- Read Width 32 (Read Depth 1024), Reset Pin on (Async + Reset
+	-- Synchronization), Valid Flag on, Write Data Count on (8) and Read
+	-- Data Count on (10).
 	component ddr3_read_fifo port (
 		rst    : in  STD_LOGIC;
 		wr_clk : in  STD_LOGIC;
 		rd_clk : in  STD_LOGIC;
-		din    : in  STD_LOGIC_VECTOR(63 downto 0);
+		din    : in  STD_LOGIC_VECTOR(127 downto 0);
 		wr_en  : in  STD_LOGIC;
 		rd_en  : in  STD_LOGIC;
 		dout   : out STD_LOGIC_VECTOR(31 downto 0);
 		full   : out STD_LOGIC;
 		empty  : out STD_LOGIC;
-		rd_data_count : out STD_LOGIC_VECTOR(5 downto 0) -- 6 bits, confirmed
+		rd_data_count : out STD_LOGIC_VECTOR(9 downto 0);
+		wr_data_count : out STD_LOGIC_VECTOR(7 downto 0)
 	);
 	end component;
 
@@ -364,23 +379,19 @@ architecture arch of photon is
 	signal ddr3_write_empty        : STD_LOGIC;
 	signal ddr3_write_rd_data_count : STD_LOGIC_VECTOR(4 downto 0);
 
-	signal ddr3_read_din           : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_read_din           : STD_LOGIC_VECTOR(127 downto 0);
 	signal ddr3_read_wr_en         : STD_LOGIC := '0';
 	signal ddr3_read_rd_en         : STD_LOGIC;
 	signal ddr3_read_dout          : STD_LOGIC_VECTOR(31 downto 0);
 	signal ddr3_read_full          : STD_LOGIC;
 	signal ddr3_read_empty         : STD_LOGIC;
-	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(5 downto 0);
+	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(9 downto 0);
+	signal ddr3_read_wr_data_count : STD_LOGIC_VECTOR(7 downto 0);
 	-- Per-batch read-FIFO reset (level, host-controlled via ep00wire(6)).
-	-- Clears ONLY the read FIFO and read-prefetch state (rd_pf_primed/
-	-- state/issued/flushed), NOT the addresses (rd_pf_addr/wr_asm_addr),
-	-- so each soak-test batch starts from the same clean read-side state
-	-- as batch 0 (which always passed) while the DDR3 address walk
-	-- continues across batches. Replaces the fragile inter-batch
-	-- 2-halve carryover (trailing flush becoming the next batch's
-	-- leading dummy), which raced across the ui_clk->okClk crossing and
-	-- intermittently lost sync (confirmed: failing batches ended with
-	-- read count=0 instead of the healthy 2). The FIFO IP's rst is
+	-- Clears ONLY the read FIFO and read-prefetch state (rd_pf_state/
+	-- issued), NOT the addresses (rd_pf_addr/wr_asm_addr), so each
+	-- soak-test batch starts from an empty read FIFO while the DDR3
+	-- address walk continues across batches. The FIFO IP's rst is
 	-- asynchronous, so driving it from this okClk-domain WireIn level is
 	-- fine; the host holds it asserted with generous margin (ms) around
 	-- each batch's read.
@@ -424,23 +435,16 @@ architecture arch of photon is
 	signal wr_asm_idle      : STD_LOGIC := '1';
 
 	-- read-prefetch state (ui_clk domain): single read outstanding at a
-	-- time (correctness over max throughput -- plenty for this
-	-- bring-up test's data rate); splits each 128-bit app_rd_data into
-	-- two 64-bit words (low half pushed first, high half second).
+	-- time (correctness over max throughput -- plenty for this bring-up
+	-- test's data rate). Ramtester-style single-push: state 0 issues a
+	-- read, state 1 waits for app_rdy, state 2 pushes the WHOLE 128-bit
+	-- response into the 128-write/32-read ddr3_read_fifo in one write.
 	-- Only runs while ep00wire(4)='1' (read mode) -- see the combined
 	-- write-assembler/read-prefetch process below for why reads and
 	-- writes are time-multiplexed onto MIG's single shared command
 	-- channel via this host-controlled bit instead of a runtime arbiter.
-	signal rd_pf_state      : INTEGER range 0 to 4 := 0;
-	-- DIAGNOSTIC: testing whether the low/high pushes into ddr3_read_fifo
-	-- (a dual-clock FIFO, ui_clk write / okClk read) happen too close
-	-- together in ui_clk time for the write-pointer's CDC synchronizer
-	-- into okClk to safely resolve them as two distinct entries --
-	-- ~8 ui_clk cycles (~10 okClk cycles) of margin, well beyond a
-	-- typical 2-3 stage synchronizer's needs.
-	signal rd_pf_wait_ctr   : INTEGER range 0 to 15 := 0;
+	signal rd_pf_state      : INTEGER range 0 to 2 := 0;
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
-	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
 	-- DIAGNOSTIC (temporary, WireOut 0x30): counts rising edges of
 	-- mig_app_rd_data_valid (not every cycle it's held high -- a first
@@ -510,61 +514,17 @@ architecture arch of photon is
 	-- read mode later would deadlock forever waiting for it.
 	signal rd_pf_idle : STD_LOGIC := '1';
 
-	-- rd_pf_primed: ddr3_read_fifo is configured with Write Width=64,
-	-- Read Width=32 (asymmetric) in FWFT mode. Per AMD/Xilinx PG057
-	-- ("Non-symmetric Aspect Ratio and First-Word Fall-Through"), a
-	-- FWFT FIFO has 2 extra read words available versus a standard
-	-- FIFO -- for our 2:1 width ratio, that's exactly one extra 64-bit
-	-- write's worth of built-in look-ahead. Confirmed on hardware: every
-	-- "high" 32-bit read structurally shows the *next* pushed entry's
-	-- high half, not the current one -- meaning the very first real
-	-- entry's high half is permanently unavailable unless something has
-	-- already been pushed before it. Fixed by pushing one throwaway
-	-- "priming" 64-bit write immediately after reset, before any real
-	-- data -- see state 0's use of this flag below.
-	signal rd_pf_primed : STD_LOGIC := '0';
-
-	-- Per-batch read command budget (WireIn 0x07, ep07wire): without
-	-- this, read-prefetch had no way to know how many words the host
-	-- actually wanted and just kept eagerly issuing MIG read commands
-	-- for as long as ddr3_read_rd_data_count stayed under the gate,
-	-- for the *entire* duration of a host round trip (USB pipe
-	-- transfer, idle-poll) -- confirmed to overshoot rd_pf_addr well
-	-- past wr_asm_addr within a single read episode. That's harmless
-	-- for a single self-contained batch (the FIFO's strict ordering
-	-- means the extra queued-ahead data just gets drained and thrown
-	-- away afterward), but fatal across multiple batches sharing one
-	-- reset epoch: rd_pf_addr would desync from wr_asm_addr, so a
-	-- later batch's readback would fetch stale memory instead of what
-	-- it just wrote. The host now writes ep07wire with this batch's
-	-- read-command count (words/2, same granularity as dbg_cmd_count)
-	-- before flipping ep00wire(4) to read mode; rd_pf_issued/target
-	-- are latched off ep00wire(4)'s rising edge (below) and gate
-	-- issuance so read-prefetch stops exactly at the requested count.
+	-- Per-batch read command budget (WireIn 0x07, ep07wire): the host
+	-- writes this batch's read-command count (words/2) before flipping
+	-- ep00wire(4) to read mode; rd_pf_issued/target are latched off
+	-- ep00wire(4)'s rising edge (below) and gate issuance so read-
+	-- prefetch stops exactly at the requested count, keeping rd_pf_addr
+	-- in lockstep with wr_asm_addr across batches instead of eagerly
+	-- racing ahead into not-yet-written memory.
 	signal ep07wire      : STD_LOGIC_VECTOR(31 downto 0);
 	signal rd_pf_issued  : INTEGER range 0 to 65535 := 0;
 	signal rd_pf_target  : INTEGER range 0 to 65535 := 0;
 	signal ep00wire4_prev : STD_LOGIC := '0';
-
-	-- rd_pf_flushed: confirmed on hardware (via rd_pf_primed/rd_pf_issued
-	-- readback while chasing the read-command-budget change above) that
-	-- ddr3_read_rd_data_count plateaus at 2*(total_pushes-1) halves, not
-	-- 2*total_pushes -- i.e. the MOST RECENTLY pushed 64-bit word never
-	-- becomes visible on the read side until something else is pushed
-	-- after it (same underlying FWFT-lookahead mechanism as
-	-- rd_pf_primed's PG057 finding, just biting the *tail* of a batch
-	-- instead of the head). Before the read-command budget existed,
-	-- read-prefetch's eager overshoot always supplied that "something
-	-- else" for free; budget-gating removed the overshoot and exposed
-	-- this. Fixed the same way rd_pf_primed fixes the head: after this
-	-- batch's real commands are done (rd_pf_issued = rd_pf_target), push
-	-- one more throwaway 64-bit dummy (bypassing MIG/rd_pf_addr, so it
-	-- can't desync addresses) to flush the batch's own last real word
-	-- into visibility -- see state 0's use of this flag below. Resets
-	-- every batch (on ep00wire(4)'s rising edge, alongside rd_pf_issued)
-	-- rather than once-ever like rd_pf_primed, since every batch's own
-	-- tail needs its own flush.
-	signal rd_pf_flushed : STD_LOGIC := '0';
 
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
@@ -815,6 +775,14 @@ architecture arch of photon is
 	-- before reading rather than rely on ep_ready reflecting real data.
 	signal pipeOut_ready : STD_LOGIC := '1';
 
+	-- ddr3_read_fifo is a Standard FIFO (not FWFT), so BTPipeOut 0xA3
+	-- gets a proper rd_data_count-gated ep_ready in the okClk domain,
+	-- matching Locally_compiled_ramtester's pipe_out_ready. Asserted
+	-- when at least one 16-byte block (4 x 32-bit read words) is
+	-- available. rd_data_count is the FIFO's read-side (okClk) count,
+	-- so reading it in okClk here is same-domain and safe.
+	signal ddr3_read_pipe_ready : STD_LOGIC := '0';
+
 	-- ui_clk heartbeat, proves MIG's PLL/ui_clk path independently of
 	-- the USB-driven LEDs below (Phase 6a: was sys_clk/IBUFGDS directly
 	-- -- see file header comment)
@@ -1007,38 +975,19 @@ begin
 	-- header comment.
 	------------------------------------------------------------------
 	ep2Ewire <= (31 downto 6 => '0') & wr_asm_idle & ddr3_write_rd_data_count;
-	-- bit 16: rd_pf_idle -- host MUST check this before switching
-	-- ep00wire(4) back to write mode, see rd_pf_idle declaration
-	-- comment. bits 5:0: ddr3_read_rd_data_count.
-	-- DIAGNOSTIC (temporary): bit 17 = rd_pf_primed, bits 25:18 =
-	-- rd_pf_issued -- added to directly confirm whether the priming
-	-- push completed and how many real commands the budget gate let
-	-- through, instead of inferring it from ddr3_read_rd_data_count
-	-- alone (see the read-command-budget investigation). bit 15 =
-	-- rd_pf_flushed -- ddr3_read_rd_data_count was caught on hardware
-	-- staying frozen at a stale value across a full 2-second poll
-	-- window while dbg_cmd_count/dbg_valid_count clearly kept moving,
-	-- i.e. the count's CDC synchronization (into okClk, per the
-	-- long-flagged-but-unaddressed concern) can genuinely lock up --
-	-- exposing rd_pf_flushed lets the host stop gating on that
-	-- unreliable count and instead wait on this pure ui_clk-domain
-	-- state (no CDC crossing) to know a batch's pushes are all done.
-	-- bit 14 = ddr3_read_empty -- gating purely on the write side's
-	-- own bookkeeping (bits 17/16/15/25:18) turned out to be unsafe on
-	-- its own: it says nothing about whether that data has actually
-	-- crossed into the read clock domain yet, and calling
-	-- ReadFromBlockPipeOut before it has crossed hangs (no software
-	-- timeout on that call). ddr3_read_empty is a single bit, not a
-	-- multi-bit bus, so it doesn't have the count's "different bits
-	-- resolve at different times" glitch risk -- same class of signal
-	-- ddr3_write_empty already is, safely, elsewhere in this design.
-	-- DIAGNOSTIC (temporary): bit 9 = dbg_valid_outside_s2, bits 8:6 =
-	-- rd_pf_state (0-4) -- added to tell apart a phantom accept from a
-	-- missed valid at a read-prefetch stall (see dbg_valid_outside_s2
-	-- declaration comment).
+	-- WireOut 0x2F layout: bits 9:0 = ddr3_read_rd_data_count (read-side,
+	-- okClk-synchronized); bits 12:10 = rd_pf_state (0-2); bit 13 =
+	-- ddr3_read_empty; bit 14 = dbg_valid_outside_s2 (diagnostic);
+	-- bit 16 = rd_pf_idle (host MUST check this before switching
+	-- ep00wire(4) back to write mode, see rd_pf_idle comment); bits
+	-- 25:18 = rd_pf_issued (how many read commands this batch has
+	-- issued -- the host waits for issued>=target AND idle, both pure
+	-- ui_clk-domain state, to know the batch is done). ddr3_read_empty
+	-- is a single-bit flag, safe to gate ReadFromBlockPipeOut on (that
+	-- call has no software timeout, so reading before data has crossed
+	-- into okClk would hang).
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
-	            rd_pf_primed & rd_pf_idle & rd_pf_flushed & ddr3_read_empty &
-	            (13 downto 10 => '0') & dbg_valid_outside_s2 &
+	            '0' & rd_pf_idle & '0' & dbg_valid_outside_s2 & ddr3_read_empty &
 	            CONV_STD_LOGIC_VECTOR(rd_pf_state, 3) & ddr3_read_rd_data_count;
 
 	------------------------------------------------------------------
@@ -1293,7 +1242,6 @@ begin
 			ep00wire4_prev <= ep00wire(4);
 			if ep00wire(4) = '1' and ep00wire4_prev = '0' then
 				rd_pf_issued  <= 0;
-				rd_pf_flushed <= '0';
 				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
 			end if;
 
@@ -1311,10 +1259,8 @@ begin
 				rd_pf_addr    <= (others => '0');
 				dbg_cmd_count  <= (others => '0');
 				dbg_resp_count <= 0;
-				rd_pf_primed   <= '0';
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
-				rd_pf_flushed  <= '0';
 				dbg_dup_count      <= (others => '0');
 				dbg_dup_at_cmd     <= (others => '0');
 				dbg_dup_addr_match <= '0';
@@ -1323,14 +1269,12 @@ begin
 				dbg_valid_outside_s2 <= '0';
 			elsif ddr3_read_fifo_rst = '1' then
 				-- per-batch read-FIFO reset (see ddr3_read_fifo_rst
-				-- declaration comment): clean read-side state so the
-				-- next batch re-primes and reads exactly like batch 0,
-				-- but preserve rd_pf_addr/wr_asm_addr so the DDR3
-				-- address walk continues across batches.
+				-- declaration comment): clean read-side state so each
+				-- batch starts from an empty FIFO, but preserve
+				-- rd_pf_addr/wr_asm_addr so the DDR3 address walk
+				-- continues across batches.
 				rd_pf_state    <= 0;
-				rd_pf_primed   <= '0';
 				rd_pf_issued   <= 0;
-				rd_pf_flushed  <= '0';
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1386,105 +1330,63 @@ begin
 				end case;
 			else
 				-- read mode -- only entered once the host has confirmed
-				-- the write path is idle (WireOut 0x2E bit 5)
+				-- the write path is idle (WireOut 0x2E bit 5). Ramtester-
+				-- style single-push design (see Locally_compiled_ramtester
+				-- ddr3_test.v s_read_0/1/2): issue one read (state 0), wait
+				-- for app_rdy while deasserting app_en once accepted
+				-- (state 1), then on app_rd_data_valid push the WHOLE
+				-- 128-bit response into the 128-write/32-read ddr3_read_fifo
+				-- in a SINGLE write (state 2). The FIFO does the 128->32
+				-- width conversion internally, so there is no low/high
+				-- split, no priming push, no trailing flush, and no
+				-- CDC-settle wait -- all of which existed only to work
+				-- around the old 64/32 FIFO's asymmetric-FWFT quirks and
+				-- were a persistent source of intermittent corruption.
 				case rd_pf_state is
 					when 0 =>
 						rd_pf_idle <= '1';
-						if rd_pf_primed = '0' then
-							-- one-time priming push, see rd_pf_primed
-							-- declaration comment -- reuses state 3's
-							-- existing "push rd_pf_pending_hi" logic
-							-- for the dummy's second half.
-							ddr3_read_din    <= (others => '0');
-							ddr3_read_wr_en  <= '1';
-							rd_pf_pending_hi <= (others => '0');
-							rd_pf_primed     <= '1';
-							rd_pf_state      <= 3;
-						-- rd_pf_issued < rd_pf_target is the primary gate --
-						-- read-prefetch stops issuing once it has satisfied
-						-- this batch's host-supplied command budget (see
-						-- rd_pf_issued/rd_pf_target declaration comment),
-						-- keeping rd_pf_addr in lockstep with wr_asm_addr
-						-- across batches instead of eagerly racing ahead.
-						-- ddr3_read_full = '0' is the overflow safety net.
-						-- It replaced an earlier ddr3_read_rd_data_count <
-						-- 48 check: that count is the FIFO's READ-side
-						-- (okClk-synchronized) occupancy, and reading a
-						-- multi-bit okClk bus from this ui_clk state machine
-						-- is a genuine CDC violation -- mid-transition it
-						-- can momentarily sample garbage, glitching >= 48
-						-- and stalling issuance (observed on hardware as a
-						-- read that never completes). ddr3_read_full is a
-						-- write-side (ui_clk) single-bit flag, natively safe
-						-- to read here -- same class of signal as
-						-- ddr3_write_empty, used the same way above.
-						elsif ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
+						-- rd_pf_issued < rd_pf_target is the per-batch
+						-- command budget; ddr3_read_full = '0' is the
+						-- overflow guard (a write-side ui_clk single-bit
+						-- flag, natively safe to read from this domain).
+						if ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
 							rd_pf_state  <= 1;
-						elsif rd_pf_flushed = '0' then
-							-- per-batch trailing flush, see rd_pf_flushed
-							-- declaration comment -- same dummy-push
-							-- mechanism as the priming branch above, just
-							-- gated per-batch (once real commands are
-							-- done) instead of once-ever.
-							ddr3_read_din    <= (others => '0');
-							ddr3_read_wr_en  <= '1';
-							rd_pf_pending_hi <= (others => '0');
-							rd_pf_flushed    <= '1';
-							rd_pf_state      <= 3;
 						end if;
 					when 1 =>
 						-- Assert app_en ONLY while the command has not yet
-						-- been accepted. The earlier version set app_en
-						-- unconditionally here, so on the cycle app_rdy
-						-- accepted the command it also re-latched app_en
-						-- high for the next (state-2) cycle with the same
-						-- app_addr still held -- and if app_rdy stayed high
-						-- (DRAM-traffic dependent), MIG latched the SAME
-						-- read command a second time. That extra response
-						-- (valid=cmd+1) desynced the whole readback stream,
-						-- appearing as nondeterministic shifted/duplicated/
-						-- all-zero batches. This conditional handshake
-						-- matches the write-assembler's state-3 logic, which
-						-- was always correct (hence writes never failed).
+						-- been accepted -- deasserting it the cycle app_rdy
+						-- accepts prevents MIG from latching the same read
+						-- twice (the double-issue bug: valid=cmd+1, which
+						-- desynced the readback). Matches ramtester's
+						-- s_read_1 and the write-assembler's state-3 logic.
 						if mig_app_rdy = '1' then
 							rd_pf_addr    <= rd_pf_addr + 8;
 							rd_pf_state   <= 2;
 							dbg_cmd_count <= dbg_cmd_count + 1;
 							rd_pf_issued  <= rd_pf_issued + 1;
-							-- DIAGNOSTIC: this command's own address, for
-							-- the duplicate-response check in state 2
-							-- below (see dbg_cmd_addr declaration comment).
 							dbg_cmd_addr  <= rd_pf_addr;
 						else
-							-- not yet accepted: keep the read command
-							-- presented (app_en held high) until app_rdy.
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
 						end if;
-					when 2 =>
+					when others => -- 2: wait for the response, push it whole
 						if mig_app_rd_data_valid = '1' then
-							ddr3_read_din    <= mig_app_rd_data(63 downto 0);
-							ddr3_read_wr_en  <= '1';
-							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
-							rd_pf_state      <= 3;
-							rd_pf_wait_ctr   <= 0;
-							-- DIAGNOSTIC: latch the raw high-32 bits MIG
-							-- returns for the first two commands directly
-							-- (WireOut 0x32/0x33), to see ground truth
-							-- rather than infer it through the readback.
+							ddr3_read_din   <= mig_app_rd_data;
+							ddr3_read_wr_en <= '1';
+							rd_pf_state     <= 0;
+							-- DIAGNOSTIC: raw high-32 of the first two
+							-- responses (WireOut 0x32/0x33).
 							if dbg_resp_count = 0 then
 								dbg_high0 <= mig_app_rd_data(127 downto 96);
 							elsif dbg_resp_count = 1 then
 								dbg_high1 <= mig_app_rd_data(127 downto 96);
 							end if;
 							dbg_resp_count <= dbg_resp_count + 1;
-							-- DIAGNOSTIC: does this command's response
-							-- bit-match the *previous* command's response
-							-- -- see dbg_cmd_addr declaration comment.
+							-- DIAGNOSTIC: duplicate-response detector.
 							if mig_app_rd_data = dbg_prev_rd_data then
 								dbg_dup_count  <= dbg_dup_count + 1;
 								dbg_dup_at_cmd <= "00000000" & dbg_cmd_count;
@@ -1497,18 +1399,6 @@ begin
 							dbg_prev_rd_data <= mig_app_rd_data;
 							dbg_prev_addr    <= dbg_cmd_addr;
 						end if;
-					when 3 =>
-						-- DIAGNOSTIC: ~8 ui_clk cycle CDC-settling wait,
-						-- see rd_pf_wait_ctr declaration comment.
-						if rd_pf_wait_ctr = 8 then
-							rd_pf_state <= 4;
-						else
-							rd_pf_wait_ctr <= rd_pf_wait_ctr + 1;
-						end if;
-					when others => -- 4
-						ddr3_read_din   <= rd_pf_pending_hi;
-						ddr3_read_wr_en <= '1';
-						rd_pf_state     <= 0;
 				end case;
 			end if;
 		end if;
@@ -1587,7 +1477,8 @@ begin
 		dout   => ddr3_read_dout,
 		full   => ddr3_read_full,
 		empty  => ddr3_read_empty,
-		rd_data_count => ddr3_read_rd_data_count
+		rd_data_count => ddr3_read_rd_data_count,
+		wr_data_count => ddr3_read_wr_data_count
 	);
 
 	-- MIG sys_rst pulse generation, see mig_sys_rst declaration comment.
@@ -1595,6 +1486,14 @@ begin
 	begin
 		if rising_edge(okClk) then
 			mig_sys_rst <= '0';
+			-- BTPipeOut 0xA3 ep_ready: assert once at least one 16-byte
+			-- block (4 read-side 32-bit words) is available, matching
+			-- ramtester's pipe_out_ready. Registered in okClk.
+			if ddr3_read_rd_data_count >= 4 then
+				ddr3_read_pipe_ready <= '1';
+			else
+				ddr3_read_pipe_ready <= '0';
+			end if;
 		end if;
 	end process;
 
@@ -1693,7 +1592,7 @@ begin
 	-- BTPipeOut endpoint (Phase 6b DDR3 read-prefetch readback, see file header comment)
 	poA3 : okBTPipeOut port map (
 		okHE => okHE, okEH => okEHx(21*65-1 downto 20*65), ep_addr => x"A3",
-		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => pipeOut_ready
+		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => ddr3_read_pipe_ready
 	);
 
 	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
