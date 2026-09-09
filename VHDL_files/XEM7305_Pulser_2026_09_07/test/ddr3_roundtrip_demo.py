@@ -572,6 +572,27 @@ def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
         raise AssertionError(f"endurance test saw {mismatches} mismatch(es)")
 
 
+_ALIAS_LUT = {}  # (total_words, seed) -> {value: index}, built once, reused
+
+
+def _find_alias_index(value, total_words, seed):
+    """Return the written word-index whose memtest_value == value -- i.e.
+    which index physically overwrote/aliases the failing location. That
+    delta/xor between the failing index and this one reveals the
+    address-decode bug. Builds a value->index lookup once per run
+    (cached); skips for tests too large to hold in RAM."""
+    if total_words > 8_388_608:  # > 64 MiB: lookup dict too big, skip
+        return None
+    key = (total_words, seed)
+    lut = _ALIAS_LUT.get(key)
+    if lut is None:
+        lut = {}
+        for i in range(total_words):
+            lut.setdefault(memtest_value(i, seed), i)
+        _ALIAS_LUT[key] = lut
+    return lut.get(value)
+
+
 def run_memtest(xem, mib, chunk_words, seed):
     """Rigorous memory-integrity test: write address-derived data
     (memtest_value(word_index)) across `mib` MiB of DDR3 in a single
@@ -620,10 +641,19 @@ def run_memtest(xem, mib, chunk_words, seed):
         if got != expected:
             mismatches += 1
             bad = next(i for i in range(chunk_words) if got[i] != expected[i])
+            fi = base + bad  # failing global word index
             if first_fail is None:
                 first_fail = (c, bad, expected[bad], got[bad])
-            print(f"    [MISMATCH] chunk {c}, word #{bad}: "
-                  f"expected {expected[bad]:#018x} got {got[bad]:#018x}")
+            msg = (f"    [MISMATCH] chunk {c}, word #{bad} (idx 0x{fi:x}): "
+                   f"expected {expected[bad]:#018x} got {got[bad]:#018x}")
+            if mismatches <= 20:  # identify the alias source for the first few
+                alias = _find_alias_index(got[bad], total_words, seed)
+                if alias is not None:
+                    msg += (f"  <- holds value of idx 0x{alias:x} "
+                            f"(delta {alias-fi:+d} words, xor 0x{fi^alias:x})")
+                else:
+                    msg += "  <- value not from any written index (data corruption, not alias)"
+            print(msg)
         if time.time() >= nxt:
             done = (c + 1) / n_chunks
             print(f"    read  {done*100:5.1f}%  {time.time()-t1:5.0f}s  "
