@@ -134,6 +134,8 @@ DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 
 DDR3_READ_ISSUED_MASK = 0xFF
 
 DUP_STATUS_WIRE = 0x34  # DIAGNOSTIC (temporary): see photon.vhd's dbg_dup_count comment
+VALID_COUNT_WIRE = 0x30  # DIAGNOSTIC (temporary): dbg_valid_count, rising edges of app_rd_data_valid
+CMD_COUNT_WIRE = 0x31    # DIAGNOSTIC (temporary): dbg_cmd_count, MIG read commands issued
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
@@ -198,6 +200,7 @@ def wait_read_ready(xem, min_count):
         time.sleep(READ_POLL_INTERVAL)
     primed = bool(last_status & DDR3_READ_PRIMED_BIT)
     issued = (last_status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
+    print_dup_diagnostics(xem)
     raise RuntimeError(
         f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F) "
         f"-- stuck at {last_count}, rd_pf_primed={primed}, rd_pf_issued={issued}")
@@ -326,6 +329,15 @@ def print_dup_diagnostics(xem):
             f"addr_match={addr_match} "
             f"({'same address -- address-advance bug' if addr_match else 'DIFFERENT address -- data-path race'})"
         )
+
+    xem.UpdateWireOuts()
+    valid_count = xem.GetWireOutValue(VALID_COUNT_WIRE) & 0xFF
+    cmd_count = xem.GetWireOutValue(CMD_COUNT_WIRE) & 0xFF
+    print(
+        f"  app_rd_data_valid diagnostic: dbg_valid_count={valid_count}, "
+        f"dbg_cmd_count={cmd_count} "
+        f"({'MATCH -- one valid pulse per command' if valid_count == cmd_count else 'MISMATCH -- valid fired a different number of times than commands issued'})"
+    )
 
 
 def make_test_words(n, tag, rng=None):
