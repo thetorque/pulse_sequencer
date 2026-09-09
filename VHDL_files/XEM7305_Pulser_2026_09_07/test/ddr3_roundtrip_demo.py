@@ -143,9 +143,7 @@ BATCH_DONE_POLL_INTERVAL = 0.01
 NOT_EMPTY_POLL_ATTEMPTS = 200
 NOT_EMPTY_POLL_INTERVAL = 0.01
 
-DUP_STATUS_WIRE = 0x34  # DIAGNOSTIC (temporary): see photon.vhd's dbg_dup_count comment
-VALID_COUNT_WIRE = 0x30  # DIAGNOSTIC (temporary): dbg_valid_count, rising edges of app_rd_data_valid
-CMD_COUNT_WIRE = 0x31    # DIAGNOSTIC (temporary): dbg_cmd_count, MIG read commands issued
+CMD_COUNT_WIRE = 0x31    # DIAGNOSTIC: dbg_cmd_count (bits 7:0) + dbg_retry_count (bits 15:8)
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
@@ -238,7 +236,7 @@ def wait_batch_done(xem, target_commands):
         time.sleep(BATCH_DONE_POLL_INTERVAL)
     state = (status >> DDR3_READ_STATE_SHIFT) & DDR3_READ_STATE_MASK
     valid_outside_s2 = bool(status & DDR3_VALID_OUTSIDE_S2_BIT)
-    print_dup_diagnostics(xem)
+    print_read_diagnostics(xem)
     raise RuntimeError(
         f"read-prefetch never finished this batch (WireOut 0x2F) -- "
         f"issued={issued}/{target_commands}, idle={idle}, "
@@ -267,7 +265,7 @@ def wait_read_not_empty(xem):
     issued = (status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
     state = (status >> DDR3_READ_STATE_SHIFT) & DDR3_READ_STATE_MASK
     idle = bool(status & DDR3_READ_IDLE_BIT)
-    print_dup_diagnostics(xem)
+    print_read_diagnostics(xem)
     raise RuntimeError(
         f"ddr3_read_fifo still reports empty after read-prefetch finished (WireOut 0x2F bit 14) "
         f"-- issued={issued}, rd_pf_state={state}, idle={idle} "
@@ -421,37 +419,19 @@ def read_words(xem, n_words, reset_fifo=True):
     return words
 
 
-def print_dup_diagnostics(xem):
-    """Reads WireOut 0x34 (see photon.vhd's dbg_dup_count declaration
-    comment) and prints whether any MIG read command's response has
-    ever bit-duplicated the *previous* command's response since the
-    last reset_ddr3() -- and if so, whether that pair's addresses also
-    matched (an address-advance bug) or differed (a data-path race)."""
+def print_read_diagnostics(xem):
+    """Reads WireOut 0x31 and reports the lost-command retry count
+    (dbg_retry_count, bits 15:8 -- nonzero means the MIG app_rdy
+    edge-timing issue was hit and recovered) and the completed-command
+    liveness counter (dbg_cmd_count, bits 7:0, 8-bit so it wraps). The
+    0x30/0x34 bring-up diagnostics (valid-edge count and the duplicate-
+    response detector) were removed from photon.vhd once the read path
+    was proven; only these two counters remain."""
     xem.UpdateWireOuts()
-    status = xem.GetWireOutValue(DUP_STATUS_WIRE)
-    dup_count = (status >> 1) & 0x7FFF
-    addr_match = bool(status & 1)
-    dup_at_cmd = (status >> 16) & 0xFFFF
-    if dup_count == 0:
-        print("  dup-response diagnostic: none detected (dbg_dup_count=0)")
-    else:
-        print(
-            f"  dup-response diagnostic: dbg_dup_count={dup_count}, "
-            f"most recent at dbg_cmd_count={dup_at_cmd}, "
-            f"addr_match={addr_match} "
-            f"({'same address -- address-advance bug' if addr_match else 'DIFFERENT address -- data-path race'})"
-        )
-
-    xem.UpdateWireOuts()
-    valid_count = xem.GetWireOutValue(VALID_COUNT_WIRE) & 0xFF
     cmd31 = xem.GetWireOutValue(CMD_COUNT_WIRE)
     cmd_count = cmd31 & 0xFF
     retry_count = (cmd31 >> 8) & 0xFF   # dbg_retry_count, bits 15:8
-    print(
-        f"  app_rd_data_valid diagnostic: dbg_valid_count={valid_count}, "
-        f"dbg_cmd_count={cmd_count} "
-        f"({'MATCH -- one valid pulse per command' if valid_count == cmd_count else 'MISMATCH -- valid fired a different number of times than commands issued'})"
-    )
+    print(f"  read-command diagnostic: dbg_cmd_count={cmd_count} (8-bit, wraps)")
     print(f"  lost-command retry diagnostic: dbg_retry_count={retry_count} "
           f"({'no lost commands' if retry_count == 0 else 'MIG app_rdy edge-timing issue hit and recovered'})")
 
@@ -501,11 +481,11 @@ def run_soak_test(xem, n_batches, words_per_batch, rng=None):
             print(f"  batch {batch}: [MISMATCH]")
             print(f"    wrote:     " + ", ".join(f"{w:#018x}" for w in test_words))
             print(f"    read back: " + ", ".join(f"{w:#018x}" for w in readback_words))
-            print_dup_diagnostics(xem)
+            print_read_diagnostics(xem)
             raise AssertionError(f"soak test failed at batch {batch}")
         print(f"  batch {batch}: [OK]")
     print(f"\nAll {n_batches} batches verified.")
-    print_dup_diagnostics(xem)
+    print_read_diagnostics(xem)
 
 
 def _endurance_progress(xem, start, batch, total_words, mismatches, tag):
@@ -550,7 +530,7 @@ def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
                 print(f"  [MISMATCH #{mismatches}] batch {batch}, ~offset 0x{offset:x}, "
                       f"first bad word #{bad}: wrote {test_words[bad]:#018x} "
                       f"read {readback[bad]:#018x}")
-                print_dup_diagnostics(xem)
+                print_read_diagnostics(xem)
                 reset_ddr3(xem)        # re-sync so one glitch doesn't cascade
                 reset_read_fifo(xem)
                 total_words = 0        # address restarts at 0

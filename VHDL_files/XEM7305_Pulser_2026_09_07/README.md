@@ -567,15 +567,15 @@ never goes cold), to be developed and proven in simulation. The low 32 KiB
 regardless (that row-address bit is never set there, and the fault only
 ever clears it).
 
-**Housekeeping still pending (do at the next build cycle, both
-build-verified):**
+**Bring-up diagnostics stripped** (kept `dbg_retry_count` +
+`dbg_cmd_count` on WireOut 0x31; removed `dbg_valid_count`, `dbg_high0/1`,
+`dbg_resp_count`, the `dbg_dup_*` duplicate-detector, and
+`dbg_valid_outside_s2`, along with WireOut endpoints 0x30/0x32/0x33/0x34 —
+`okEHx` slices renumbered and `okWireOR N` dropped 26→22; the host test's
+`print_read_diagnostics` and constants updated to match).
 
-- Strip the remaining bring-up diagnostics from `photon.vhd` — keep
-  `dbg_retry_count`; remove `dbg_valid_count`, `dbg_high0/1`,
-  `dbg_resp_count`, the `dbg_dup_*` duplicate-detector, and
-  `dbg_valid_outside_s2`, along with their WireOut endpoints
-  0x30/0x32/0x33/0x34 (renumber the `okEHx` slices and drop `okWireOR N`
-  from 26 to 22).
+**Housekeeping still pending (needs a build to verify):**
+
 - Add `create_ip` TCL for `ddr3_read_fifo` / `ddr3_write_fifo` /
   `pulse_fifo` to `create_project.tcl` to fix the Mac↔Windows IP
   divergence (the read FIFO in particular must be regenerated as the
