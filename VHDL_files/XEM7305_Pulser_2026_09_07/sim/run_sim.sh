@@ -21,10 +21,16 @@
 GHDL="${GHDL:-ghdl}"
 cd "$(dirname "$0")"
 
-SRCS="line_fifo_128x64.vhd mig_read_model.vhd ddr3_line_streamer.vhd tb_line_streamer.vhd"
+SRCS="line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd \
+      ddr3_line_streamer.vhd pulse_sequencer.vhd pulse_cdc.vhd \
+      tb_line_streamer.vhd tb_streamer_throughput.vhd \
+      tb_sequencer.vhd tb_sequencer_loop.vhd"
 
 echo "== analyze =="
 "$GHDL" -a --std=08 $SRCS
-echo "== elaborate + run =="
-"$GHDL" --elab-run --std=08 tb_line_streamer --stop-time=10ms
-echo "== done (expect 'ALL TESTS PASSED' above) =="
+
+for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop; do
+  echo "== run $tb =="
+  "$GHDL" --elab-run --std=08 "$tb" --stop-time=20ms
+done
+echo "== done (expect 'ALL TESTS PASSED' / 'THROUGHPUT' lines above) =="

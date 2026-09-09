@@ -29,11 +29,17 @@ read-prefetch handshake and adds what the sequencer needs:
 
 | File | Role |
 |---|---|
-| `ddr3_line_streamer.vhd` | the streamer (synthesizable; the real design instantiates the Xilinx FIFO IP for `line_fifo_128x64`) |
+| `ddr3_line_streamer.vhd` | the streamer (synthesizable; real design uses the Xilinx FIFO IP for `line_fifo_128x64`) |
+| `pulse_sequencer.vhd` | **M3** — the sequencer FSM adapted to pop lines from the FIFO (synthesizable) |
+| `pulse_cdc.vhd` | **M3** — `pulse_cdc` (pulse CDC) + `level_sync` (level CDC) for the seq_clk↔ui_clk crossings |
 | `line_fifo_128x64.vhd` | **sim model** of the 128/64 independent-clocks Standard FIFO |
 | `mig_read_model.vhd` | **sim model** of the MIG app read interface + address-derived data |
-| `tb_line_streamer.vhd` | testbench + scoreboard |
-| `run_sim.sh` | GHDL run script |
+| `mig_prog_model.vhd` | **sim model** of MIG backed by a real pulse PROGRAM (for the sequencer TBs) |
+| `tb_line_streamer.vhd` | M1 streamer testbench + scoreboard |
+| `tb_streamer_throughput.vhd` | M5 sustained-throughput / starvation measurement |
+| `tb_sequencer.vhd` | M3 combined streamer+sequencer, one-shot waveform check |
+| `tb_sequencer_loop.vhd` | M3 infinite-loop / restart / CDC path check |
+| `run_sim.sh` | GHDL run script (runs all testbenches) |
 
 ## Running
 
@@ -64,11 +70,19 @@ hardware property, to be confirmed on real hardware exactly as
    `create_project.tcl`. **Match the 64-bit half ordering** (low-first here) to
    the write-assembler's line packing on hardware, as the Phase 6b byte order
    was matched.
-2. `restart` and `primed` cross the ui_clk↔seq_clk boundary — add pulse/level
-   synchronizers at integration (the sim drives them in-domain).
-3. The sequencer FSM (`photon.vhd` ~line 1040) already reads lines sequentially
-   with a 2-line look-ahead; point its line source at this FIFO and drive
-   `restart` from its infinite-loop path.
+2. `restart` and `primed` cross the ui_clk↔seq_clk boundary and **must** be
+   synchronized: use `pulse_cdc` for the sequencer→streamer `restart` pulse and
+   `level_sync` for the streamer→sequencer `primed` level. A bare 1-cycle
+   restart pulse is missed (seq_clk 10 ns < ui_clk 12.3 ns) → intermittent loop
+   hangs; the loop testbench only passes with these in place.
+3. `pulse_sequencer.vhd` is the drop-in replacement for `photon.vhd`'s Phase 5a
+   FSM (~line 1040): it pops from the FIFO instead of addressing `pulser_ram`,
+   preserving the exact timing semantics — **`time` is absolute/cumulative,
+   `time_count` free-runs (never reset per line), and it increments-then-
+   compares**. (The combined sim caught all three; getting any wrong makes
+   every program run at the wrong durations.) Wire its `restart` (via
+   `pulse_cdc`) to the streamer and keep the existing line-trigger / loop-count
+   / seq_count features when merging into the real FSM.
 4. **Starvation ceiling** (measured by `tb_streamer_throughput`, model MIG
    read latency 24 ui_clk): sustained **~6 lines/µs ≈ 166 ns/line**. So dwells
    ≥ ~166 ns/line never starve; faster bursts down to 40 ns/line are buffered
