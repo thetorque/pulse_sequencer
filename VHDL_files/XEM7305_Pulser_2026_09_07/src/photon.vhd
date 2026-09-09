@@ -541,24 +541,6 @@ architecture arch of photon is
 	signal rd_pf_target  : INTEGER range 0 to 65535 := 0;
 	signal ep00wire4_prev : STD_LOGIC := '0';
 
-	-- Cold-start priming read (Phase 6b). The first read command after an
-	-- inter-batch idle -- the host round-trip plus FIFO-reset pulse leaves
-	-- MIG with no user commands for milliseconds, long enough that it
-	-- precharges all banks and runs many refreshes, i.e. the controller
-	-- goes "cold" -- occasionally activates the wrong row (a single row-
-	-- address bit latched low, giving a valid-but-wrong 128-bit beat from
-	-- ~16 rows lower). Ramtester never sees this because it streams reads
-	-- continuously and never lets the controller go cold. Fix: at each
-	-- batch entry issue ONE throwaway read and discard it, so that
-	-- sacrificial cold command absorbs the marginal first-activate and the
-	-- real reads are all "warm". The priming read targets a DIFFERENT bank
-	-- (rd_pf_addr XOR a bank bit) so the real first read still does its own
-	-- fresh ACTIVATE and cannot row-hit a wrongly-opened row. rd_pf_primed
-	-- is cleared on every read-mode entry so each batch primes exactly once.
-	signal rd_pf_priming : STD_LOGIC := '0';  -- current handshake is the throwaway
-	signal rd_pf_primed  : STD_LOGIC := '0';  -- this batch's priming read has completed
-	constant RD_PF_PRIME_XOR : STD_LOGIC_VECTOR(28 downto 0) := (25 => '1', others => '0');
-
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
@@ -1276,9 +1258,6 @@ begin
 			if ep00wire(4) = '1' and ep00wire4_prev = '0' then
 				rd_pf_issued  <= 0;
 				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
-				-- re-arm the cold-start priming read for this new batch
-				rd_pf_primed  <= '0';
-				rd_pf_priming <= '0';
 			end if;
 
 			-- DIAGNOSTIC: sticky flag if a valid response ever arrives
@@ -1298,8 +1277,6 @@ begin
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
 				rd_pf_wait_ctr <= 0;
-				rd_pf_primed   <= '0';
-				rd_pf_priming  <= '0';
 				dbg_retry_count    <= (others => '0');
 				dbg_dup_count      <= (others => '0');
 				dbg_dup_at_cmd     <= (others => '0');
@@ -1315,8 +1292,6 @@ begin
 				-- continues across batches.
 				rd_pf_state    <= 0;
 				rd_pf_issued   <= 0;
-				rd_pf_primed   <= '0';
-				rd_pf_priming  <= '0';
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1387,28 +1362,15 @@ begin
 				case rd_pf_state is
 					when 0 =>
 						rd_pf_idle <= '1';
-						-- Cold-start priming read: before this batch's first
-						-- real read, issue ONE throwaway read to a different
-						-- bank (rd_pf_addr XOR bank bit) to warm the controller
-						-- after the inter-batch idle. Its data is discarded and
-						-- rd_pf_addr/rd_pf_issued are NOT advanced -- it only
-						-- absorbs the marginal first-activate. See rd_pf_priming.
-						if rd_pf_primed = '0' then
-							mig_app_addr  <= rd_pf_addr xor RD_PF_PRIME_XOR;
-							mig_app_cmd   <= "001";
-							mig_app_en    <= '1';
-							rd_pf_priming <= '1';
-							rd_pf_state   <= 1;
 						-- rd_pf_issued < rd_pf_target is the per-batch
 						-- command budget; ddr3_read_full = '0' is the
 						-- overflow guard (a write-side ui_clk single-bit
 						-- flag, natively safe to read from this domain).
-						elsif ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
-							mig_app_addr  <= rd_pf_addr;
-							mig_app_cmd   <= "001";
-							mig_app_en    <= '1';
-							rd_pf_priming <= '0';
-							rd_pf_state   <= 1;
+						if ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
+							mig_app_addr <= rd_pf_addr;
+							mig_app_cmd  <= "001";
+							mig_app_en   <= '1';
+							rd_pf_state  <= 1;
 						end if;
 					when 1 =>
 						-- Assert app_en ONLY while the command has not yet
@@ -1424,29 +1386,13 @@ begin
 							rd_pf_state    <= 2;
 							rd_pf_wait_ctr <= 0;
 						else
-							-- hold the same address this handshake issued --
-							-- the priming (different-bank) address while
-							-- priming, the real address otherwise.
-							if rd_pf_priming = '1' then
-								mig_app_addr <= rd_pf_addr xor RD_PF_PRIME_XOR;
-							else
-								mig_app_addr <= rd_pf_addr;
-							end if;
+							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
 						end if;
 					when others => -- 2: wait for the response (with a
 						-- lost-command timeout), push it whole, then commit.
 						if mig_app_rd_data_valid = '1' then
-							if rd_pf_priming = '1' then
-								-- throwaway priming read completed: discard the
-								-- data (do NOT push to the FIFO), do NOT advance
-								-- rd_pf_addr/rd_pf_issued. Its sole purpose was
-								-- to warm the controller; the real reads follow.
-								rd_pf_primed  <= '1';
-								rd_pf_priming <= '0';
-								rd_pf_state   <= 0;
-							else
 							ddr3_read_din   <= mig_app_rd_data;
 							ddr3_read_wr_en <= '1';
 							rd_pf_addr      <= rd_pf_addr + 8;
@@ -1474,7 +1420,6 @@ begin
 							end if;
 							dbg_prev_rd_data <= mig_app_rd_data;
 							dbg_prev_addr    <= dbg_cmd_addr;
-							end if;  -- rd_pf_priming
 						elsif rd_pf_wait_ctr = 2047 then
 							-- lost command: MIG counted app_rdy but never
 							-- returned a valid. Re-issue the SAME address
