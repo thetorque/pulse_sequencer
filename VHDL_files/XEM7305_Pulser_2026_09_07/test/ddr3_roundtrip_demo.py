@@ -79,8 +79,14 @@ immediately (in the spirit of the Locally_compiled_ramtester reference
 design).
 
 Usage:
-    python ddr3_roundtrip_demo.py path/to/photon.bit [n_words]
-    python ddr3_roundtrip_demo.py path/to/photon.bit soak [n_batches] [words_per_batch]
+    python ddr3_roundtrip_demo.py path/to/photon.bit [n_words] [--random[=SEED]]
+    python ddr3_roundtrip_demo.py path/to/photon.bit soak [n_batches] [words_per_batch] [--random[=SEED]]
+
+--random switches from the structured, easy-to-recognize test pattern
+(constant high bits, small incrementing low bits) to full 64-bit
+random words -- see make_test_words()'s docstring for why that
+matters. The seed used is always printed so a failing run can be
+reproduced with --random=SEED.
 
 n_words/words_per_batch must be even. Practical ceilings:
 ddr3_write_fifo's actual depth (~33 64-bit entries) bounds how many
@@ -93,6 +99,7 @@ to fail with a clear timeout, not silent corruption.
 Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module
 (see smoke_test.py's docstring for how to point PYTHONPATH at it).
 """
+import random
 import struct
 import sys
 import time
@@ -297,20 +304,30 @@ def read_words(xem, n_words):
     return words
 
 
-def run_soak_test(xem, n_batches, words_per_batch):
+def make_test_words(n, tag, rng=None):
+    """n distinct 64-bit test words. With rng=None, a structured,
+    easy-to-recognize pattern (tag in the high 16 bits, an index in
+    the low bits) -- good for eyeballing a mismatch, but its mostly-
+    zero low bits and constant high bits won't catch bit-position-
+    specific faults (a stuck bit, bit-line crosstalk). With an rng
+    (random.Random), full 64-bit random words instead -- pass a seeded
+    rng for a reproducible run."""
+    if rng is not None:
+        return [rng.getrandbits(64) for _ in range(n)]
+    return [0xA5A5_0000_0000_0000 | (tag << 16) | i for i in range(n)]
+
+
+def run_soak_test(xem, n_batches, words_per_batch, rng=None):
     """Writes and immediately verifies n_batches batches of
     words_per_batch words each, without resetting pointers in between
     -- see module docstring's "Multi-batch continuation" section.
     Walks n_batches*words_per_batch*8 bytes deeper into DDR3's address
     space than a single batch's FIFO depth would otherwise allow.
-    Stops at the first mismatch."""
+    Stops at the first mismatch. rng: see make_test_words()."""
     print(f"\n--- DDR3 soak test: {n_batches} batches of {words_per_batch} words ---")
     reset_ddr3(xem)
     for batch in range(n_batches):
-        test_words = [
-            0xB6B6_0000_0000_0000 | (batch << 16) | i
-            for i in range(words_per_batch)
-        ]
+        test_words = make_test_words(words_per_batch, batch, rng)
         write_words(xem, test_words)
         readback_words = read_words(xem, words_per_batch)
         if readback_words != test_words:
@@ -322,31 +339,56 @@ def run_soak_test(xem, n_batches, words_per_batch):
     print(f"\nAll {n_batches} batches verified.")
 
 
+def parse_random_flag(argv):
+    """Extracts a trailing --random or --random=SEED flag from argv
+    (any position), returning (remaining_argv, rng_or_None). Prints
+    the seed used so a failing run can be reproduced exactly."""
+    remaining = []
+    seed = None
+    use_random = False
+    for arg in argv:
+        if arg == "--random":
+            use_random = True
+        elif arg.startswith("--random="):
+            use_random = True
+            seed = int(arg.split("=", 1)[1])
+        else:
+            remaining.append(arg)
+    if not use_random:
+        return remaining, None
+    if seed is None:
+        seed = random.SystemRandom().randrange(2**32)
+    print(f"  random data enabled, seed={seed} (pass --random={seed} to reproduce)")
+    return remaining, random.Random(seed)
+
+
 def main():
-    if len(sys.argv) >= 3 and sys.argv[2] == "soak":
-        if len(sys.argv) not in (3, 4, 5):
-            sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit soak [n_batches] [words_per_batch]")
-        n_batches = int(sys.argv[3]) if len(sys.argv) >= 4 else 20
-        words_per_batch = int(sys.argv[4]) if len(sys.argv) == 5 else 16
+    argv, rng = parse_random_flag(sys.argv[1:])
+    argv = [sys.argv[0]] + argv
+
+    if len(argv) >= 3 and argv[2] == "soak":
+        if len(argv) not in (3, 4, 5):
+            sys.exit(f"Usage: {argv[0]} path/to/photon.bit soak [n_batches] [words_per_batch] [--random[=SEED]]")
+        n_batches = int(argv[3]) if len(argv) >= 4 else 20
+        words_per_batch = int(argv[4]) if len(argv) == 5 else 16
         if words_per_batch % 2 != 0:
             sys.exit("words_per_batch must be even -- see module docstring")
-        xem = connect(sys.argv[1])
-        run_soak_test(xem, n_batches, words_per_batch)
+        xem = connect(argv[1])
+        run_soak_test(xem, n_batches, words_per_batch, rng)
         return
 
-    if len(sys.argv) not in (2, 3):
-        sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit [n_words]")
-    n_words = int(sys.argv[2]) if len(sys.argv) == 3 else N_WORDS
+    if len(argv) not in (2, 3):
+        sys.exit(f"Usage: {argv[0]} path/to/photon.bit [n_words] [--random[=SEED]]")
+    n_words = int(argv[2]) if len(argv) == 3 else N_WORDS
     if n_words % 2 != 0:
         sys.exit("n_words must be even -- see module docstring")
 
-    xem = connect(sys.argv[1])
+    xem = connect(argv[1])
 
     print("\n--- Phase 6b DDR3 write/read adapter round-trip test ---")
     reset_ddr3(xem)
 
-    # Distinct, easy-to-recognize 64-bit test patterns.
-    test_words = [0xA5A5_0000_0000_0000 | i for i in range(n_words)]
+    test_words = make_test_words(n_words, 0, rng)
     print(f"  Writing {n_words} test words: " + ", ".join(f"{w:#018x}" for w in test_words))
     write_words(xem, test_words)
     print("  pulse_fifo drained and ddr3 write path idle  [OK]")
