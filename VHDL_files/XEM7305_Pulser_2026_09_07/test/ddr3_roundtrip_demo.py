@@ -214,32 +214,23 @@ def read_halves(xem, n_words):
 
 
 def determine_read_order(xem):
-    """Writes one word with clearly distinct halves and a dummy second
-    word (write-assembler needs an even count), reads back the first
-    64-bit word's two halves, and determines which comes out of
-    BTPipeOut 0xA3 first -- see module docstring."""
-    print("\n--- Determining ddr3_read_fifo 32-bit split order ---")
+    """DIAGNOSTIC version: writes two words with clearly distinct,
+    recognizable halves (no zeros, so a wrong value is easy to
+    recognize by which word/half it actually came from) and prints
+    all 4 halves read back, rather than just checking the first two --
+    see the temporary diagnostic note in the module docstring."""
+    print("\n--- Determining ddr3_read_fifo 32-bit split order (diagnostic) ---")
     reset_ddr3(xem)
 
-    HIGH_HALF = 0xAAAAAAAA
-    LOW_HALF = 0x55555555
-    diag_word = (HIGH_HALF << 32) | LOW_HALF
-    write_words(xem, [diag_word, 0])
+    word0 = 0xAAAAAAAA_55555555  # high=0xAAAAAAAA, low=0x55555555
+    word1 = 0x11112222_33334444  # high=0x11112222, low=0x33334444
+    write_words(xem, [word0, word1])
 
     halves = read_halves(xem, 2)
-    first, second = halves[0], halves[1]
-    print(f"  Wrote high={HIGH_HALF:#010x}, low={LOW_HALF:#010x} as one word")
-    print(f"  First 32 bits read back = {first:#010x}, second = {second:#010x}")
-
-    if first == LOW_HALF and second == HIGH_HALF:
-        print("  -> low half comes out FIRST")
-        return True
-    elif first == HIGH_HALF and second == LOW_HALF:
-        print("  -> high half comes out FIRST")
-        return False
-    else:
-        sys.exit(f"Unexpected halves {first:#010x}/{second:#010x} -- neither matches "
-                  f"{LOW_HALF:#010x}/{HIGH_HALF:#010x}. Not safe to guess and proceed.")
+    print(f"  Wrote word0 high={0xAAAAAAAA:#010x} low={0x55555555:#010x}")
+    print(f"  Wrote word1 high={0x11112222:#010x} low={0x33334444:#010x}")
+    print("  Readback halves: " + ", ".join(f"{h:#010x}" for h in halves))
+    sys.exit("Diagnostic run -- inspect the halves above, not a real failure.")
 
 
 def main():
