@@ -128,7 +128,12 @@ WRITE_IDLE_POLL_INTERVAL = 0.01
 
 DDR3_READ_STATUS_WIRE = 0x2F
 DDR3_READ_IDLE_BIT = 1 << 16
-DDR3_READ_COUNT_MASK = 0xFFFF  # bits below rd_pf_idle (bit 16); actual count is 6 bits wide
+DDR3_READ_COUNT_MASK = 0x3F  # ddr3_read_rd_data_count is bits 5:0 only -- must NOT
+                             # overlap ddr3_read_empty (bit 14) / rd_pf_flushed (bit 15),
+                             # which a wider 0xFFFF mask wrongly folded in (flushed is set
+                             # after every batch, so the count read as >= 0x8000 and
+                             # drain_read_fifo's "count < 4" stop check never fired ->
+                             # infinite blocking block-reads -> hang)
 DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
 DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
 DDR3_READ_ISSUED_MASK = 0xFF
