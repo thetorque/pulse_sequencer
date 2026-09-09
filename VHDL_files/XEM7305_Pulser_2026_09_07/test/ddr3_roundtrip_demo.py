@@ -23,18 +23,23 @@ MIG write), so this script always writes an even count -- an odd count
 would leave the write-assembler stuck waiting for a word that never
 comes, and WireOut 0x2E bit 5 would never reassert.
 
-Word order (both directions confirmed by construction here, not
-empirically discovered): each 64-bit word is written as two 32-bit
-pipe writes (first -> high 32 bits, second -> low 32 bits, the same
-PULSE_WORD_ORDER_CONFIRMED = "high_word_first" convention already
-established in smoke_test.py for pulse_fifo's 32-bit write side) and
-the write-assembler pairs the first *popped* pulse_fifo word into the
-burst's low 64 bits, the second into the high 64 bits. On readback, the
-read-prefetch pushes the low 64 bits first, high 64 bits second, and
-BTPipeOut 0xA3 splits each 64-bit word into low-32-bits-first,
-high-32-bits-second (see photon.vhd's ddr3_read_datain/ddr3_read_pipe_half
-comment) -- all explicit choices made in the VHDL, not FIFO-Generator
-defaults, so there's no order ambiguity left to determine here.
+Word order -- overall sequence confirmed by construction, but the
+32-bit split direction is empirically determined, not assumed:
+each 64-bit word is written as two 32-bit pipe writes (first -> high
+32 bits, second -> low 32 bits, the same PULSE_WORD_ORDER_CONFIRMED =
+"high_word_first" convention already established in smoke_test.py for
+pulse_fifo's 32-bit write side), and the write-assembler/read-prefetch
+pipeline preserves the overall word sequence end to end (word N
+written is word N read back, in order -- traced through the VHDL, not
+just assumed). BUT ddr3_read_fifo is a natively asymmetric FIFO
+(64-bit write / 32-bit read, see photon.vhd's ddr3_read_fifo component
+comment for why -- an earlier hand-rolled splitter broke okBTPipeOut's
+timing assumptions on real hardware), so which 32-bit half of each
+64-bit word comes out of BTPipeOut 0xA3 *first* is Vivado's own
+FIFO Generator convention, not something controlled in the VHDL. This
+script determines it empirically first (determine_read_order(), same
+approach as led_walk_demo.py's determine_word_order() for pulse_fifo)
+rather than guessing.
 
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit
@@ -67,9 +72,12 @@ WRITE_IDLE_POLL_ATTEMPTS = 100
 WRITE_IDLE_POLL_INTERVAL = 0.01
 
 DDR3_READ_STATUS_WIRE = 0x2F
-READ_COUNT_MASK = 0x1F  # 5 bits, 32-deep ddr3_read_fifo
+DDR3_READ_IDLE_BIT = 1 << 16
+DDR3_READ_COUNT_MASK = 0xFFFF  # bits below rd_pf_idle (bit 16); actual count is 6 bits wide
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
+READ_IDLE_POLL_ATTEMPTS = 200
+READ_IDLE_POLL_INTERVAL = 0.01
 
 
 def connect(bit_path):
@@ -116,15 +124,122 @@ def wait_write_idle(xem):
         "check N_WORDS is even")
 
 
-def wait_read_count(xem, expected):
+def wait_read_ready(xem, min_count):
     for _ in range(READ_POLL_ATTEMPTS):
         xem.UpdateWireOuts()
-        count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & READ_COUNT_MASK
-        if count >= expected:
+        count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
+        if count >= min_count:
             return count
         time.sleep(READ_POLL_INTERVAL)
     raise RuntimeError(
-        f"ddr3_read_fifo never reached {expected} words (WireOut 0x2F)")
+        f"ddr3_read_fifo never reached {min_count} words (WireOut 0x2F)")
+
+
+def wait_read_idle(xem):
+    """Must be checked before switching ep00wire(4) back to write mode
+    -- see rd_pf_idle's declaration comment in photon.vhd for why."""
+    for _ in range(READ_IDLE_POLL_ATTEMPTS):
+        xem.UpdateWireOuts()
+        status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
+        if status & DDR3_READ_IDLE_BIT:
+            return
+        time.sleep(READ_IDLE_POLL_INTERVAL)
+    raise RuntimeError("ddr3 read path never reported idle (WireOut 0x2F bit 16)")
+
+
+def reset_ddr3(xem):
+    xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
+    xem.UpdateWireIns()
+    xem.ActivateTriggerIn(0x40, 1)  # RAM_PTR_RESET_BIT
+    xem.ActivateTriggerIn(0x40, 5)  # DDR3_PTR_RESET_BIT
+
+
+def write_words(xem, words):
+    """Writes `words` (must be even count) through BTPipeIn 0x80 and
+    waits for both pulse_fifo and the ddr3 write path to drain."""
+    if len(words) % 2 != 0:
+        raise ValueError("word count must be even -- see module docstring")
+    program = bytearray()
+    for w in words:
+        program += pack_word(w)
+    if len(program) % PIPE_BLOCK_SIZE:
+        program += bytearray(PIPE_BLOCK_SIZE - len(program) % PIPE_BLOCK_SIZE)
+    n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
+    assert n == len(program), f"WriteToBlockPipeIn returned {n}, expected {len(program)}"
+    drain_pulse_fifo(xem)
+    wait_write_idle(xem)
+
+
+def drain_read_fifo(xem):
+    """Reads (and discards) whatever's left in ddr3_read_fifo, in whole
+    blocks. Only safe to call once read mode is off (ep00wire(4)=0) --
+    otherwise read-prefetch keeps eagerly refilling it from
+    ever-increasing addresses and this would never terminate."""
+    buf = bytearray(PIPE_BLOCK_SIZE)
+    while True:
+        xem.UpdateWireOuts()
+        count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
+        if count < PIPE_BLOCK_SIZE // 4:  # fewer than one block's worth of halves left
+            return
+        n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
+        assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
+
+
+def read_halves(xem, n_words):
+    """Switches to read mode, waits for n_words to be ready, reads them
+    back as a flat list of 32-bit halves (2 per word), switches back to
+    write mode, then drains any leftover prefetched words so the next
+    read phase starts from a clean ddr3_read_fifo -- see
+    drain_read_fifo() docstring for why this ordering matters."""
+    xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
+    xem.UpdateWireIns()
+
+    wait_read_ready(xem, n_words * 2)  # WireOut 0x2F counts 32-bit halves
+
+    total_bytes = n_words * 8  # 2x 32-bit halves per word, 4 bytes each
+    if total_bytes % PIPE_BLOCK_SIZE:
+        total_bytes += PIPE_BLOCK_SIZE - total_bytes % PIPE_BLOCK_SIZE
+    buf = bytearray(total_bytes)
+    n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
+    assert n == total_bytes, f"ReadFromBlockPipeOut returned {n}, expected {total_bytes}"
+
+    result = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))[:n_words * 2]
+
+    wait_read_idle(xem)
+    xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
+    xem.UpdateWireIns()
+    drain_read_fifo(xem)
+
+    return result
+
+
+def determine_read_order(xem):
+    """Writes one word with clearly distinct halves and a dummy second
+    word (write-assembler needs an even count), reads back the first
+    64-bit word's two halves, and determines which comes out of
+    BTPipeOut 0xA3 first -- see module docstring."""
+    print("\n--- Determining ddr3_read_fifo 32-bit split order ---")
+    reset_ddr3(xem)
+
+    HIGH_HALF = 0xAAAAAAAA
+    LOW_HALF = 0x55555555
+    diag_word = (HIGH_HALF << 32) | LOW_HALF
+    write_words(xem, [diag_word, 0])
+
+    halves = read_halves(xem, 2)
+    first, second = halves[0], halves[1]
+    print(f"  Wrote high={HIGH_HALF:#010x}, low={LOW_HALF:#010x} as one word")
+    print(f"  First 32 bits read back = {first:#010x}, second = {second:#010x}")
+
+    if first == LOW_HALF and second == HIGH_HALF:
+        print("  -> low half comes out FIRST")
+        return True
+    elif first == HIGH_HALF and second == LOW_HALF:
+        print("  -> high half comes out FIRST")
+        return False
+    else:
+        sys.exit(f"Unexpected halves {first:#010x}/{second:#010x} -- neither matches "
+                  f"{LOW_HALF:#010x}/{HIGH_HALF:#010x}. Not safe to guess and proceed.")
 
 
 def main():
@@ -135,62 +250,29 @@ def main():
 
     xem = connect(sys.argv[1])
 
-    print("\n--- Phase 6b DDR3 write/read adapter round-trip test ---")
+    low_first = determine_read_order(xem)
 
-    # Reset: write mode, both address counters, ram write pointer too.
-    xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
-    xem.UpdateWireIns()
-    xem.ActivateTriggerIn(0x40, 1)  # RAM_PTR_RESET_BIT
-    xem.ActivateTriggerIn(0x40, 5)  # DDR3_PTR_RESET_BIT
+    print("\n--- Phase 6b DDR3 write/read adapter round-trip test ---")
+    reset_ddr3(xem)
 
     # Distinct, easy-to-recognize 64-bit test patterns.
     test_words = [0xA5A5_0000_0000_0000 | i for i in range(N_WORDS)]
     print(f"  Writing {N_WORDS} test words: " + ", ".join(f"{w:#018x}" for w in test_words))
+    write_words(xem, test_words)
+    print("  pulse_fifo drained and ddr3 write path idle  [OK]")
 
-    program = bytearray()
-    for w in test_words:
-        program += pack_word(w)
-    if len(program) % PIPE_BLOCK_SIZE:
-        program += bytearray(PIPE_BLOCK_SIZE - len(program) % PIPE_BLOCK_SIZE)
-    n = xem.WriteToBlockPipeIn(0x80, PIPE_BLOCK_SIZE, program)
-    assert n == len(program), f"WriteToBlockPipeIn returned {n}, expected {len(program)}"
-
-    drain_pulse_fifo(xem)
-    print("  pulse_fifo drained (WireOut 0x27 back to 0)  [OK]")
-
-    wait_write_idle(xem)
-    print("  ddr3 write path idle (WireOut 0x2E bit 5)  [OK]")
-
-    # Switch to read mode.
-    xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
-    xem.UpdateWireIns()
-
-    wait_read_count(xem, N_WORDS)
-    print(f"  ddr3_read_fifo reached {N_WORDS} words (WireOut 0x2F)  [OK]")
-
-    total_bytes = N_WORDS * 8  # 2x 32-bit halves per word, 4 bytes each
-    if total_bytes % PIPE_BLOCK_SIZE:
-        total_bytes += PIPE_BLOCK_SIZE - total_bytes % PIPE_BLOCK_SIZE
-    buf = bytearray(total_bytes)
-    n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
-    assert n == total_bytes, f"ReadFromBlockPipeOut returned {n}, expected {total_bytes}"
-
-    halves = struct.unpack(f'<{total_bytes // 4}I', bytes(buf))
+    halves = read_halves(xem, N_WORDS)
     readback_words = []
     for i in range(0, len(halves), 2):
-        low, high = halves[i], halves[i + 1]
+        a, b = halves[i], halves[i + 1]
+        low, high = (a, b) if low_first else (b, a)
         readback_words.append((high << 32) | low)
-    readback_words = readback_words[:N_WORDS]
 
     print("  Readback: " + ", ".join(f"{w:#018x}" for w in readback_words))
     status = "OK" if readback_words == test_words else "MISMATCH"
     print(f"  Round trip: [{status}]")
     assert readback_words == test_words, (
         f"readback {readback_words!r} does not match written {test_words!r}")
-
-    # Cleanup: back to write mode.
-    xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
-    xem.UpdateWireIns()
 
     print("\nAll checks completed.")
 

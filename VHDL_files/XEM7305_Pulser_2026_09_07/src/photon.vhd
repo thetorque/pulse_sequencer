@@ -120,8 +120,23 @@
 -- = write mode, 1 = read mode) rather than a runtime arbiter -- the
 -- host must confirm the write path is idle (WireOut 0x2E bit 5) before
 -- switching to read mode, or an in-flight write command gets abandoned
--- mid-transaction. New TriggerIn bit ep40wire(5) resets both the
--- write-assembler's and read-prefetch's address counters back to 0.
+-- mid-transaction -- and symmetrically, must confirm the read path is
+-- idle (WireOut 0x2F bit 16) before switching back to write mode, or a
+-- read command that's already been accepted by MIG (address advanced,
+-- but app_rd_data_valid not yet seen) never gets captured, and
+-- resuming read mode later would deadlock forever waiting for a valid
+-- pulse MIG will never reassert. New TriggerIn bit ep40wire(5) resets
+-- both the write-assembler's and read-prefetch's address counters
+-- back to 0.
+-- ddr3_read_fifo is natively asymmetric (64-bit write / 32-bit read)
+-- so BTPipeOut 0xA3 wires directly to it, no intermediary logic --
+-- a symmetric-FIFO-plus-hand-rolled-splitter version broke
+-- okBTPipeOut's internal timing assumptions and produced a
+-- duplicated/shifted readback on real hardware (see its component
+-- declaration comment). This reintroduces a "which 32-bit half comes
+-- out first" question the same way pulse_fifo's write-side word order
+-- once did -- resolved empirically by test/ddr3_roundtrip_demo.py the
+-- same way led_walk_demo.py resolved pulse_fifo's, not assumed.
 -- WireOut 0x2E/0x2F expose ddr3_write_fifo/ddr3_read_fifo occupancy
 -- (plus write-path-idle on 0x2E bit 5) for bring-up visibility, same
 -- pattern as Phase 3's FIFO status endpoints.
@@ -284,13 +299,15 @@ architecture arch of photon is
 
 	-- Phase 6b: DDR3 write/read adapters (see file header comment).
 	-- ddr3_write_fifo: bring-up drain process (clk_100) -> write-
-	-- assembler (ui_clk). ddr3_read_fifo: read-prefetch (ui_clk) ->
-	-- BTPipeOut 0xA3 (okClk). Both 64-bit wide (same word width as
-	-- pulse_fifo's read side/pulser_ram), 32 deep as a first cut --
-	-- revisit once Phase 6d's BRAM budget across all FIFOs is known.
-	-- Independent Clocks Block RAM FIFO, First-Word-Fall-Through, same
-	-- settings as pulse_fifo/fifo_photon; generated manually in the
-	-- Vivado IP catalog like the other Phase 3 FIFOs, not checked in.
+	-- assembler (ui_clk), 64-bit both sides (same word width as
+	-- pulse_fifo's read side/pulser_ram). ddr3_read_fifo: read-prefetch
+	-- (ui_clk) -> BTPipeOut 0xA3 (okClk), 64-bit write / 32-bit read
+	-- (asymmetric -- see its own component comment below for why).
+	-- Both 32 deep (write-side units) as a first cut -- revisit once
+	-- Phase 6d's BRAM budget across all FIFOs is known. Independent
+	-- Clocks Block RAM FIFO, First-Word-Fall-Through, same settings as
+	-- pulse_fifo/fifo_photon; generated manually in the Vivado IP
+	-- catalog like the other Phase 3 FIFOs, not checked in.
 	component ddr3_write_fifo port (
 		rst    : in  STD_LOGIC;
 		wr_clk : in  STD_LOGIC;
@@ -305,6 +322,17 @@ architecture arch of photon is
 	);
 	end component;
 
+	-- ddr3_read_fifo is natively asymmetric (64-bit write / 32-bit read)
+	-- so poA3 below can wire directly to it with zero intermediary
+	-- logic, matching every other BTPipeOut here -- an earlier version
+	-- tried a symmetric 64-bit FIFO plus a hand-rolled registered
+	-- toggle to split each word across two pipe reads, which broke
+	-- okBTPipeOut's internal timing assumptions (it expects a direct
+	-- FWFT connection) and produced a duplicated/shifted readback
+	-- pattern on real hardware. rd_data_count is 6 bits (confirmed
+	-- against the generated IP's Data Counts tab) -- wider than
+	-- ddr3_write_fifo's 5, since one 64-bit write yields two 32-bit
+	-- reads.
 	component ddr3_read_fifo port (
 		rst    : in  STD_LOGIC;
 		wr_clk : in  STD_LOGIC;
@@ -312,10 +340,10 @@ architecture arch of photon is
 		din    : in  STD_LOGIC_VECTOR(63 downto 0);
 		wr_en  : in  STD_LOGIC;
 		rd_en  : in  STD_LOGIC;
-		dout   : out STD_LOGIC_VECTOR(63 downto 0);
+		dout   : out STD_LOGIC_VECTOR(31 downto 0);
 		full   : out STD_LOGIC;
 		empty  : out STD_LOGIC;
-		rd_data_count : out STD_LOGIC_VECTOR(4 downto 0) -- 32-deep
+		rd_data_count : out STD_LOGIC_VECTOR(5 downto 0) -- 6 bits, confirmed
 	);
 	end component;
 
@@ -330,10 +358,10 @@ architecture arch of photon is
 	signal ddr3_read_din           : STD_LOGIC_VECTOR(63 downto 0);
 	signal ddr3_read_wr_en         : STD_LOGIC := '0';
 	signal ddr3_read_rd_en         : STD_LOGIC;
-	signal ddr3_read_dout          : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_read_dout          : STD_LOGIC_VECTOR(31 downto 0);
 	signal ddr3_read_full          : STD_LOGIC;
 	signal ddr3_read_empty         : STD_LOGIC;
-	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(4 downto 0);
+	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(5 downto 0);
 
 	-- MIG app_* command/write-data interface, now driven by the
 	-- write-assembler/read-prefetch process below instead of tied
@@ -384,15 +412,14 @@ architecture arch of photon is
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
-	-- BTPipeOut 0xA3 (ddr3_read_fifo readback) is 32 bits like every
-	-- other pipe here, but ddr3_read_fifo is 64 bits wide -- split
-	-- explicitly across two consecutive pipe reads (low 32 bits first,
-	-- high 32 bits second) rather than configuring the FIFO itself
-	-- asymmetric, so the split order is a choice made here, not an
-	-- empirically-discovered FIFO Generator default.
-	signal ddr3_read_datain     : STD_LOGIC_VECTOR(31 downto 0);
-	signal ddr3_read_pipe_half  : STD_LOGIC := '0';
-	signal ddr3_read_pipe_ep_read : STD_LOGIC;
+	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
+	-- switching ep00wire(4) back to write mode. If read-prefetch is
+	-- mid-transaction (address already advanced past MIG's app_rdy but
+	-- app_rd_data_valid not yet seen), switching away drops that
+	-- pending completion permanently -- MIG won't reassert
+	-- app_rd_data_valid for an already-accepted command, so resuming
+	-- read mode later would deadlock forever waiting for it.
+	signal rd_pf_idle : STD_LOGIC := '1';
 
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
@@ -821,7 +848,10 @@ begin
 	-- header comment.
 	------------------------------------------------------------------
 	ep2Ewire <= (31 downto 6 => '0') & wr_asm_idle & ddr3_write_rd_data_count;
-	ep2Fwire <= (31 downto 5 => '0') & ddr3_read_rd_data_count;
+	-- bit 16: rd_pf_idle -- host MUST check this before switching
+	-- ep00wire(4) back to write mode, see rd_pf_idle declaration
+	-- comment. bits 5:0: ddr3_read_rd_data_count.
+	ep2Fwire <= (31 downto 17 => '0') & rd_pf_idle & (15 downto 6 => '0') & ddr3_read_rd_data_count;
 
 	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
 	-- above which are active-low. led_ext is presumed a separate add-on LED
@@ -1033,6 +1063,7 @@ begin
 			mig_app_en       <= '0';
 			mig_app_wdf_wren <= '0';
 			wr_asm_idle      <= '0';
+			rd_pf_idle       <= '0';
 
 			if ep40wire(5) = '1' then
 				wr_asm_state <= 0;
@@ -1085,6 +1116,7 @@ begin
 				-- the write path is idle (WireOut 0x2E bit 5)
 				case rd_pf_state is
 					when 0 =>
+						rd_pf_idle <= '1';
 						if ddr3_read_full = '0' then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
@@ -1111,24 +1143,6 @@ begin
 						ddr3_read_wr_en <= '1';
 						rd_pf_state     <= 0;
 				end case;
-			end if;
-		end if;
-	end process;
-
-	-- BTPipeOut 0xA3 (ddr3_read_fifo readback), split across two pipe
-	-- reads -- see ddr3_read_datain/ddr3_read_pipe_half declaration
-	-- comment above. Only pops ddr3_read_fifo (asserts its rd_en) on
-	-- the second half of each pair, once the high half has also been
-	-- presented.
-	ddr3_read_datain <= ddr3_read_dout(31 downto 0) when ddr3_read_pipe_half = '0'
-	                     else ddr3_read_dout(63 downto 32);
-	ddr3_read_rd_en  <= ddr3_read_pipe_ep_read when ddr3_read_pipe_half = '1' else '0';
-
-	process (okClk)
-	begin
-		if rising_edge(okClk) then
-			if ddr3_read_pipe_ep_read = '1' then
-				ddr3_read_pipe_half <= not ddr3_read_pipe_half;
 			end if;
 		end if;
 	end process;
@@ -1309,7 +1323,7 @@ begin
 	-- BTPipeOut endpoint (Phase 6b DDR3 read-prefetch readback, see file header comment)
 	poA3 : okBTPipeOut port map (
 		okHE => okHE, okEH => okEHx(21*65-1 downto 20*65), ep_addr => x"A3",
-		ep_read => ddr3_read_pipe_ep_read, ep_blockstrobe => open, ep_datain => ddr3_read_datain, ep_ready => pipeOut_ready
+		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => pipeOut_ready
 	);
 
 	-- Phase 3 RAM/FIFO IP instantiations
