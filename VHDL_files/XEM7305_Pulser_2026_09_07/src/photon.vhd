@@ -413,6 +413,35 @@ architecture arch of photon is
 	signal mig_app_rdy           : STD_LOGIC;
 	signal mig_app_wdf_rdy       : STD_LOGIC;
 
+	-- Phase 6c dual-path integration. mig_app_addr/cmd/en (above) are now the
+	-- MUX outputs feeding MIG. The write-assembler/read-prefetch process drives
+	-- wr_rd_app_* instead; the DDR3 line streamer drives str_app_*. A mode bit
+	-- (ep00wire(5)) selects the DDR3 sequencer over the legacy pulser_ram FSM;
+	-- the streamer takes MIG's command channel while a DDR3 sequence runs.
+	signal wr_rd_app_addr : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal wr_rd_app_cmd  : STD_LOGIC_VECTOR(2 downto 0)  := "000";
+	signal wr_rd_app_en   : STD_LOGIC := '0';
+	signal str_app_addr   : STD_LOGIC_VECTOR(28 downto 0);
+	signal str_app_cmd    : STD_LOGIC_VECTOR(2 downto 0);
+	signal str_app_en     : STD_LOGIC;
+	signal str_line_dout  : STD_LOGIC_VECTOR(63 downto 0);
+	signal str_line_empty : STD_LOGIC;
+	signal str_line_rd_en : STD_LOGIC;
+	signal str_restart    : STD_LOGIC;                       -- clk_100, from sequencer
+	signal str_restart_ui : STD_LOGIC;                       -- ui_clk, via pulse_cdc
+	signal str_primed     : STD_LOGIC;                       -- ui_clk, from streamer
+	signal str_primed_seq : STD_LOGIC;                       -- clk_100, via level_sync
+	signal ddr3_seq_mode  : STD_LOGIC;                       -- ep00wire(5): use DDR3 sequencer
+	signal stream_active  : STD_LOGIC;                       -- ddr3_seq_mode AND running
+	signal stream_active_ui : STD_LOGIC;                     -- ui_clk, via level_sync
+	signal streamer_ui_rst  : STD_LOGIC;                     -- reset streamer between runs
+	signal master_logic_ram  : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal master_logic_ddr3 : STD_LOGIC_VECTOR(31 downto 0);
+	signal pulser_done_ram   : STD_LOGIC;
+	signal pulser_done_ddr3  : STD_LOGIC;
+	signal seq_count_ram     : STD_LOGIC_VECTOR(15 downto 0);
+	signal seq_count_ddr3    : STD_LOGIC_VECTOR(15 downto 0);
+
 	-- write-assembler state (ui_clk domain): pairs two ddr3_write_fifo
 	-- words into one 128-bit MIG write burst (first popped -> low 64
 	-- bits, second -> high 64 bits -- an explicit choice made in the
@@ -1032,8 +1061,8 @@ begin
 			count1             := 0;
 			time_count         := 0;
 			time_stamp         := 0;
-			master_logic      <= (others => '0');
-			pulser_sequence_done <= '0';
+			master_logic_ram     <= (others => '0');
+			pulser_done_ram      <= '0';
 			seq_count          := 0;
 		elsif rising_edge(clk_100) then
 			if pulser_start_bit = '1' then
@@ -1055,7 +1084,7 @@ begin
 						ram_process_count := 2;
 
 					when 2 =>
-						master_logic      <= pulser_ram_doutb(31 downto 0);
+						master_logic_ram  <= pulser_ram_doutb(31 downto 0);
 						ram_data_out_1    := pulser_ram_doutb;
 						ram_read_address  := 1; -- prefetch word 1
 						ram_process_count := 3;
@@ -1098,20 +1127,20 @@ begin
 										count1             := 0;
 										time_count         := 0;
 										time_stamp         := 0;
-										master_logic      <= ram_data_out_1(31 downto 0);
+										master_logic_ram  <= ram_data_out_1(31 downto 0);
 										seq_count          := seq_count + 1;
 										if CONV_INTEGER(UNSIGNED(ep05wire(15 downto 0))) /= 0 and
 										   seq_count = CONV_INTEGER(UNSIGNED(ep05wire(15 downto 0))) then
-											master_logic      <= (others => '0');
+											master_logic_ram  <= (others => '0');
 											ram_process_count := 6;
 										end if;
 									else
 										-- one-shot mode: done, go to limbo
-										master_logic      <= (others => '0');
+										master_logic_ram  <= (others => '0');
 										ram_process_count := 6;
 									end if;
 								else
-									master_logic <= ram_data_out_1(31 downto 0);
+									master_logic_ram <= ram_data_out_1(31 downto 0);
 								end if;
 							end if;
 						else
@@ -1120,7 +1149,7 @@ begin
 
 					-- limbo: sequence done, stays here until pulser_counter_reset
 					when 6 =>
-						pulser_sequence_done <= '1';
+						pulser_done_ram <= '1';
 
 					when others => null;
 
@@ -1128,9 +1157,72 @@ begin
 			end if;
 
 			pulser_ram_addrb <= CONV_STD_LOGIC_VECTOR(ram_read_address, 10);
-			seq_count_bit    <= CONV_STD_LOGIC_VECTOR(seq_count, 16);
+			seq_count_ram    <= CONV_STD_LOGIC_VECTOR(seq_count, 16);
 		end if;
 	end process;
+
+	------------------------------------------------------------------
+	-- Phase 6c: DDR3 line streamer + FIFO-fed sequencer (dual-path).
+	-- ep00wire(5) selects the DDR3 sequencer over the legacy pulser_ram
+	-- FSM; the streamer takes MIG's command channel while a DDR3 sequence
+	-- runs. All legacy paths (write-assembler, read-prefetch, pulser_ram
+	-- FSM) are untouched. See sim/ for the sim-verified modules and
+	-- memory/ddr3-streamer-phase6c for the integration lessons.
+	------------------------------------------------------------------
+	ddr3_seq_mode <= ep00wire(5);
+	stream_active <= ddr3_seq_mode and pulser_start_bit;
+	-- reset (rewind + flush) the streamer whenever a DDR3 sequence is not
+	-- actively running, so each run starts from line 0; loop-back rewinds go
+	-- through the sequencer's restart pulse instead.
+	streamer_ui_rst <= ui_clk_sync_rst or (not stream_active_ui);
+
+	-- sequencer-output muxes (ddr3_seq_mode is a slow host-controlled level)
+	master_logic         <= master_logic_ddr3 when ddr3_seq_mode = '1' else master_logic_ram;
+	pulser_sequence_done <= pulser_done_ddr3   when ddr3_seq_mode = '1' else pulser_done_ram;
+	seq_count_bit        <= seq_count_ddr3     when ddr3_seq_mode = '1' else seq_count_ram;
+
+	-- MIG command-channel mux: the streamer while a DDR3 sequence runs,
+	-- otherwise the write-assembler / read-prefetch.
+	mig_app_addr <= str_app_addr when stream_active_ui = '1' else wr_rd_app_addr;
+	mig_app_cmd  <= str_app_cmd  when stream_active_ui = '1' else wr_rd_app_cmd;
+	mig_app_en   <= str_app_en   when stream_active_ui = '1' else wr_rd_app_en;
+
+	-- CDC helpers (see src/pulse_cdc.vhd)
+	sync_active : entity work.level_sync
+		port map (dst_clk => ui_clk, d => stream_active, q => stream_active_ui);
+	sync_primed : entity work.level_sync
+		port map (dst_clk => clk_100, d => str_primed, q => str_primed_seq);
+	restart_sync : entity work.pulse_cdc
+		port map (src_clk => clk_100, src_pulse => str_restart,
+		          dst_clk => ui_clk, dst_pulse => str_restart_ui);
+
+	-- DDR3 line streamer (ui_clk): reads the program from DDR3 into the line
+	-- FIFO for the sequencer to pop.
+	ddr3_streamer : entity work.ddr3_line_streamer
+		generic map (ADDR_WIDTH => 29, BASE_ADDR => 0, ADDR_INC => 8,
+		             SCRATCH_XOR_BIT => 25, PRIME_BEATS => 8,
+		             HEARTBEAT_CYCLES => 81, RETRY_TIMEOUT => 2047, DRAIN_CYCLES => 64)
+		port map (ui_clk => ui_clk, ui_rst => streamer_ui_rst, seq_clk => clk_100,
+		          run => stream_active_ui, restart => str_restart_ui, primed => str_primed,
+		          app_addr => str_app_addr, app_cmd => str_app_cmd, app_en => str_app_en,
+		          app_rdy => mig_app_rdy, app_rd_data => mig_app_rd_data,
+		          app_rd_data_valid => mig_app_rd_data_valid,
+		          line_rd_en => str_line_rd_en, line_dout => str_line_dout,
+		          line_empty => str_line_empty,
+		          dbg_retry_count => open, dbg_hb_count => open);
+
+	-- FIFO-fed pulse sequencer (clk_100): the DDR3 alternative to the legacy
+	-- pulser_ram FSM. Drives the _ddr3 mux inputs.
+	ddr3_sequencer : entity work.pulse_sequencer
+		port map (clk => clk_100, reset => pulser_counter_reset,
+		          start => pulser_start_bit, infinite => pulser_infinite_loop,
+		          prog_ready => str_primed_seq,
+		          line_trig_en => ep00wire(3), line_trig_pulse => line_triggering_pulse,
+		          loop_limit => ep05wire(15 downto 0),
+		          line_dout => str_line_dout, line_empty => str_line_empty,
+		          line_rd_en => str_line_rd_en, restart => str_restart,
+		          master_logic => master_logic_ddr3, seq_count_out => seq_count_ddr3,
+		          seq_done => pulser_done_ddr3);
 
 	------------------------------------------------------------------
 	-- Phase 6b: write-assembler / read-prefetch, combined into one
@@ -1165,7 +1257,7 @@ begin
 		if rising_edge(ui_clk) then
 			ddr3_write_rd_en <= '0';
 			ddr3_read_wr_en  <= '0';
-			mig_app_en       <= '0';
+			wr_rd_app_en     <= '0';
 			mig_app_wdf_wren <= '0';
 			wr_asm_idle      <= '0';
 			rd_pf_idle       <= '0';
@@ -1223,9 +1315,9 @@ begin
 					when 2 =>
 						if ddr3_write_empty = '0' then
 							mig_app_wdf_data <= ddr3_write_dout & wr_asm_low;
-							mig_app_addr     <= wr_asm_addr;
-							mig_app_cmd      <= "000";
-							mig_app_en       <= '1';
+							wr_rd_app_addr   <= wr_asm_addr;
+							wr_rd_app_cmd    <= "000";
+							wr_rd_app_en     <= '1';
 							mig_app_wdf_wren <= '1';
 							ddr3_write_rd_en <= '1';
 							wr_asm_cmd_done  <= '0';
@@ -1236,9 +1328,9 @@ begin
 						if mig_app_rdy = '1' then
 							wr_asm_cmd_done <= '1';
 						else
-							mig_app_en   <= '1';
-							mig_app_addr <= wr_asm_addr;
-							mig_app_cmd  <= "000";
+							wr_rd_app_en   <= '1';
+							wr_rd_app_addr <= wr_asm_addr;
+							wr_rd_app_cmd  <= "000";
 						end if;
 						if mig_app_wdf_rdy = '1' then
 							wr_asm_data_done <= '1';
@@ -1273,9 +1365,9 @@ begin
 						-- overflow guard (a write-side ui_clk single-bit
 						-- flag, natively safe to read from this domain).
 						if ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
-							mig_app_addr <= rd_pf_addr;
-							mig_app_cmd  <= "001";
-							mig_app_en   <= '1';
+							wr_rd_app_addr <= rd_pf_addr;
+							wr_rd_app_cmd  <= "001";
+							wr_rd_app_en   <= '1';
 							rd_pf_state  <= 1;
 						end if;
 					when 1 =>
@@ -1292,9 +1384,9 @@ begin
 							rd_pf_state    <= 2;
 							rd_pf_wait_ctr <= 0;
 						else
-							mig_app_addr <= rd_pf_addr;
-							mig_app_cmd  <= "001";
-							mig_app_en   <= '1';
+							wr_rd_app_addr <= rd_pf_addr;
+							wr_rd_app_cmd  <= "001";
+							wr_rd_app_en   <= '1';
 						end if;
 					when others => -- 2: wait for the response (with a
 						-- lost-command timeout), push it whole, then commit.
