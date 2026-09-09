@@ -1,4 +1,4 @@
---------------------------------------------------------------------------
+---------------------------------------------------------------------------
 -- photon.vhd — XEM7305 pulse sequencer, Phase 1 + Phase 2 + Phase 3 scaffold
 --
 -- PORT MIGRATION PHASES ONLY. This instantiates the full legacy endpoint
