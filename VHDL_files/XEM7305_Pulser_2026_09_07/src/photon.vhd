@@ -127,7 +127,11 @@
 -- resuming read mode later would deadlock forever waiting for a valid
 -- pulse MIG will never reassert. New TriggerIn bit ep40wire(5) resets
 -- both the write-assembler's and read-prefetch's address counters
--- back to 0.
+-- back to 0. New WireIn 0x07 sets read-prefetch's per-batch read-
+-- command budget (see rd_pf_issued/rd_pf_target declaration comment),
+-- letting multiple write/read batches share one reset epoch (and
+-- therefore walk further into DDR3's address space across a soak
+-- test) without rd_pf_addr desyncing from wr_asm_addr.
 -- ddr3_read_fifo is natively asymmetric (64-bit write / 32-bit read)
 -- so BTPipeOut 0xA3 wires directly to it, no intermediary logic --
 -- a symmetric-FIFO-plus-hand-rolled-splitter version broke
@@ -467,6 +471,28 @@ architecture arch of photon is
 	-- "priming" 64-bit write immediately after reset, before any real
 	-- data -- see state 0's use of this flag below.
 	signal rd_pf_primed : STD_LOGIC := '0';
+
+	-- Per-batch read command budget (WireIn 0x07, ep07wire): without
+	-- this, read-prefetch had no way to know how many words the host
+	-- actually wanted and just kept eagerly issuing MIG read commands
+	-- for as long as ddr3_read_rd_data_count stayed under the gate,
+	-- for the *entire* duration of a host round trip (USB pipe
+	-- transfer, idle-poll) -- confirmed to overshoot rd_pf_addr well
+	-- past wr_asm_addr within a single read episode. That's harmless
+	-- for a single self-contained batch (the FIFO's strict ordering
+	-- means the extra queued-ahead data just gets drained and thrown
+	-- away afterward), but fatal across multiple batches sharing one
+	-- reset epoch: rd_pf_addr would desync from wr_asm_addr, so a
+	-- later batch's readback would fetch stale memory instead of what
+	-- it just wrote. The host now writes ep07wire with this batch's
+	-- read-command count (words/2, same granularity as dbg_cmd_count)
+	-- before flipping ep00wire(4) to read mode; rd_pf_issued/target
+	-- are latched off ep00wire(4)'s rising edge (below) and gate
+	-- issuance so read-prefetch stops exactly at the requested count.
+	signal ep07wire      : STD_LOGIC_VECTOR(31 downto 0);
+	signal rd_pf_issued  : INTEGER range 0 to 65535 := 0;
+	signal rd_pf_target  : INTEGER range 0 to 65535 := 0;
+	signal ep00wire4_prev : STD_LOGIC := '0';
 
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
@@ -1149,6 +1175,16 @@ begin
 			wr_asm_idle      <= '0';
 			rd_pf_idle       <= '0';
 
+			-- latch this batch's read-command budget on read mode's
+			-- rising edge -- see rd_pf_issued/rd_pf_target declaration
+			-- comment. Runs every cycle regardless of mode/reset below,
+			-- same as any other edge detector.
+			ep00wire4_prev <= ep00wire(4);
+			if ep00wire(4) = '1' and ep00wire4_prev = '0' then
+				rd_pf_issued <= 0;
+				rd_pf_target <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
+			end if;
+
 			if ep40wire(5) = '1' then
 				wr_asm_state  <= 0;
 				wr_asm_addr   <= (others => '0');
@@ -1157,6 +1193,8 @@ begin
 				dbg_cmd_count  <= (others => '0');
 				dbg_resp_count <= 0;
 				rd_pf_primed   <= '0';
+				rd_pf_issued   <= 0;
+				rd_pf_target   <= 0;
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1226,25 +1264,18 @@ begin
 							rd_pf_pending_hi <= (others => '0');
 							rd_pf_primed     <= '1';
 							rd_pf_state      <= 3;
-						-- gate on occupancy well below actual capacity
-						-- (ddr3_read_rd_data_count counts 32-bit halves
-						-- on the read side; Actual Read Depth = 64,
-						-- confirmed via the IP's Data Counts tab)
-						-- rather than ddr3_read_full alone -- read-
-						-- prefetch runs eagerly with no host-side back-
-						-- pressure, and by the time a slow host-side
-						-- poll loop (USB round trips) even checks in,
-						-- it can otherwise blast through many more
-						-- commands than the FIFO can safely hold,
-						-- overflowing it -- writing past a FIFO's true
-						-- fullness point is undefined/corrupting
-						-- behavior, not just "extra data lost". 48
-						-- leaves a 16-entry margin below the 64-entry
-						-- actual capacity, while still leaving enough
-						-- room for the priming push plus a reasonably
-						-- sized readback (each real word needs 2
-						-- halves, plus the priming push's own pair).
-						elsif ddr3_read_rd_data_count < 48 then
+						-- rd_pf_issued < rd_pf_target is the primary gate --
+						-- read-prefetch stops issuing once it has satisfied
+						-- this batch's host-supplied command budget (see
+						-- rd_pf_issued/rd_pf_target declaration comment),
+						-- keeping rd_pf_addr in lockstep with wr_asm_addr
+						-- across batches instead of eagerly racing ahead.
+						-- ddr3_read_rd_data_count < 48 remains as a safety
+						-- net well below the 64-entry actual read-side
+						-- capacity (confirmed via the IP's Data Counts
+						-- tab), in case a future caller ever requests a
+						-- batch too large to fit.
+						elsif ddr3_read_rd_data_count < 48 and rd_pf_issued < rd_pf_target then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
@@ -1258,6 +1289,7 @@ begin
 							rd_pf_addr    <= rd_pf_addr + 8;
 							rd_pf_state   <= 2;
 							dbg_cmd_count <= dbg_cmd_count + 1;
+							rd_pf_issued  <= rd_pf_issued + 1;
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
@@ -1408,6 +1440,9 @@ begin
 	wi04 : okWireIn port map (okHE => okHE, ep_addr => x"04", ep_dataout => ep04wire);
 	wi05 : okWireIn port map (okHE => okHE, ep_addr => x"05", ep_dataout => ep05wire);
 	wi06 : okWireIn port map (okHE => okHE, ep_addr => x"06", ep_dataout => ep06wire);
+	-- Phase 6b: per-batch read-command budget, see rd_pf_issued/
+	-- rd_pf_target declaration comment.
+	wi07 : okWireIn port map (okHE => okHE, ep_addr => x"07", ep_dataout => ep07wire);
 
 	-- TriggerIn endpoint
 	-- Phase 6a: ep_clk moved from sys_clk to ui_clk, see file header comment.

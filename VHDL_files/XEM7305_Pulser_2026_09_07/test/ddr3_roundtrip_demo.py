@@ -43,17 +43,38 @@ session following a reset (ep40wire(5)), since the shift is a one-time
 offset in the lifetime push sequence, not something re-established per
 read call.
 
+Per-batch read command budget (WireIn 0x07): read-prefetch used to
+gate purely on ddr3_read_rd_data_count, with no idea how many words
+the host actually wanted -- during a batch's slow USB round trip it
+would keep eagerly issuing MIG read commands the whole time, racing
+rd_pf_addr ahead of wr_asm_addr by an unpredictable amount. Harmless
+for a single self-contained batch, but fatal across multiple batches
+sharing one reset epoch: a later batch's readback would fetch stale
+memory instead of what it just wrote. read_words() now writes this
+batch's read-command count (n_words/2) to WireIn 0x07 before entering
+read mode; see rd_pf_issued/rd_pf_target's declaration comment in
+photon.vhd.
+
+Multi-batch continuation: as long as reset_ddr3() isn't called between
+batches, wr_asm_addr/rd_pf_addr keep advancing and the FIFO's
+priming-push offset only needs accounting for on the very first batch
+since the last reset -- see read_words()'s first_read parameter.
+run_soak_test() strings many batches together this way to walk further
+into DDR3's address space than a single batch's FIFO depth allows,
+verifying each batch immediately (in the spirit of the
+Locally_compiled_ramtester reference design).
+
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit [n_words]
+    python ddr3_roundtrip_demo.py path/to/photon.bit soak [n_batches] [words_per_batch]
 
-n_words (optional, default N_WORDS below) must be even. Practical
-ceilings: ddr3_write_fifo's actual depth (~33 64-bit entries) bounds
-how many words can be buffered before draining to MIG, and
-ddr3_read_fifo's occupancy gate (<48 halves, see photon.vhd's
-rd_pf_state comment) bounds how many words' worth of halves
-(n_words*2+3) can accumulate before read-prefetch stalls -- pushing
-past either ceiling is expected to fail with a clear timeout, not
-silent corruption.
+n_words/words_per_batch must be even. Practical ceilings:
+ddr3_write_fifo's actual depth (~33 64-bit entries) bounds how many
+words can be buffered before draining to MIG, and ddr3_read_fifo's
+occupancy gate (<48 halves, see photon.vhd's rd_pf_state comment)
+bounds how many words' worth of halves can accumulate in one batch
+before read-prefetch stalls -- pushing past either ceiling is expected
+to fail with a clear timeout, not silent corruption.
 
 Requires Python 3 and the Opal Kelly `ok` FrontPanel Python module
 (see smoke_test.py's docstring for how to point PYTHONPATH at it).
@@ -72,6 +93,8 @@ N_WORDS = 8  # must be even -- see module docstring
 DDR3_READ_ENABLE_BIT = 1 << 4  # ep00wire(4)
 DDR3_PTR_RESET_BIT = 1 << 5    # ep40wire(5)
 RAM_PTR_RESET_BIT = 1 << 1     # ep40wire(1), reset alongside for a clean run
+
+READ_BUDGET_WIRE = 0x07  # ep07wire: this batch's read-command count
 
 PULSE_FIFO_WIRE = 0x27
 DRAIN_POLL_ATTEMPTS = 50
@@ -196,22 +219,35 @@ def drain_read_fifo(xem):
         assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
 
 
-def read_words(xem, n_words):
-    """Switches to read mode, waits for the priming push plus n_words
-    real words to be ready, reads them back as a list of n_words 64-bit
-    integers (see module docstring for the priming-push/shift
-    reconstruction), switches back to write mode, then drains any
-    leftover prefetched words. Only valid as the FIRST read call since
-    the last reset_ddr3() -- see module docstring."""
+def read_words(xem, n_words, first_read=True):
+    """Switches to read mode, waits for this batch's real words (plus
+    the priming push on the first call), reads them back as a list of
+    n_words 64-bit integers, switches back to write mode, then drains
+    any leftover prefetched words.
+
+    first_read (default True) selects the reconstruction offset: True
+    is for the first read_words() call since the last reset_ddr3()
+    (must account for and discard the priming push's own garbage
+    word); False is for a later batch within the same reset epoch,
+    where the priming offset was already consumed by the first batch
+    and the stream continues with a plain high-then-low pairing. See
+    the module docstring's "Multi-batch continuation" section."""
+    xem.SetWireInValue(READ_BUDGET_WIRE, n_words // 2, 0xFFFFFFFF)
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
-    # +3 halves: halves[0] is a leftover/unused half before the stream
-    # settles, and halves[1]/halves[2] reconstruct as a (garbage) *whole*
-    # word -- the priming push's own low half plus the next push's high
-    # half that structurally leaks into its slot. That whole pair must be
-    # discarded, not just one half. See module docstring.
-    needed_halves = n_words * 2 + 3
+    if first_read:
+        # +3 halves: halves[0] is a leftover/unused half before the
+        # stream settles, and halves[1]/halves[2] reconstruct as a
+        # (garbage) *whole* word -- the priming push's own low half
+        # plus the next push's high half that structurally leaks into
+        # its slot. That whole pair must be discarded, not just one
+        # half. See module docstring.
+        needed_halves = n_words * 2 + 3
+        offset = 3
+    else:
+        needed_halves = n_words * 2
+        offset = 0
     wait_read_ready(xem, needed_halves)
 
     total_bytes = needed_halves * 4
@@ -223,13 +259,12 @@ def read_words(xem, n_words):
 
     halves = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))
 
-    # halves[0] is unused, halves[1]/halves[2] reconstruct the priming
-    # push itself (discarded). Real word k's high half is at
-    # halves[3 + 2k], low half at halves[4 + 2k].
+    # Real word k's high half is at halves[offset + 2k], low half at
+    # halves[offset + 1 + 2k].
     words = []
     for k in range(n_words):
-        high = halves[3 + 2 * k]
-        low = halves[4 + 2 * k]
+        high = halves[offset + 2 * k]
+        low = halves[offset + 1 + 2 * k]
         words.append((high << 32) | low)
 
     wait_read_idle(xem)
@@ -240,7 +275,43 @@ def read_words(xem, n_words):
     return words
 
 
+def run_soak_test(xem, n_batches, words_per_batch):
+    """Writes and immediately verifies n_batches batches of
+    words_per_batch words each, without resetting pointers in between
+    -- see module docstring's "Multi-batch continuation" section.
+    Walks n_batches*words_per_batch*8 bytes deeper into DDR3's address
+    space than a single batch's FIFO depth would otherwise allow.
+    Stops at the first mismatch."""
+    print(f"\n--- DDR3 soak test: {n_batches} batches of {words_per_batch} words ---")
+    reset_ddr3(xem)
+    for batch in range(n_batches):
+        test_words = [
+            0xB6B6_0000_0000_0000 | (batch << 16) | i
+            for i in range(words_per_batch)
+        ]
+        write_words(xem, test_words)
+        readback_words = read_words(xem, words_per_batch, first_read=(batch == 0))
+        if readback_words != test_words:
+            print(f"  batch {batch}: [MISMATCH]")
+            print(f"    wrote:     " + ", ".join(f"{w:#018x}" for w in test_words))
+            print(f"    read back: " + ", ".join(f"{w:#018x}" for w in readback_words))
+            raise AssertionError(f"soak test failed at batch {batch}")
+        print(f"  batch {batch}: [OK]")
+    print(f"\nAll {n_batches} batches verified.")
+
+
 def main():
+    if len(sys.argv) >= 3 and sys.argv[2] == "soak":
+        if len(sys.argv) not in (3, 4, 5):
+            sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit soak [n_batches] [words_per_batch]")
+        n_batches = int(sys.argv[3]) if len(sys.argv) >= 4 else 20
+        words_per_batch = int(sys.argv[4]) if len(sys.argv) == 5 else 16
+        if words_per_batch % 2 != 0:
+            sys.exit("words_per_batch must be even -- see module docstring")
+        xem = connect(sys.argv[1])
+        run_soak_test(xem, n_batches, words_per_batch)
+        return
+
     if len(sys.argv) not in (2, 3):
         sys.exit(f"Usage: {sys.argv[0]} path/to/photon.bit [n_words]")
     n_words = int(sys.argv[2]) if len(sys.argv) == 3 else N_WORDS
