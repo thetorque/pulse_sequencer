@@ -980,9 +980,17 @@ begin
 	-- rd_pf_issued -- added to directly confirm whether the priming
 	-- push completed and how many real commands the budget gate let
 	-- through, instead of inferring it from ddr3_read_rd_data_count
-	-- alone (see the read-command-budget investigation).
+	-- alone (see the read-command-budget investigation). bit 15 =
+	-- rd_pf_flushed -- ddr3_read_rd_data_count was caught on hardware
+	-- staying frozen at a stale value across a full 2-second poll
+	-- window while dbg_cmd_count/dbg_valid_count clearly kept moving,
+	-- i.e. the count's CDC synchronization (into okClk, per the
+	-- long-flagged-but-unaddressed concern) can genuinely lock up --
+	-- exposing rd_pf_flushed lets the host stop gating on that
+	-- unreliable count and instead wait on this pure ui_clk-domain
+	-- state (no CDC crossing) to know a batch's pushes are all done.
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
-	            rd_pf_primed & rd_pf_idle & (15 downto 6 => '0') & ddr3_read_rd_data_count;
+	            rd_pf_primed & rd_pf_idle & rd_pf_flushed & (14 downto 6 => '0') & ddr3_read_rd_data_count;
 
 	------------------------------------------------------------------
 	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count

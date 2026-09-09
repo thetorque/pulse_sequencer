@@ -132,6 +132,9 @@ DDR3_READ_COUNT_MASK = 0xFFFF  # bits below rd_pf_idle (bit 16); actual count is
 DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
 DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
 DDR3_READ_ISSUED_MASK = 0xFF
+DDR3_READ_FLUSHED_BIT = 1 << 15    # rd_pf_flushed -- see photon.vhd's ep2Fwire comment
+BATCH_DONE_POLL_ATTEMPTS = 200
+BATCH_DONE_POLL_INTERVAL = 0.01
 
 DUP_STATUS_WIRE = 0x34  # DIAGNOSTIC (temporary): see photon.vhd's dbg_dup_count comment
 VALID_COUNT_WIRE = 0x30  # DIAGNOSTIC (temporary): dbg_valid_count, rising edges of app_rd_data_valid
@@ -210,28 +213,33 @@ def wait_write_idle(xem):
         "check N_WORDS is even")
 
 
-def wait_read_ready(xem, min_count):
-    last_count = None
-    last_status = None
-    trace = []
-    for attempt in range(READ_POLL_ATTEMPTS):
+def wait_batch_done(xem, target_commands):
+    """Waits for read-prefetch to finish this batch's work: the priming
+    push done (rd_pf_primed), all target_commands real commands issued
+    (rd_pf_issued), the trailing flush done (rd_pf_flushed), and
+    parked in state 0 with nothing left to do (rd_pf_idle). All four
+    are pure ui_clk-domain state -- no clock-domain crossing -- unlike
+    ddr3_read_rd_data_count, which was caught on hardware staying
+    frozen at a stale value across a full 2-second poll window while
+    dbg_cmd_count/dbg_valid_count clearly kept moving (its CDC
+    synchronization into okClk can genuinely lock up). Once these four
+    conditions hold, the batch's halves are available by construction
+    (1 priming push + target_commands*2 real words + 1 trailing flush)
+    -- no need to also poll the count to confirm it."""
+    for _ in range(BATCH_DONE_POLL_ATTEMPTS):
         xem.UpdateWireOuts()
         status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
-        last_status = status
-        count = status & DDR3_READ_COUNT_MASK
-        if not trace or count != trace[-1][1]:
-            trace.append((attempt, count))
-        last_count = count
-        if count >= min_count:
-            return count
-        time.sleep(READ_POLL_INTERVAL)
-    primed = bool(last_status & DDR3_READ_PRIMED_BIT)
-    issued = (last_status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
-    print("  count trajectory (attempt, count) at each change: " + ", ".join(f"({a},{c})" for a, c in trace))
+        primed = bool(status & DDR3_READ_PRIMED_BIT)
+        issued = (status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
+        flushed = bool(status & DDR3_READ_FLUSHED_BIT)
+        idle = bool(status & DDR3_READ_IDLE_BIT)
+        if primed and flushed and idle and issued >= target_commands:
+            return
+        time.sleep(BATCH_DONE_POLL_INTERVAL)
     print_dup_diagnostics(xem)
     raise RuntimeError(
-        f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F) "
-        f"-- stuck at {last_count}, rd_pf_primed={primed}, rd_pf_issued={issued}")
+        f"read-prefetch never finished this batch (WireOut 0x2F) -- "
+        f"primed={primed}, issued={issued}/{target_commands}, flushed={flushed}, idle={idle}")
 
 
 def wait_read_idle(xem):
@@ -298,7 +306,8 @@ def read_words(xem, n_words):
     after, this batch's own real words, so the leading garbage pair is
     always exactly 2 halves regardless of which batch this is. See the
     module docstring's "Multi-batch continuation" section."""
-    xem.SetWireInValue(READ_BUDGET_WIRE, n_words // 2, 0xFFFFFFFF)
+    target_commands = n_words // 2
+    xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
@@ -310,7 +319,9 @@ def read_words(xem, n_words):
     # module docstring.
     needed_halves = n_words * 2 + 3
     offset = 3
-    wait_read_ready(xem, needed_halves)
+    # Gate on read-prefetch's own (non-CDC) completion state, not on
+    # ddr3_read_rd_data_count -- see wait_batch_done()'s docstring.
+    wait_batch_done(xem, target_commands)
 
     total_bytes = needed_halves * 4
     if total_bytes % PIPE_BLOCK_SIZE:
