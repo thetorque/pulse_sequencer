@@ -104,6 +104,28 @@
 -- exposing init_calib_complete (bit 0) for host-side polling, since
 -- nothing else surfaces DDR3 calibration status yet.
 --
+-- Phase 6b adds the DDR3 write/read adapters as a standalone,
+-- host-driven bring-up test -- pulser_ram/the sequencer FSM aren't
+-- touched yet (that's Phase 6c). The existing bring-up-only RAM-writer
+-- drain process (BTPipeIn 0x80 -> pulse_fifo) now feeds ddr3_write_fifo
+-- in lockstep with pulser_ram, so the same host write already exercised
+-- by Phase 5a's tests also exercises the DDR3 write path. A
+-- write-assembler (ui_clk domain) pairs two ddr3_write_fifo words into
+-- one 128-bit MIG write burst; a read-prefetch (also ui_clk) issues
+-- MIG read commands and splits the returned data back into 64-bit
+-- words feeding ddr3_read_fifo, exposed on a new bring-up-only
+-- BTPipeOut (0xA3) for host-side readback. Since MIG's app_addr/app_cmd
+-- command channel is shared between reads and writes, the two are
+-- time-multiplexed via a new host-controlled mode bit (ep00wire(4): 0
+-- = write mode, 1 = read mode) rather than a runtime arbiter -- the
+-- host must confirm the write path is idle (WireOut 0x2E bit 5) before
+-- switching to read mode, or an in-flight write command gets abandoned
+-- mid-transaction. New TriggerIn bit ep40wire(5) resets both the
+-- write-assembler's and read-prefetch's address counters back to 0.
+-- WireOut 0x2E/0x2F expose ddr3_write_fifo/ddr3_read_fifo occupancy
+-- (plus write-path-idle on 0x2E bit 5) for bring-up visibility, same
+-- pattern as Phase 3's FIFO status endpoints.
+--
 -- IMPORTANT read-timing adaptation: the legacy design drove
 -- pulser_ram's read-port clock (there called pulser_ram_clkb) as a
 -- manually-toggled pulse from its own FSM -- effectively a
@@ -259,6 +281,123 @@ architecture arch of photon is
 	signal clk_100    : STD_LOGIC;
 	signal clk_20     : STD_LOGIC;
 	signal clk_locked : STD_LOGIC;
+
+	-- Phase 6b: DDR3 write/read adapters (see file header comment).
+	-- ddr3_write_fifo: bring-up drain process (clk_100) -> write-
+	-- assembler (ui_clk). ddr3_read_fifo: read-prefetch (ui_clk) ->
+	-- BTPipeOut 0xA3 (okClk). Both 64-bit wide (same word width as
+	-- pulse_fifo's read side/pulser_ram), 32 deep as a first cut --
+	-- revisit once Phase 6d's BRAM budget across all FIFOs is known.
+	-- Independent Clocks Block RAM FIFO, First-Word-Fall-Through, same
+	-- settings as pulse_fifo/fifo_photon; generated manually in the
+	-- Vivado IP catalog like the other Phase 3 FIFOs, not checked in.
+	component ddr3_write_fifo port (
+		rst    : in  STD_LOGIC;
+		wr_clk : in  STD_LOGIC;
+		rd_clk : in  STD_LOGIC;
+		din    : in  STD_LOGIC_VECTOR(63 downto 0);
+		wr_en  : in  STD_LOGIC;
+		rd_en  : in  STD_LOGIC;
+		dout   : out STD_LOGIC_VECTOR(63 downto 0);
+		full   : out STD_LOGIC;
+		empty  : out STD_LOGIC;
+		rd_data_count : out STD_LOGIC_VECTOR(4 downto 0) -- 32-deep
+	);
+	end component;
+
+	component ddr3_read_fifo port (
+		rst    : in  STD_LOGIC;
+		wr_clk : in  STD_LOGIC;
+		rd_clk : in  STD_LOGIC;
+		din    : in  STD_LOGIC_VECTOR(63 downto 0);
+		wr_en  : in  STD_LOGIC;
+		rd_en  : in  STD_LOGIC;
+		dout   : out STD_LOGIC_VECTOR(63 downto 0);
+		full   : out STD_LOGIC;
+		empty  : out STD_LOGIC;
+		rd_data_count : out STD_LOGIC_VECTOR(4 downto 0) -- 32-deep
+	);
+	end component;
+
+	signal ddr3_write_din          : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_write_wr_en        : STD_LOGIC := '0';
+	signal ddr3_write_rd_en        : STD_LOGIC;
+	signal ddr3_write_dout         : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_write_full         : STD_LOGIC;
+	signal ddr3_write_empty        : STD_LOGIC;
+	signal ddr3_write_rd_data_count : STD_LOGIC_VECTOR(4 downto 0);
+
+	signal ddr3_read_din           : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_read_wr_en         : STD_LOGIC := '0';
+	signal ddr3_read_rd_en         : STD_LOGIC;
+	signal ddr3_read_dout          : STD_LOGIC_VECTOR(63 downto 0);
+	signal ddr3_read_full          : STD_LOGIC;
+	signal ddr3_read_empty         : STD_LOGIC;
+	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(4 downto 0);
+
+	-- MIG app_* command/write-data interface, now driven by the
+	-- write-assembler/read-prefetch process below instead of tied
+	-- inert (Phase 6a). app_wdf_end/app_wdf_mask are wired to constants
+	-- directly in ddr3_inst's port map rather than routed through
+	-- signals here, since this design only ever does single-beat
+	-- (BL8/128-bit), full-width (no byte masking) bursts.
+	signal mig_app_addr          : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal mig_app_cmd           : STD_LOGIC_VECTOR(2 downto 0)  := "000";
+	signal mig_app_en            : STD_LOGIC := '0';
+	signal mig_app_wdf_data      : STD_LOGIC_VECTOR(127 downto 0) := (others => '0');
+	signal mig_app_wdf_wren      : STD_LOGIC := '0';
+	signal mig_app_rd_data       : STD_LOGIC_VECTOR(127 downto 0);
+	signal mig_app_rd_data_valid : STD_LOGIC;
+	signal mig_app_rdy           : STD_LOGIC;
+	signal mig_app_wdf_rdy       : STD_LOGIC;
+
+	-- write-assembler state (ui_clk domain): pairs two ddr3_write_fifo
+	-- words into one 128-bit MIG write burst (first popped -> low 64
+	-- bits, second -> high 64 bits -- an explicit choice made in the
+	-- process below, not an empirically-discovered FIFO behavior).
+	-- wr_asm_addr is already in app_addr units (MIG-native 16-bit
+	-- words), advancing by ADDRESS_INCREMENT=8 per burst --
+	-- sequential-only, no arbitrary addressing needed yet (matches
+	-- this design's access pattern). IMPORTANT: a burst only completes
+	-- once a *second* word has been popped -- an odd total word count
+	-- leaves this stuck in state 1 forever waiting for a word that
+	-- never comes, so wr_asm_idle never reasserts either. The host
+	-- must always write an even number of 64-bit words (pad with a
+	-- dummy if needed, same as this project's other pipe writers
+	-- already pad to the block size).
+	signal wr_asm_state     : INTEGER range 0 to 2 := 0;
+	signal wr_asm_low       : STD_LOGIC_VECTOR(63 downto 0);
+	signal wr_asm_addr      : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal wr_asm_cmd_done  : STD_LOGIC := '0';
+	signal wr_asm_data_done : STD_LOGIC := '0';
+	signal wr_asm_idle      : STD_LOGIC := '1';
+
+	-- read-prefetch state (ui_clk domain): single read outstanding at a
+	-- time (correctness over max throughput -- plenty for this
+	-- bring-up test's data rate); splits each 128-bit app_rd_data into
+	-- two 64-bit words (low half pushed first, high half second).
+	-- Only runs while ep00wire(4)='1' (read mode) -- see the combined
+	-- write-assembler/read-prefetch process below for why reads and
+	-- writes are time-multiplexed onto MIG's single shared command
+	-- channel via this host-controlled bit instead of a runtime arbiter.
+	signal rd_pf_state      : INTEGER range 0 to 3 := 0;
+	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
+
+	-- BTPipeOut 0xA3 (ddr3_read_fifo readback) is 32 bits like every
+	-- other pipe here, but ddr3_read_fifo is 64 bits wide -- split
+	-- explicitly across two consecutive pipe reads (low 32 bits first,
+	-- high 32 bits second) rather than configuring the FIFO itself
+	-- asymmetric, so the split order is a choice made here, not an
+	-- empirically-discovered FIFO Generator default.
+	signal ddr3_read_datain     : STD_LOGIC_VECTOR(31 downto 0);
+	signal ddr3_read_pipe_half  : STD_LOGIC := '0';
+	signal ddr3_read_pipe_ep_read : STD_LOGIC;
+
+	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
+	-- legacy equivalent; see file header comment.
+	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -465,7 +604,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*18-1 downto 0); -- 18 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*21-1 downto 0); -- 21 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -673,6 +812,17 @@ begin
 	------------------------------------------------------------------
 	ep2Dwire <= (0 => init_calib_complete, others => '0');
 
+	------------------------------------------------------------------
+	-- Phase 6b bring-up (0x2E/0x2F): ddr3_write_fifo/ddr3_read_fifo
+	-- occupancy, so a host script can watch data move through the new
+	-- DDR3 write/read adapters. 0x2E bit 5 = write path fully idle
+	-- (write_fifo empty AND write-assembler not mid-transaction) --
+	-- check this before switching ep00wire(4) to read mode, see file
+	-- header comment.
+	------------------------------------------------------------------
+	ep2Ewire <= (31 downto 6 => '0') & wr_asm_idle & ddr3_write_rd_data_count;
+	ep2Fwire <= (31 downto 5 => '0') & ddr3_read_rd_data_count;
+
 	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
 	-- above which are active-low. led_ext is presumed a separate add-on LED
 	-- board wired the ordinary way (LED positive lead to the FPGA pin
@@ -686,21 +836,32 @@ begin
 	-- so dout is already valid whenever empty='0' -- no extra wait state
 	-- needed before latching it. ep40wire(1) resets the write address,
 	-- matching the legacy design's pulser_ram_reset bit.
+	--
+	-- Phase 6b: the same popped word is also fed into ddr3_write_fifo
+	-- in lockstep, so the existing host write path (BTPipeIn 0x80)
+	-- exercises the new DDR3 write path too, without a separate pipe.
+	-- Gated on ddr3_write_full so a lagging DDR3 write path throttles
+	-- this drain process rather than silently dropping data -- harmless
+	-- for pulser_ram/Phase 5a's tests, which never queue enough at once
+	-- to fill a 32-deep FIFO.
 	process (clk_100)
 	begin
 		if rising_edge(clk_100) then
 			fifo_pulser_rd_en <= '0';
 			pulser_ram_wea    <= "0";
+			ddr3_write_wr_en  <= '0';
 			if ep40wire(1) = '1' then
 				ram_write_addr  <= (others => '0');
 				ram_write_state <= 0;
 			else
 				case ram_write_state is
 					when 0 =>
-						if fifo_pulser_empty = '0' then
+						if fifo_pulser_empty = '0' and ddr3_write_full = '0' then
 							pulser_ram_dina   <= fifo_pulser_dout;
 							pulser_ram_addra  <= ram_write_addr;
 							fifo_pulser_rd_en <= '1';
+							ddr3_write_din    <= fifo_pulser_dout;
+							ddr3_write_wr_en  <= '1';
 							ram_write_state   <= 1;
 						end if;
 					when 1 =>
@@ -844,12 +1005,141 @@ begin
 		end if;
 	end process;
 
+	------------------------------------------------------------------
+	-- Phase 6b: write-assembler / read-prefetch, combined into one
+	-- process since both drive MIG's shared app_addr/app_cmd/app_en
+	-- command channel and only one signal driver is allowed. Reads and
+	-- writes are time-multiplexed via ep00wire(4) (0=write mode,
+	-- 1=read mode) rather than a runtime arbiter -- see file header
+	-- comment for why (this is a standalone bring-up test with
+	-- host-sequenced write-then-read phases, not concurrent access).
+	--
+	-- Write mode: pops a pair of words from ddr3_write_fifo (state 0,
+	-- 1), then holds app_en/app_wdf_wren asserted (state 2) until MIG
+	-- accepts both the command and the write data (which may happen on
+	-- different cycles), advancing wr_asm_addr by 8 only once both are
+	-- confirmed.
+	--
+	-- Read mode: issues one read command (state 0, 1), waits for
+	-- app_rd_data_valid (state 2), then pushes the low half immediately
+	-- and the high half on the following cycle (state 3) into
+	-- ddr3_read_fifo -- single request outstanding at a time.
+	------------------------------------------------------------------
+	process (ui_clk)
+	begin
+		if rising_edge(ui_clk) then
+			ddr3_write_rd_en <= '0';
+			ddr3_read_wr_en  <= '0';
+			mig_app_en       <= '0';
+			mig_app_wdf_wren <= '0';
+			wr_asm_idle      <= '0';
+
+			if ep40wire(5) = '1' then
+				wr_asm_state <= 0;
+				wr_asm_addr  <= (others => '0');
+				rd_pf_state  <= 0;
+				rd_pf_addr   <= (others => '0');
+			elsif ep00wire(4) = '0' then
+				-- write mode
+				case wr_asm_state is
+					when 0 =>
+						wr_asm_idle <= ddr3_write_empty;
+						if ddr3_write_empty = '0' then
+							wr_asm_low       <= ddr3_write_dout;
+							ddr3_write_rd_en <= '1';
+							wr_asm_state     <= 1;
+						end if;
+					when 1 =>
+						if ddr3_write_empty = '0' then
+							mig_app_wdf_data <= ddr3_write_dout & wr_asm_low;
+							mig_app_addr     <= wr_asm_addr;
+							mig_app_cmd      <= "000";
+							mig_app_en       <= '1';
+							mig_app_wdf_wren <= '1';
+							ddr3_write_rd_en <= '1';
+							wr_asm_cmd_done  <= '0';
+							wr_asm_data_done <= '0';
+							wr_asm_state     <= 2;
+						end if;
+					when others => -- 2: hold until MIG accepts cmd + data
+						if mig_app_rdy = '1' then
+							wr_asm_cmd_done <= '1';
+						else
+							mig_app_en   <= '1';
+							mig_app_addr <= wr_asm_addr;
+							mig_app_cmd  <= "000";
+						end if;
+						if mig_app_wdf_rdy = '1' then
+							wr_asm_data_done <= '1';
+						else
+							mig_app_wdf_wren <= '1';
+						end if;
+						if (wr_asm_cmd_done = '1' or mig_app_rdy = '1') and
+						   (wr_asm_data_done = '1' or mig_app_wdf_rdy = '1') then
+							wr_asm_addr  <= wr_asm_addr + 8;
+							wr_asm_state <= 0;
+						end if;
+				end case;
+			else
+				-- read mode -- only entered once the host has confirmed
+				-- the write path is idle (WireOut 0x2E bit 5)
+				case rd_pf_state is
+					when 0 =>
+						if ddr3_read_full = '0' then
+							mig_app_addr <= rd_pf_addr;
+							mig_app_cmd  <= "001";
+							mig_app_en   <= '1';
+							rd_pf_state  <= 1;
+						end if;
+					when 1 =>
+						mig_app_addr <= rd_pf_addr;
+						mig_app_cmd  <= "001";
+						mig_app_en   <= '1';
+						if mig_app_rdy = '1' then
+							rd_pf_addr  <= rd_pf_addr + 8;
+							rd_pf_state <= 2;
+						end if;
+					when 2 =>
+						if mig_app_rd_data_valid = '1' then
+							ddr3_read_din    <= mig_app_rd_data(63 downto 0);
+							ddr3_read_wr_en  <= '1';
+							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
+							rd_pf_state      <= 3;
+						end if;
+					when others => -- 3
+						ddr3_read_din   <= rd_pf_pending_hi;
+						ddr3_read_wr_en <= '1';
+						rd_pf_state     <= 0;
+				end case;
+			end if;
+		end if;
+	end process;
+
+	-- BTPipeOut 0xA3 (ddr3_read_fifo readback), split across two pipe
+	-- reads -- see ddr3_read_datain/ddr3_read_pipe_half declaration
+	-- comment above. Only pops ddr3_read_fifo (asserts its rd_en) on
+	-- the second half of each pair, once the high half has also been
+	-- presented.
+	ddr3_read_datain <= ddr3_read_dout(31 downto 0) when ddr3_read_pipe_half = '0'
+	                     else ddr3_read_dout(63 downto 32);
+	ddr3_read_rd_en  <= ddr3_read_pipe_ep_read when ddr3_read_pipe_half = '1' else '0';
+
+	process (okClk)
+	begin
+		if rising_edge(okClk) then
+			if ddr3_read_pipe_ep_read = '1' then
+				ddr3_read_pipe_half <= not ddr3_read_pipe_half;
+			end if;
+		end if;
+	end process;
+
 	-- Phase 6a: MIG owns sys_clk_p/sys_clk_n directly (System Clock =
 	-- Differential) -- no more IBUFGDS/sys_clk in this file, see file
-	-- header comment. app_* command interface tied inert (Phase 6b
-	-- wires it to the real read/write adapters); app_wdf_mask tied to
-	-- all-masked as the safe idle value, though it's moot with
-	-- app_wdf_wren='0'.
+	-- header comment. Phase 6b: app_* command/write-data interface now
+	-- driven by the write-assembler/read-prefetch process above;
+	-- app_wdf_end/app_wdf_mask tied to constants since this design only
+	-- ever does single-beat, full-width-write bursts (see mig_app_*
+	-- signal declaration comments).
 	ddr3_inst : ddr3_256_16 port map (
 		ddr3_dq             => ddr3_dq,
 		ddr3_dqs_p          => ddr3_dqs_p,
@@ -866,18 +1156,18 @@ begin
 		ddr3_dm             => ddr3_dm,
 		ddr3_odt            => ddr3_odt,
 
-		app_addr            => (others => '0'),
-		app_cmd             => "000",
-		app_en              => '0',
-		app_wdf_data        => (others => '0'),
-		app_wdf_end         => '0',
-		app_wdf_mask        => (others => '1'),
-		app_wdf_wren        => '0',
-		app_rd_data         => open,
+		app_addr            => mig_app_addr,
+		app_cmd             => mig_app_cmd,
+		app_en              => mig_app_en,
+		app_wdf_data        => mig_app_wdf_data,
+		app_wdf_end         => '1',
+		app_wdf_mask        => (others => '0'),
+		app_wdf_wren        => mig_app_wdf_wren,
+		app_rd_data         => mig_app_rd_data,
 		app_rd_data_end     => open,
-		app_rd_data_valid   => open,
-		app_rdy             => open,
-		app_wdf_rdy         => open,
+		app_rd_data_valid   => mig_app_rd_data_valid,
+		app_rdy             => mig_app_rdy,
+		app_wdf_rdy         => mig_app_wdf_rdy,
 		app_sr_req          => '0',
 		app_ref_req         => '0',
 		app_zq_req          => '0',
@@ -891,6 +1181,32 @@ begin
 		sys_clk_n           => sys_clk_n,
 		device_temp         => open,
 		sys_rst             => mig_sys_rst
+	);
+
+	ddr3_write_fifo_inst : ddr3_write_fifo port map (
+		rst    => '0',
+		wr_clk => clk_100,
+		rd_clk => ui_clk,
+		din    => ddr3_write_din,
+		wr_en  => ddr3_write_wr_en,
+		rd_en  => ddr3_write_rd_en,
+		dout   => ddr3_write_dout,
+		full   => ddr3_write_full,
+		empty  => ddr3_write_empty,
+		rd_data_count => ddr3_write_rd_data_count
+	);
+
+	ddr3_read_fifo_inst : ddr3_read_fifo port map (
+		rst    => '0',
+		wr_clk => ui_clk,
+		rd_clk => okClk,
+		din    => ddr3_read_din,
+		wr_en  => ddr3_read_wr_en,
+		rd_en  => ddr3_read_rd_en,
+		dout   => ddr3_read_dout,
+		full   => ddr3_read_full,
+		empty  => ddr3_read_empty,
+		rd_data_count => ddr3_read_rd_data_count
 	);
 
 	-- MIG sys_rst pulse generation, see mig_sys_rst declaration comment.
@@ -921,7 +1237,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 18) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 21) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -985,6 +1301,16 @@ begin
 
 	-- WireOut endpoint (Phase 6a MIG bring-up, see file header comment)
 	wo2D : okWireOut port map (okHE => okHE, okEH => okEHx(18*65-1 downto 17*65), ep_addr => x"2D", ep_datain => ep2Dwire);
+
+	-- WireOut endpoints (Phase 6b DDR3 write/read adapter bring-up, see file header comment)
+	wo2E : okWireOut port map (okHE => okHE, okEH => okEHx(19*65-1 downto 18*65), ep_addr => x"2E", ep_datain => ep2Ewire);
+	wo2F : okWireOut port map (okHE => okHE, okEH => okEHx(20*65-1 downto 19*65), ep_addr => x"2F", ep_datain => ep2Fwire);
+
+	-- BTPipeOut endpoint (Phase 6b DDR3 read-prefetch readback, see file header comment)
+	poA3 : okBTPipeOut port map (
+		okHE => okHE, okEH => okEHx(21*65-1 downto 20*65), ep_addr => x"A3",
+		ep_read => ddr3_read_pipe_ep_read, ep_blockstrobe => open, ep_datain => ddr3_read_datain, ep_ready => pipeOut_ready
+	);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (
