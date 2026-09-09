@@ -69,7 +69,13 @@ hardware property, to be confirmed on real hardware exactly as
 3. The sequencer FSM (`photon.vhd` ~line 1040) already reads lines sequentially
    with a 2-line look-ahead; point its line source at this FIFO and drive
    `restart` from its infinite-loop path.
-4. **Starvation ceiling** — the one-at-a-time read engine sustains ~1 beat per
-   read latency (~2 lines / ~320 ns). That is well above realistic pulse rates
-   but below the 40 ns/line worst case; milestone 5 sizes `PRIME_BEATS` and
-   confirms the safe minimum dwell (and whether pipelined reads are needed).
+4. **Starvation ceiling** (measured by `tb_streamer_throughput`, model MIG
+   read latency 24 ui_clk): sustained **~6 lines/µs ≈ 166 ns/line**. So dwells
+   ≥ ~166 ns/line never starve; faster bursts down to 40 ns/line are buffered
+   (~512 lines ≈ 27 µs) before starvation; and a sequence that fits in the
+   FIFO (≤512 lines) can be pre-loaded whole for zero DDR reads during
+   execution (no starvation at any dwell). Realistic pulse dwells (µs–ms) sit
+   far above the floor, so the one-at-a-time engine suffices; pipelined
+   (multi-outstanding) reads are a ~10× option reserved for sustained sub-µs
+   streaming of sequences too large to pre-load. The real floor is set by the
+   actual MIG latency — the M2 hardware self-test measures it.
