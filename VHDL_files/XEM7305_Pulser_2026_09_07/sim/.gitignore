@@ -1,0 +1,5 @@
+# GHDL build artifacts
+*.o
+*.cf
+e~*
+tb_line_streamer
