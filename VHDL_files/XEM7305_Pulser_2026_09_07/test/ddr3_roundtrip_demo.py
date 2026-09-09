@@ -138,6 +138,9 @@ DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 
 DDR3_READ_ISSUED_MASK = 0xFF
 DDR3_READ_FLUSHED_BIT = 1 << 15    # rd_pf_flushed -- see photon.vhd's ep2Fwire comment
 DDR3_READ_EMPTY_BIT = 1 << 14      # ddr3_read_empty -- see photon.vhd's ep2Fwire comment
+DDR3_READ_STATE_SHIFT = 6          # DIAGNOSTIC (temporary): rd_pf_state, bits 8:6
+DDR3_READ_STATE_MASK = 0x7
+DDR3_VALID_OUTSIDE_S2_BIT = 1 << 9 # DIAGNOSTIC (temporary): dbg_valid_outside_s2
 BATCH_DONE_POLL_ATTEMPTS = 200
 BATCH_DONE_POLL_INTERVAL = 0.01
 NOT_EMPTY_POLL_ATTEMPTS = 200
@@ -243,10 +246,15 @@ def wait_batch_done(xem, target_commands):
         if primed and flushed and idle and issued >= target_commands:
             return
         time.sleep(BATCH_DONE_POLL_INTERVAL)
+    state = (status >> DDR3_READ_STATE_SHIFT) & DDR3_READ_STATE_MASK
+    valid_outside_s2 = bool(status & DDR3_VALID_OUTSIDE_S2_BIT)
     print_dup_diagnostics(xem)
     raise RuntimeError(
         f"read-prefetch never finished this batch (WireOut 0x2F) -- "
-        f"primed={primed}, issued={issued}/{target_commands}, flushed={flushed}, idle={idle}")
+        f"primed={primed}, issued={issued}/{target_commands}, flushed={flushed}, idle={idle}, "
+        f"rd_pf_state={state}, valid_outside_capture_state={valid_outside_s2} "
+        f"(state 2 = waiting for a valid that never came; valid_outside=True => a valid "
+        f"was missed [bug b], False => MIG returned no valid for a counted command [bug a])")
 
 
 def wait_read_not_empty(xem):

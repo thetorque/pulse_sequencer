@@ -490,6 +490,17 @@ architecture arch of photon is
 	signal dbg_dup_at_cmd     : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
 	signal dbg_dup_addr_match : STD_LOGIC := '0';
 
+	-- DIAGNOSTIC (temporary): after the read command double-issue fix,
+	-- an occasional stall appeared where read-prefetch issued a command
+	-- (dbg_cmd_count) that got one fewer valid response (dbg_valid_count
+	-- = cmd-1), leaving it stuck in the valid-wait state. dbg_valid_outside_s2
+	-- is a sticky flag set if mig_app_rd_data_valid was ever seen while
+	-- rd_pf_state /= 2 (the capture state) -- if set, read-prefetch
+	-- MISSED a valid (bug (b)); if clear at a stall, MIG never returned
+	-- a valid for a counted command (phantom accept, bug (a)). Exposed
+	-- alongside rd_pf_state itself on WireOut 0x2F.
+	signal dbg_valid_outside_s2 : STD_LOGIC := '0';
+
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
 	-- mid-transaction (address already advanced past MIG's app_rdy but
@@ -1021,9 +1032,14 @@ begin
 	-- multi-bit bus, so it doesn't have the count's "different bits
 	-- resolve at different times" glitch risk -- same class of signal
 	-- ddr3_write_empty already is, safely, elsewhere in this design.
+	-- DIAGNOSTIC (temporary): bit 9 = dbg_valid_outside_s2, bits 8:6 =
+	-- rd_pf_state (0-4) -- added to tell apart a phantom accept from a
+	-- missed valid at a read-prefetch stall (see dbg_valid_outside_s2
+	-- declaration comment).
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
 	            rd_pf_primed & rd_pf_idle & rd_pf_flushed & ddr3_read_empty &
-	            (13 downto 6 => '0') & ddr3_read_rd_data_count;
+	            (13 downto 10 => '0') & dbg_valid_outside_s2 &
+	            CONV_STD_LOGIC_VECTOR(rd_pf_state, 3) & ddr3_read_rd_data_count;
 
 	------------------------------------------------------------------
 	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count
@@ -1281,6 +1297,13 @@ begin
 				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
 			end if;
 
+			-- DIAGNOSTIC: sticky flag if a valid response ever arrives
+			-- while read-prefetch is NOT in its capture state (2). Runs
+			-- every cycle. See dbg_valid_outside_s2 declaration comment.
+			if mig_app_rd_data_valid = '1' and rd_pf_state /= 2 then
+				dbg_valid_outside_s2 <= '1';
+			end if;
+
 			if ep40wire(5) = '1' then
 				wr_asm_state  <= 0;
 				wr_asm_addr   <= (others => '0');
@@ -1297,6 +1320,7 @@ begin
 				dbg_dup_addr_match <= '0';
 				dbg_prev_rd_data   <= (others => '0');
 				dbg_prev_addr      <= (others => '0');
+				dbg_valid_outside_s2 <= '0';
 			elsif ddr3_read_fifo_rst = '1' then
 				-- per-batch read-FIFO reset (see ddr3_read_fifo_rst
 				-- declaration comment): clean read-side state so the
