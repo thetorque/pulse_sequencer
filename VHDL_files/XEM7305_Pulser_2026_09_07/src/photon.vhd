@@ -1176,7 +1176,20 @@ begin
 				case rd_pf_state is
 					when 0 =>
 						rd_pf_idle <= '1';
-						if ddr3_read_full = '0' then
+						-- gate on occupancy well below actual capacity
+						-- (~33 entries, confirmed via the IP's Data
+						-- Counts tab) rather than ddr3_read_full alone --
+						-- read-prefetch runs eagerly with no host-side
+						-- back-pressure, and by the time a slow
+						-- host-side poll loop (USB round trips) even
+						-- checks in, it can otherwise blast through many
+						-- more commands than the FIFO can safely hold
+						-- (confirmed on hardware: 20 commands / 40
+						-- entries attempted against ~33 actual capacity),
+						-- overflowing it -- writing past a FIFO's true
+						-- fullness point is undefined/corrupting
+						-- behavior, not just "extra data lost".
+						if ddr3_read_rd_data_count < 16 then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
