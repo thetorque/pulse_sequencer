@@ -388,12 +388,12 @@ architecture arch of photon is
 	-- sequential-only, no arbitrary addressing needed yet (matches
 	-- this design's access pattern). IMPORTANT: a burst only completes
 	-- once a *second* word has been popped -- an odd total word count
-	-- leaves this stuck in state 1 forever waiting for a word that
+	-- leaves this stuck in state 2 forever waiting for a word that
 	-- never comes, so wr_asm_idle never reasserts either. The host
 	-- must always write an even number of 64-bit words (pad with a
 	-- dummy if needed, same as this project's other pipe writers
 	-- already pad to the block size).
-	signal wr_asm_state     : INTEGER range 0 to 2 := 0;
+	signal wr_asm_state     : INTEGER range 0 to 3 := 0;
 	signal wr_asm_low       : STD_LOGIC_VECTOR(63 downto 0);
 	signal wr_asm_addr      : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal wr_asm_cmd_done  : STD_LOGIC := '0';
@@ -1044,8 +1044,12 @@ begin
 	-- comment for why (this is a standalone bring-up test with
 	-- host-sequenced write-then-read phases, not concurrent access).
 	--
-	-- Write mode: pops a pair of words from ddr3_write_fifo (state 0,
-	-- 1), then holds app_en/app_wdf_wren asserted (state 2) until MIG
+	-- Write mode: pops a pair of words from ddr3_write_fifo (state 0
+	-- captures the first and asserts rd_en; state 1 is a mandatory
+	-- one-cycle wait for ddr3_write_rd_en's own register delay plus
+	-- FWFT's pop-to-advance delay before ddr3_write_dout actually shows
+	-- the second word; state 2 captures it and issues the MIG command),
+	-- then holds app_en/app_wdf_wren asserted (state 3) until MIG
 	-- accepts both the command and the write data (which may happen on
 	-- different cycles), advancing wr_asm_addr by 8 only once both are
 	-- confirmed.
@@ -1081,6 +1085,18 @@ begin
 							wr_asm_state     <= 1;
 						end if;
 					when 1 =>
+						-- wait one cycle: ddr3_write_rd_en is itself a
+						-- registered signal, so the FIFO doesn't see the
+						-- pop asserted in state 0 as an input until this
+						-- cycle, and FWFT only advances dout to the next
+						-- word starting the cycle after that -- reading
+						-- dout here (one cycle too early) would just see
+						-- the same first word again (the exact bug this
+						-- state exists to avoid; see the proven drain
+						-- process above, which never re-reads dout the
+						-- cycle immediately after asserting rd_en either).
+						wr_asm_state <= 2;
+					when 2 =>
 						if ddr3_write_empty = '0' then
 							mig_app_wdf_data <= ddr3_write_dout & wr_asm_low;
 							mig_app_addr     <= wr_asm_addr;
@@ -1090,9 +1106,9 @@ begin
 							ddr3_write_rd_en <= '1';
 							wr_asm_cmd_done  <= '0';
 							wr_asm_data_done <= '0';
-							wr_asm_state     <= 2;
+							wr_asm_state     <= 3;
 						end if;
-					when others => -- 2: hold until MIG accepts cmd + data
+					when others => -- 3: hold until MIG accepts cmd + data
 						if mig_app_rdy = '1' then
 							wr_asm_cmd_done <= '1';
 						else
