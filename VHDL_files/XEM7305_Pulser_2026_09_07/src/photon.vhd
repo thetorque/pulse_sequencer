@@ -408,7 +408,7 @@ architecture arch of photon is
 	-- write-assembler/read-prefetch process below for why reads and
 	-- writes are time-multiplexed onto MIG's single shared command
 	-- channel via this host-controlled bit instead of a runtime arbiter.
-	signal rd_pf_state      : INTEGER range 0 to 4 := 0;
+	signal rd_pf_state      : INTEGER range 0 to 3 := 0;
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
@@ -429,6 +429,15 @@ architecture arch of photon is
 	-- issuing and MIG's response, not in how we process a response.
 	signal dbg_cmd_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
+	-- DIAGNOSTIC (temporary, WireOut 0x32/0x33): the raw high-32 bits
+	-- mig_app_rd_data actually returns for the first two commands'
+	-- responses, latched directly in state 2 (see dbg_resp_count usage
+	-- there) -- ground truth to compare against what the readback
+	-- pipeline eventually presents, instead of inferring it indirectly.
+	signal dbg_resp_count : INTEGER range 0 to 7 := 0;
+	signal dbg_high0 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal dbg_high1 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
 	-- mid-transaction (address already advanced past MIG's app_rdy but
@@ -443,10 +452,12 @@ architecture arch of photon is
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
 
-	-- WireOut endpoints (0x30/0x31) -- DIAGNOSTIC (temporary), see
-	-- dbg_valid_count/dbg_cmd_count declaration comments.
+	-- WireOut endpoints (0x30/0x31/0x32/0x33) -- DIAGNOSTIC (temporary),
+	-- see dbg_valid_count/dbg_cmd_count/dbg_high0/dbg_high1 comments.
 	signal ep30wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep31wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep32wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep33wire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -653,7 +664,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*23-1 downto 0); -- 23 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*25-1 downto 0); -- 25 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -881,6 +892,8 @@ begin
 	------------------------------------------------------------------
 	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
 	ep31wire <= (31 downto 8 => '0') & dbg_cmd_count;
+	ep32wire <= dbg_high0;
+	ep33wire <= dbg_high1;
 
 	process (ui_clk)
 	begin
@@ -1096,10 +1109,14 @@ begin
 	-- confirmed.
 	--
 	-- Read mode: issues one read command (state 0, 1), waits for
-	-- app_rd_data_valid (state 2, which pushes the low half only),
-	-- samples the high half one cycle later (state 3, diagnostic --
-	-- see its comment), then pushes it (state 4) into ddr3_read_fifo
-	-- -- single request outstanding at a time.
+	-- app_rd_data_valid (state 2, which pushes the low half immediately
+	-- and latches the high half), then pushes the high half (state 3)
+	-- into ddr3_read_fifo -- single request outstanding at a time.
+	-- (Sampling both halves on the same cycle as valid, and pushing
+	-- them a cycle apart, is confirmed correct -- both a one-cycle-
+	-- later sampling attempt and a settling-cycle-before-push attempt
+	-- were tested and ruled out; see dbg_high0/dbg_high1 for the
+	-- current, still-open diagnostic.)
 	------------------------------------------------------------------
 	process (ui_clk)
 	begin
@@ -1116,7 +1133,8 @@ begin
 				wr_asm_addr   <= (others => '0');
 				rd_pf_state   <= 0;
 				rd_pf_addr    <= (others => '0');
-				dbg_cmd_count <= (others => '0');
+				dbg_cmd_count  <= (others => '0');
+				dbg_resp_count <= 0;
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1206,22 +1224,22 @@ begin
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
-							ddr3_read_din   <= mig_app_rd_data(63 downto 0);
-							ddr3_read_wr_en <= '1';
-							rd_pf_state     <= 3;
+							ddr3_read_din    <= mig_app_rd_data(63 downto 0);
+							ddr3_read_wr_en  <= '1';
+							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
+							rd_pf_state      <= 3;
+							-- DIAGNOSTIC: latch the raw high-32 bits MIG
+							-- returns for the first two commands directly
+							-- (WireOut 0x32/0x33), to see ground truth
+							-- rather than infer it through the readback.
+							if dbg_resp_count = 0 then
+								dbg_high0 <= mig_app_rd_data(127 downto 96);
+							elsif dbg_resp_count = 1 then
+								dbg_high1 <= mig_app_rd_data(127 downto 96);
+							end if;
+							dbg_resp_count <= dbg_resp_count + 1;
 						end if;
-					when 3 =>
-						-- DIAGNOSTIC: testing whether mig_app_rd_data's
-						-- upper 64 bits become valid one cycle later than
-						-- the lower 64 bits, relative to when
-						-- mig_app_rd_data_valid first asserts (a lag
-						-- internal to MIG's own datapath, not a FIFO
-						-- issue) -- sampling the high half here, one
-						-- cycle after state 2 sampled the low half,
-						-- instead of both on the same cycle.
-						rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
-						rd_pf_state      <= 4;
-					when others => -- 4
+					when others => -- 3
 						ddr3_read_din   <= rd_pf_pending_hi;
 						ddr3_read_wr_en <= '1';
 						rd_pf_state     <= 0;
@@ -1334,7 +1352,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 23) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 25) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1413,6 +1431,8 @@ begin
 	-- dbg_valid_count declaration comment.
 	wo30 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"30", ep_datain => ep30wire);
 	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"31", ep_datain => ep31wire);
+	wo32 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"32", ep_datain => ep32wire);
+	wo33 : okWireOut port map (okHE => okHE, okEH => okEHx(25*65-1 downto 24*65), ep_addr => x"33", ep_datain => ep33wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (

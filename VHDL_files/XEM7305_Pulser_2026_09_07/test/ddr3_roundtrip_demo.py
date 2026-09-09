@@ -235,12 +235,18 @@ def determine_read_order(xem):
     xem.UpdateWireOuts()
     valid_count = xem.GetWireOutValue(0x30)
     cmd_count = xem.GetWireOutValue(0x31)
+    dbg_high0 = xem.GetWireOutValue(0x32)
+    dbg_high1 = xem.GetWireOutValue(0x33)
     for i, w in enumerate(words):
         print(f"  Wrote word{i} high={(w>>32)&0xFFFFFFFF:#010x} low={w&0xFFFFFFFF:#010x}")
     print("  Readback halves: " + ", ".join(f"{h:#010x}" for h in halves))
     print(f"  Commands issued (WireOut 0x31) = {cmd_count} (expect {len(words)//2})")
     print(f"  mig_app_rd_data_valid rising-edge count (WireOut 0x30) = {valid_count} "
           f"(expect same as commands issued, if 1 pulse/command)")
+    print(f"  Raw high-32 MIG returned for command0 (WireOut 0x32) = {dbg_high0:#010x} "
+          f"(expect {0xAAAAAAAA:#010x} = word0's true high)")
+    print(f"  Raw high-32 MIG returned for command1 (WireOut 0x33) = {dbg_high1:#010x} "
+          f"(expect {0xCCCCDDDD:#010x} = word3's true high)")
     sys.exit("Diagnostic run -- inspect the halves above, not a real failure.")
 
 
