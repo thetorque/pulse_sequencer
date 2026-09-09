@@ -408,7 +408,14 @@ architecture arch of photon is
 	-- write-assembler/read-prefetch process below for why reads and
 	-- writes are time-multiplexed onto MIG's single shared command
 	-- channel via this host-controlled bit instead of a runtime arbiter.
-	signal rd_pf_state      : INTEGER range 0 to 3 := 0;
+	signal rd_pf_state      : INTEGER range 0 to 4 := 0;
+	-- DIAGNOSTIC: testing whether the low/high pushes into ddr3_read_fifo
+	-- (a dual-clock FIFO, ui_clk write / okClk read) happen too close
+	-- together in ui_clk time for the write-pointer's CDC synchronizer
+	-- into okClk to safely resolve them as two distinct entries --
+	-- ~8 ui_clk cycles (~10 okClk cycles) of margin, well beyond a
+	-- typical 2-3 stage synchronizer's needs.
+	signal rd_pf_wait_ctr   : INTEGER range 0 to 15 := 0;
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
@@ -1228,6 +1235,7 @@ begin
 							ddr3_read_wr_en  <= '1';
 							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
 							rd_pf_state      <= 3;
+							rd_pf_wait_ctr   <= 0;
 							-- DIAGNOSTIC: latch the raw high-32 bits MIG
 							-- returns for the first two commands directly
 							-- (WireOut 0x32/0x33), to see ground truth
@@ -1239,7 +1247,15 @@ begin
 							end if;
 							dbg_resp_count <= dbg_resp_count + 1;
 						end if;
-					when others => -- 3
+					when 3 =>
+						-- DIAGNOSTIC: ~8 ui_clk cycle CDC-settling wait,
+						-- see rd_pf_wait_ctr declaration comment.
+						if rd_pf_wait_ctr = 8 then
+							rd_pf_state <= 4;
+						else
+							rd_pf_wait_ctr <= rd_pf_wait_ctr + 1;
+						end if;
+					when others => -- 4
 						ddr3_read_din   <= rd_pf_pending_hi;
 						ddr3_read_wr_en <= '1';
 						rd_pf_state     <= 0;
