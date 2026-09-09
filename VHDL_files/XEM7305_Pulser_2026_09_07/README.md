@@ -1,4 +1,4 @@
-# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3 + Phase 5a + Phase 6a
+# XEM7305 Pulse Sequencer — Phase 1 + Phase 2 + Phase 3 + Phase 5a + Phase 6a + Phase 6b
 
 Port of the pulse sequencer from XEM6010 (`VHDL_files/Pulser_w_2015_07_28/photon/photon.vhd`)
 to the XEM7305. See the full port plan discussion for all phases; this
@@ -497,3 +497,86 @@ hardware.
   "Phase 2 gap" pattern as Phase 5a's timing note, one hop further down
   the clock tree. Fixed with one more `set_clock_groups -asynchronous`
   declaration; brought timing fully clean with no RTL changes needed.
+
+## Bring-up test plan — Phase 6b
+
+Phase 6b adds the DDR3 **write-assembler** and **read-prefetch** adapters
+in `photon.vhd` — the glue that moves 64-bit host words through DDR3 via
+MIG's native 128-bit interface — and verifies a full host→DDR3→host
+round-trip. Driven by `test/ddr3_roundtrip_demo.py`. Hardware-verified on
+real XEM7305.
+
+**Adapter design (the version that finally worked, copied from
+`XEM7305_references/Locally_compiled_ramtester`):**
+
+- `ddr3_read_fifo` is a **128-bit-write / 32-bit-read Standard FIFO** (NOT
+  FWFT), independent clocks — the read-prefetch pushes each whole 128-bit
+  MIG response in ONE write and the FIFO does the 128→32 width conversion.
+  An earlier 64/32 FWFT read FIFO with a manual low/high split needed
+  priming/flush/offset work-arounds and was a persistent source of
+  intermittent corruption; the Standard FIFO has none of those quirks.
+- `ddr3_write_fifo` pairs two 64-bit host words into one 128-bit MIG write.
+- Reads and writes are time-multiplexed onto MIG's single command channel
+  via `ep00wire(4)` (host-controlled write/read mode), not a runtime
+  arbiter.
+
+**Three MIG-7 command-channel gotchas found and fixed (see
+`memory/ddr3-read-adapter-design.md`):**
+
+1. **Never hold `app_en` past acceptance** — re-asserting it the cycle
+   after `app_rdy` accepts makes MIG latch the same read twice. Assert
+   `app_en` only while the command is unaccepted.
+2. **Lost command** — MIG occasionally counts a read (`app_rdy` high) but
+   never returns `app_rd_data_valid`. Commit the address advance/count on
+   VALID, not on `app_rdy`, with a bounded state-2 timeout that re-issues.
+   `dbg_retry_count` (WireOut 0x31 bits 15:8) shows it firing 1-6× per run
+   — normal and recovered.
+3. **Cold-start read mis-address** — the FIRST read after the controller
+   has been idle for milliseconds (host round-trip + FIFO reset between
+   test batches → banks precharge, refreshes run) occasionally activates
+   the wrong row (one row-address bit latched low → a valid-but-wrong beat
+   from ~16 rows lower). Proven by the memtest two-pass to be a TRANSIENT
+   read event — the stored data is intact. Ramtester never hits it because
+   it streams reads continuously and never lets the controller go cold.
+
+**Test modes (`test/ddr3_roundtrip_demo.py <bitfile> <mode>`):**
+
+- `<n_words>` — single-batch round-trip of n_words (even, ≤256).
+- `soak [n_batches] [words_per_batch]` — repeated round-trips, structured
+  or `--random` data.
+- `endurance [duration_sec] [words_per_batch]` — run for a duration
+  (default 1 h), per-batch reset.
+- `memtest [mib] [chunk_words] [seed]` — write all of `mib` MiB, THEN read
+  it all back in TWO passes: proves data retention and no aliasing, and
+  the two-pass comparison separates a transient read mis-address (fails a
+  different set each pass → data intact) from a real data error (same set
+  every pass).
+- `memtest ... --sacrifice-beat0` — reserve the first beat of each chunk
+  as a discarded dummy so the cold first-read of every batch lands on a
+  throwaway; the RTL-free workaround for gotcha 3. Passes with ZERO
+  mismatches at 128 and 256 MiB.
+
+**Status:** write path, retention, and warm/low-address reads are
+hardware-proven robust over full-depth sweeps. The cold-start corner
+(gotcha 3) affects only the first read after a long idle — an artifact of
+the host-in-the-loop batch structure that the real workload will not
+create. The proper fix belongs in the Phase 6c DDR3 read streamer as a
+keep-warm heartbeat (issue throwaway reads during dwells so the controller
+never goes cold), to be developed and proven in simulation. The low 32 KiB
+(`app_addr` < 0x4000 = 4096 sequence lines) is structurally immune
+regardless (that row-address bit is never set there, and the fault only
+ever clears it).
+
+**Housekeeping still pending (do at the next build cycle, both
+build-verified):**
+
+- Strip the remaining bring-up diagnostics from `photon.vhd` — keep
+  `dbg_retry_count`; remove `dbg_valid_count`, `dbg_high0/1`,
+  `dbg_resp_count`, the `dbg_dup_*` duplicate-detector, and
+  `dbg_valid_outside_s2`, along with their WireOut endpoints
+  0x30/0x32/0x33/0x34 (renumber the `okEHx` slices and drop `okWireOR N`
+  from 26 to 22).
+- Add `create_ip` TCL for `ddr3_read_fifo` / `ddr3_write_fifo` /
+  `pulse_fifo` to `create_project.tcl` to fix the Mac↔Windows IP
+  divergence (the read FIFO in particular must be regenerated as the
+  128/32 Standard FIFO).
