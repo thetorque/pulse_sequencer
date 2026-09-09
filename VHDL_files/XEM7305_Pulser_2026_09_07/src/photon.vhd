@@ -449,6 +449,28 @@ architecture arch of photon is
 	signal dbg_high0 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
 	signal dbg_high1 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
 
+	-- DIAGNOSTIC (temporary, WireOut 0x34): a soak-test run intermittently
+	-- (not every run, same deterministic input data both times) showed
+	-- one MIG read command's response duplicating the *previous*
+	-- command's response -- ground truth to tell apart the two possible
+	-- causes: rd_pf_addr failing to advance (same address legitimately
+	-- re-read) vs. stale response data being pushed for a genuinely new
+	-- address (a real data-path race). dbg_cmd_addr/dbg_prev_addr latch
+	-- each command's own address (state 1) for comparison; dbg_prev_rd_data
+	-- latches each command's raw 128-bit response (state 2, internal
+	-- only, too wide to expose) for comparison against the *next*
+	-- command's response. dbg_dup_count counts how many times two
+	-- consecutive responses were bit-identical; dbg_dup_at_cmd latches
+	-- dbg_cmd_count at the most recent occurrence; dbg_dup_addr_match
+	-- records whether that pair's addresses also matched (an address
+	-- bug) or differed (a data-path bug).
+	signal dbg_cmd_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal dbg_prev_addr      : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal dbg_prev_rd_data   : STD_LOGIC_VECTOR(127 downto 0) := (others => '0');
+	signal dbg_dup_count      : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+	signal dbg_dup_at_cmd     : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+	signal dbg_dup_addr_match : STD_LOGIC := '0';
+
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
 	-- mid-transaction (address already advanced past MIG's app_rdy but
@@ -525,6 +547,9 @@ architecture arch of photon is
 	signal ep31wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep32wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep33wire : STD_LOGIC_VECTOR(31 downto 0);
+	-- WireOut endpoint (0x34) -- DIAGNOSTIC (temporary), see
+	-- dbg_dup_count/dbg_dup_at_cmd/dbg_dup_addr_match comments.
+	signal ep34wire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -731,7 +756,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*25-1 downto 0); -- 25 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*26-1 downto 0); -- 26 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -967,6 +992,9 @@ begin
 	ep31wire <= (31 downto 8 => '0') & dbg_cmd_count;
 	ep32wire <= dbg_high0;
 	ep33wire <= dbg_high1;
+	-- bits 31:16: dbg_dup_at_cmd. bits 15:1: dbg_dup_count. bit 0:
+	-- dbg_dup_addr_match. See dbg_dup_count declaration comment.
+	ep34wire <= dbg_dup_at_cmd & dbg_dup_count(14 downto 0) & dbg_dup_addr_match;
 
 	process (ui_clk)
 	begin
@@ -1223,6 +1251,11 @@ begin
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
 				rd_pf_flushed  <= '0';
+				dbg_dup_count      <= (others => '0');
+				dbg_dup_at_cmd     <= (others => '0');
+				dbg_dup_addr_match <= '0';
+				dbg_prev_rd_data   <= (others => '0');
+				dbg_prev_addr      <= (others => '0');
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1329,6 +1362,10 @@ begin
 							rd_pf_state   <= 2;
 							dbg_cmd_count <= dbg_cmd_count + 1;
 							rd_pf_issued  <= rd_pf_issued + 1;
+							-- DIAGNOSTIC: this command's own address, for
+							-- the duplicate-response check in state 2
+							-- below (see dbg_cmd_addr declaration comment).
+							dbg_cmd_addr  <= rd_pf_addr;
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
@@ -1347,6 +1384,20 @@ begin
 								dbg_high1 <= mig_app_rd_data(127 downto 96);
 							end if;
 							dbg_resp_count <= dbg_resp_count + 1;
+							-- DIAGNOSTIC: does this command's response
+							-- bit-match the *previous* command's response
+							-- -- see dbg_cmd_addr declaration comment.
+							if mig_app_rd_data = dbg_prev_rd_data then
+								dbg_dup_count  <= dbg_dup_count + 1;
+								dbg_dup_at_cmd <= "00000000" & dbg_cmd_count;
+								if dbg_cmd_addr = dbg_prev_addr then
+									dbg_dup_addr_match <= '1';
+								else
+									dbg_dup_addr_match <= '0';
+								end if;
+							end if;
+							dbg_prev_rd_data <= mig_app_rd_data;
+							dbg_prev_addr    <= dbg_cmd_addr;
 						end if;
 					when 3 =>
 						-- DIAGNOSTIC: ~8 ui_clk cycle CDC-settling wait,
@@ -1469,7 +1520,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 25) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 26) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1553,6 +1604,7 @@ begin
 	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"31", ep_datain => ep31wire);
 	wo32 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"32", ep_datain => ep32wire);
 	wo33 : okWireOut port map (okHE => okHE, okEH => okEHx(25*65-1 downto 24*65), ep_addr => x"33", ep_datain => ep33wire);
+	wo34 : okWireOut port map (okHE => okHE, okEH => okEHx(26*65-1 downto 25*65), ep_addr => x"34", ep_datain => ep34wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (

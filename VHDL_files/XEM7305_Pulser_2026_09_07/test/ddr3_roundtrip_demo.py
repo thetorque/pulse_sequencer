@@ -132,6 +132,8 @@ DDR3_READ_COUNT_MASK = 0xFFFF  # bits below rd_pf_idle (bit 16); actual count is
 DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
 DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
 DDR3_READ_ISSUED_MASK = 0xFF
+
+DUP_STATUS_WIRE = 0x34  # DIAGNOSTIC (temporary): see photon.vhd's dbg_dup_count comment
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
@@ -304,6 +306,28 @@ def read_words(xem, n_words):
     return words
 
 
+def print_dup_diagnostics(xem):
+    """Reads WireOut 0x34 (see photon.vhd's dbg_dup_count declaration
+    comment) and prints whether any MIG read command's response has
+    ever bit-duplicated the *previous* command's response since the
+    last reset_ddr3() -- and if so, whether that pair's addresses also
+    matched (an address-advance bug) or differed (a data-path race)."""
+    xem.UpdateWireOuts()
+    status = xem.GetWireOutValue(DUP_STATUS_WIRE)
+    dup_count = (status >> 1) & 0x7FFF
+    addr_match = bool(status & 1)
+    dup_at_cmd = (status >> 16) & 0xFFFF
+    if dup_count == 0:
+        print("  dup-response diagnostic: none detected (dbg_dup_count=0)")
+    else:
+        print(
+            f"  dup-response diagnostic: dbg_dup_count={dup_count}, "
+            f"most recent at dbg_cmd_count={dup_at_cmd}, "
+            f"addr_match={addr_match} "
+            f"({'same address -- address-advance bug' if addr_match else 'DIFFERENT address -- data-path race'})"
+        )
+
+
 def make_test_words(n, tag, rng=None):
     """n distinct 64-bit test words. With rng=None, a structured,
     easy-to-recognize pattern (tag in the high 16 bits, an index in
@@ -334,9 +358,11 @@ def run_soak_test(xem, n_batches, words_per_batch, rng=None):
             print(f"  batch {batch}: [MISMATCH]")
             print(f"    wrote:     " + ", ".join(f"{w:#018x}" for w in test_words))
             print(f"    read back: " + ", ".join(f"{w:#018x}" for w in readback_words))
+            print_dup_diagnostics(xem)
             raise AssertionError(f"soak test failed at batch {batch}")
         print(f"  batch {batch}: [OK]")
     print(f"\nAll {n_batches} batches verified.")
+    print_dup_diagnostics(xem)
 
 
 def parse_random_flag(argv):
