@@ -26,12 +26,14 @@ write / 32-bit read FWFT FIFO (matching Locally_compiled_ramtester's
 fifo_w128_256_r32_1024). photon.vhd's read-prefetch pushes each read
 command's WHOLE 128-bit MIG response in one write; the FIFO does the
 128->32 conversion. So n_words/2 read commands produce exactly n_words
-words -- no priming push, no trailing flush, no offset. Each 128-bit
-entry serializes to the 32-bit read side as four little-endian halves
-[w0_lo, w0_hi, w1_lo, w1_hi] (the write-assembler packs the first word
-in the low 64 bits, the second in the high 64), so word k =
-(halves[2k+1] << 32) | halves[2k]. This replaced an earlier 64/32 FIFO
-whose asymmetric-FWFT look-ahead needed priming/flush/offset
+words -- no priming push, no trailing flush, no offset. Confirmed on
+hardware: the FIFO serializes each 128-bit entry BIG-endian (MSB 32
+bits first), and the write-assembler packs the pair's first word in
+the low 64 bits and the second in the high 64, so the four halves of
+entry e come out as [w1_hi, w1_lo, w0_hi, w0_lo]: w0 (= word 2e) =
+(halves[4e+2] << 32) | halves[4e+3], w1 (= word 2e+1) =
+(halves[4e+0] << 32) | halves[4e+1]. This replaced an earlier 64/32
+FIFO whose asymmetric-FWFT look-ahead needed priming/flush/offset
 work-arounds that were a persistent source of intermittent corruption.
 
 Per-batch read command budget (WireIn 0x07): read-prefetch gates
@@ -331,9 +333,17 @@ def read_words(xem, n_words):
 
     halves = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))
 
-    # Each 4 consecutive halves are one 128-bit entry = two 64-bit
-    # words: word k = (halves[2k+1] << 32) | halves[2k].
-    words = [(halves[2 * k + 1] << 32) | halves[2 * k] for k in range(n_words)]
+    # Each 4 consecutive halves are one 128-bit MIG entry = two 64-bit
+    # words. Confirmed on hardware: the FIFO serializes each 128-bit
+    # word BIG-endian (MSB 32 bits first), and the write-assembler
+    # packs the first word in the low 64 bits, the second in the high
+    # 64 -- so the four halves come out as [w1_hi, w1_lo, w0_hi, w0_lo]
+    # (w0 = first word of the pair, w1 = second).
+    words = []
+    for e in range(n_words // 2):
+        b = 4 * e
+        words.append((halves[b + 2] << 32) | halves[b + 3])  # w0 (low 64 of entry)
+        words.append((halves[b + 0] << 32) | halves[b + 1])  # w1 (high 64 of entry)
 
     wait_read_idle(xem)
     xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
