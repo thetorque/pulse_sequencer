@@ -53,8 +53,9 @@
 -- (src/ip/clk_wiz_0) replaces the legacy design's clk_pll_100_in_200_out,
 -- producing the same three clocks (clk_200, clk_100, clk_20) used by
 -- later phases (PMT oversampling / main sequencer state machine /
--- DDS+line-trigger), but from the XEM7305's 200 MHz sys_clk instead of
--- the XEM6010's 100 MHz Cypress clock. Endpoints 0x23-0x26 are
+-- DDS+line-trigger). Originally sourced from the XEM7305's 200 MHz
+-- sys_clk directly (via IBUFGDS); as of Phase 6a it's re-sourced from
+-- MIG's ui_clk instead -- see that paragraph below. Endpoints 0x23-0x26 are
 -- bring-up-only additions (no legacy equivalent) so this phase can be
 -- verified from Python without an oscilloscope: 0x23 reports MMCM lock
 -- status, 0x24-0x26 are free-running counters on clk_200/clk_100/clk_20
@@ -80,6 +81,28 @@
 -- The full 32-bit value is also exposed on a new bring-up-only
 -- WireOut (0x2B) for host-side verification, alongside
 -- sequence-done/loop-count status (0x2C).
+--
+-- Phase 6a adds the DDR3 SDRAM controller (src/ip/ddr3_256_16, Xilinx
+-- MIG 7-series) as pure bring-up: instantiated and clocked, but its
+-- app_* command interface is tied inert (app_en/app_wdf_wren='0',
+-- app_cmd="000") since nothing reads/writes it yet -- that's Phase
+-- 6b's read-prefetch-buffer/write-burst-assembler adapters. MIG now
+-- owns the physical sys_clk_p/sys_clk_n differential pins directly
+-- (System Clock = Differential, matching the proven
+-- Locally_compiled_ramtester reference exactly -- see AR#45588 on why
+-- a separate IBUFGDS + MIG System Clock = No Buffer couldn't be
+-- validated instead), so the old sys_clk/IBUFGDS path is gone;
+-- clk_wiz_0 (Phase 2) is re-sourced from MIG's ui_clk (~81.25 MHz,
+-- see create_project.tcl) instead of raw sys_clk, and both the
+-- heartbeat counter and TriggerIn 0x40's ep_clk move to ui_clk too --
+-- it's now the earliest clock in the whole chain that's independent
+-- of USB traffic (available once just MIG's own PLL locks, without
+-- needing full DDR3 calibration or clk_wiz_0's own lock). MIG's
+-- sys_rst is a single-okClk-cycle active-high pulse generated at
+-- configuration time (>=5 ns per UG586), same approach as ramtester's
+-- own rst_cnt logic. WireOut 0x2D is a new bring-up-only addition
+-- exposing init_calib_complete (bit 0) for host-side polling, since
+-- nothing else surfaces DDR3 calibration status yet.
 --
 -- IMPORTANT read-timing adaptation: the legacy design drove
 -- pulser_ram's read-port clock (there called pulser_ram_clkb) as a
@@ -114,10 +137,36 @@ entity photon is
 		okUHU     : inout  STD_LOGIC_VECTOR(31 downto 0);
 		okAA      : inout  STD_LOGIC;
 
-		sys_clkp  : in     STD_LOGIC;
-		sys_clkn  : in     STD_LOGIC;
+		-- Phase 6a: MIG (src/ip/ddr3_256_16) owns these physical pins
+		-- directly (System Clock = Differential) -- no more IBUFGDS/
+		-- sys_clk in this file, see file header comment. Renamed from
+		-- sys_clkp/sys_clkn to match ramtester's sys_clk_p/sys_clk_n
+		-- convention, since constraints/xem7305.xdc's DDR3 pin block
+		-- will be copied from there in the next step.
+		sys_clk_p : in     STD_LOGIC;
+		sys_clk_n : in     STD_LOGIC;
 
 		led       : out    STD_LOGIC_VECTOR(3 downto 0);
+
+		-- Phase 6a: MIG's physical DDR3 interface (src/ip/ddr3_256_16).
+		-- Port names/widths match the generated ddr3_256_16.vhd wrapper
+		-- exactly; pin/IOSTANDARD constraints not yet added to
+		-- constraints/xem7305.xdc (next step, copied from
+		-- ../XEM7305_references/Locally_compiled_ramtester's proven xdc).
+		ddr3_dq       : inout  STD_LOGIC_VECTOR(15 downto 0);
+		ddr3_dqs_p    : inout  STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_dqs_n    : inout  STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_addr     : out    STD_LOGIC_VECTOR(14 downto 0);
+		ddr3_ba       : out    STD_LOGIC_VECTOR(2 downto 0);
+		ddr3_ras_n    : out    STD_LOGIC;
+		ddr3_cas_n    : out    STD_LOGIC;
+		ddr3_we_n     : out    STD_LOGIC;
+		ddr3_reset_n  : out    STD_LOGIC;
+		ddr3_ck_p     : out    STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_ck_n     : out    STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_cke      : out    STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_dm       : out    STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_odt      : out    STD_LOGIC_VECTOR(0 downto 0);
 
 		-- 6-bit LED header (see constraints/xem7305.xdc, pins copied from
 		-- ../XEM7305_references/Locally_compiled_ramtester -- LVCMOS33, a
@@ -129,7 +178,69 @@ entity photon is
 end photon;
 
 architecture arch of photon is
-	signal sys_clk    : STD_LOGIC;
+	-- Phase 6a: MIG DDR3 controller (src/ip/ddr3_256_16), instantiated
+	-- as pure bring-up (app_* interface tied inert) -- see file header
+	-- comment. Component port list matches the generated
+	-- ddr3_256_16.vhd wrapper exactly (Xilinx MIG 7-series, Native
+	-- interface, generated via create_project.tcl's
+	-- CONFIG.XML_INPUT_FILE pointing at mig_b.prj -- see
+	-- ../XEM7305_references/Locally_compiled_ramtester).
+	component ddr3_256_16 port (
+		ddr3_dq       : inout STD_LOGIC_VECTOR(15 downto 0);
+		ddr3_dqs_p    : inout STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_dqs_n    : inout STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_addr     : out   STD_LOGIC_VECTOR(14 downto 0);
+		ddr3_ba       : out   STD_LOGIC_VECTOR(2 downto 0);
+		ddr3_ras_n    : out   STD_LOGIC;
+		ddr3_cas_n    : out   STD_LOGIC;
+		ddr3_we_n     : out   STD_LOGIC;
+		ddr3_reset_n  : out   STD_LOGIC;
+		ddr3_ck_p     : out   STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_ck_n     : out   STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_cke      : out   STD_LOGIC_VECTOR(0 downto 0);
+		ddr3_dm       : out   STD_LOGIC_VECTOR(1 downto 0);
+		ddr3_odt      : out   STD_LOGIC_VECTOR(0 downto 0);
+
+		app_addr                  : in    STD_LOGIC_VECTOR(28 downto 0);
+		app_cmd                   : in    STD_LOGIC_VECTOR(2 downto 0);
+		app_en                    : in    STD_LOGIC;
+		app_wdf_data              : in    STD_LOGIC_VECTOR(127 downto 0);
+		app_wdf_end               : in    STD_LOGIC;
+		app_wdf_mask              : in    STD_LOGIC_VECTOR(15 downto 0);
+		app_wdf_wren              : in    STD_LOGIC;
+		app_rd_data               : out   STD_LOGIC_VECTOR(127 downto 0);
+		app_rd_data_end           : out   STD_LOGIC;
+		app_rd_data_valid         : out   STD_LOGIC;
+		app_rdy                   : out   STD_LOGIC;
+		app_wdf_rdy               : out   STD_LOGIC;
+		app_sr_req                : in    STD_LOGIC;
+		app_ref_req               : in    STD_LOGIC;
+		app_zq_req                : in    STD_LOGIC;
+		app_sr_active             : out   STD_LOGIC;
+		app_ref_ack               : out   STD_LOGIC;
+		app_zq_ack                : out   STD_LOGIC;
+		ui_clk                    : out   STD_LOGIC;
+		ui_clk_sync_rst           : out   STD_LOGIC;
+		init_calib_complete       : out   STD_LOGIC;
+		sys_clk_p                 : in    STD_LOGIC;
+		sys_clk_n                 : in    STD_LOGIC;
+		device_temp               : out   STD_LOGIC_VECTOR(11 downto 0);
+		sys_rst                   : in    STD_LOGIC
+	);
+	end component;
+
+	signal ui_clk              : STD_LOGIC;
+	signal ui_clk_sync_rst     : STD_LOGIC;
+	signal init_calib_complete : STD_LOGIC;
+
+	-- MIG requires an active-high sys_rst pulse >=5 ns after
+	-- configuration (UG586); a single okClk cycle (okClk is the
+	-- earliest clock guaranteed running, independent of MIG's own PLL
+	-- which sys_rst gates) is ample margin -- same approach as
+	-- ramtester's rst_cnt logic. Initial value '1' relies on the FF's
+	-- configuration-time INIT state, same as ramtester's Verilog
+	-- `initial rst_cnt = 0`.
+	signal mig_sys_rst : STD_LOGIC := '1';
 
 	-- Phase 2 clocking tree (see src/ip/clk_wiz_0), replacing the legacy
 	-- clk_pll_100_in_200_out. Component/port names match Vivado's
@@ -346,11 +457,15 @@ architecture arch of photon is
 	signal ep2Bwire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Cwire : STD_LOGIC_VECTOR(31 downto 0);
 
+	-- WireOut endpoint (0x2D) — Phase 6a bring-up only, no legacy
+	-- equivalent; see file header comment.
+	signal ep2Dwire : STD_LOGIC_VECTOR(31 downto 0);
+
 	-- Target interface bus (new-generation okHost)
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*17-1 downto 0); -- 17 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*18-1 downto 0); -- 18 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -379,24 +494,26 @@ architecture arch of photon is
 	-- before reading rather than rely on ep_ready reflecting real data.
 	signal pipeOut_ready : STD_LOGIC := '1';
 
-	-- sys_clk heartbeat, proves the onboard oscillator/IBUFGDS path independently
-	-- of the USB-driven LEDs below
+	-- ui_clk heartbeat, proves MIG's PLL/ui_clk path independently of
+	-- the USB-driven LEDs below (Phase 6a: was sys_clk/IBUFGDS directly
+	-- -- see file header comment)
 	signal heartbeat_div : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
 begin
 
 	------------------------------------------------------------------
 	-- LEDs: bits 0-2 mirror WireIn 0x00, so writing that wire from the
-	-- host is visible immediately. Bit 3 blinks off sys_clk to confirm
-	-- the onboard oscillator independently of USB traffic.
+	-- host is visible immediately. Bit 3 blinks off ui_clk to confirm
+	-- MIG's PLL is running, independently of USB traffic (Phase 6a:
+	-- was sys_clk/IBUFGDS directly -- see file header comment).
 	------------------------------------------------------------------
 	led(0) <= '0' when ep00wire(0) = '1' else 'Z';
 	led(1) <= '0' when ep00wire(1) = '1' else 'Z';
 	led(2) <= '0' when ep00wire(2) = '1' else 'Z';
 	led(3) <= '0' when heartbeat_div(23) = '1' else 'Z';
 
-	process (sys_clk)
+	process (ui_clk)
 	begin
-		if rising_edge(sys_clk) then
+		if rising_edge(ui_clk) then
 			heartbeat_div <= heartbeat_div + 1;
 		end if;
 	end process;
@@ -470,7 +587,7 @@ begin
 	------------------------------------------------------------------
 	-- Phase 5a: sequencer control, same WireIn/TriggerIn bits as the
 	-- legacy design. pulser_counter_reset is used as an async reset
-	-- below, same as legacy -- same ep40wire/sys_clk-domain CDC caveat
+	-- below, same as legacy -- same ep40wire/ui_clk-domain CDC caveat
 	-- already flagged for ep40wire(1) in Phase 3 also applies here.
 	------------------------------------------------------------------
 	pulser_counter_reset <= ep40wire(0);
@@ -548,6 +665,13 @@ begin
 	------------------------------------------------------------------
 	ep2Bwire <= logic_out;
 	ep2Cwire <= (31 downto 17 => '0') & pulser_sequence_done & seq_count_bit;
+
+	------------------------------------------------------------------
+	-- Phase 6a bring-up (0x2D): MIG calibration status, since nothing
+	-- else surfaces it yet (Phase 6b's read/write adapters will gate
+	-- on this internally once they exist).
+	------------------------------------------------------------------
+	ep2Dwire <= (0 => init_calib_complete, others => '0');
 
 	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
 	-- above which are active-low. led_ext is presumed a separate add-on LED
@@ -720,10 +844,65 @@ begin
 		end if;
 	end process;
 
-	osc_clk : IBUFGDS port map (O => sys_clk, I => sys_clkp, IB => sys_clkn);
+	-- Phase 6a: MIG owns sys_clk_p/sys_clk_n directly (System Clock =
+	-- Differential) -- no more IBUFGDS/sys_clk in this file, see file
+	-- header comment. app_* command interface tied inert (Phase 6b
+	-- wires it to the real read/write adapters); app_wdf_mask tied to
+	-- all-masked as the safe idle value, though it's moot with
+	-- app_wdf_wren='0'.
+	ddr3_inst : ddr3_256_16 port map (
+		ddr3_dq             => ddr3_dq,
+		ddr3_dqs_p          => ddr3_dqs_p,
+		ddr3_dqs_n          => ddr3_dqs_n,
+		ddr3_addr           => ddr3_addr,
+		ddr3_ba             => ddr3_ba,
+		ddr3_ras_n          => ddr3_ras_n,
+		ddr3_cas_n          => ddr3_cas_n,
+		ddr3_we_n           => ddr3_we_n,
+		ddr3_reset_n        => ddr3_reset_n,
+		ddr3_ck_p           => ddr3_ck_p,
+		ddr3_ck_n           => ddr3_ck_n,
+		ddr3_cke            => ddr3_cke,
+		ddr3_dm             => ddr3_dm,
+		ddr3_odt            => ddr3_odt,
+
+		app_addr            => (others => '0'),
+		app_cmd             => "000",
+		app_en              => '0',
+		app_wdf_data        => (others => '0'),
+		app_wdf_end         => '0',
+		app_wdf_mask        => (others => '1'),
+		app_wdf_wren        => '0',
+		app_rd_data         => open,
+		app_rd_data_end     => open,
+		app_rd_data_valid   => open,
+		app_rdy             => open,
+		app_wdf_rdy         => open,
+		app_sr_req          => '0',
+		app_ref_req         => '0',
+		app_zq_req          => '0',
+		app_sr_active       => open,
+		app_ref_ack         => open,
+		app_zq_ack          => open,
+		ui_clk              => ui_clk,
+		ui_clk_sync_rst     => ui_clk_sync_rst,
+		init_calib_complete => init_calib_complete,
+		sys_clk_p           => sys_clk_p,
+		sys_clk_n           => sys_clk_n,
+		device_temp         => open,
+		sys_rst             => mig_sys_rst
+	);
+
+	-- MIG sys_rst pulse generation, see mig_sys_rst declaration comment.
+	process (okClk)
+	begin
+		if rising_edge(okClk) then
+			mig_sys_rst <= '0';
+		end if;
+	end process;
 
 	clk_gen : clk_wiz_0 port map (
-		clk_in1  => sys_clk,
+		clk_in1  => ui_clk,
 		clk_out1 => clk_200,
 		clk_out2 => clk_100,
 		clk_out3 => clk_20,
@@ -742,7 +921,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 17) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 18) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -754,7 +933,8 @@ begin
 	wi06 : okWireIn port map (okHE => okHE, ep_addr => x"06", ep_dataout => ep06wire);
 
 	-- TriggerIn endpoint
-	tr40 : okTriggerIn port map (okHE => okHE, ep_addr => x"40", ep_clk => sys_clk, ep_trigger => ep40wire);
+	-- Phase 6a: ep_clk moved from sys_clk to ui_clk, see file header comment.
+	tr40 : okTriggerIn port map (okHE => okHE, ep_addr => x"40", ep_clk => ui_clk, ep_trigger => ep40wire);
 
 	-- WireOut endpoints
 	wo21 : okWireOut port map (okHE => okHE, okEH => okEHx(1*65-1 downto 0*65), ep_addr => x"21", ep_datain => ep21wire);
@@ -802,6 +982,9 @@ begin
 	-- WireOut endpoints (Phase 5a sequencer bring-up, see file header comment)
 	wo2B : okWireOut port map (okHE => okHE, okEH => okEHx(16*65-1 downto 15*65), ep_addr => x"2B", ep_datain => ep2Bwire);
 	wo2C : okWireOut port map (okHE => okHE, okEH => okEHx(17*65-1 downto 16*65), ep_addr => x"2C", ep_datain => ep2Cwire);
+
+	-- WireOut endpoint (Phase 6a MIG bring-up, see file header comment)
+	wo2D : okWireOut port map (okHE => okHE, okEH => okEHx(18*65-1 downto 17*65), ep_addr => x"2D", ep_datain => ep2Dwire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (

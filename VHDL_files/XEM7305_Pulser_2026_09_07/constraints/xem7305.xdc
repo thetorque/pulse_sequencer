@@ -113,22 +113,34 @@ set_output_delay -add_delay -min -clock [get_clocks {okUH0}]  -0.500 [get_ports 
 ############################################################################
 ## System Clock
 ############################################################################
-set_property IOSTANDARD LVDS_25 [get_ports {sys_clkp}]
-set_property PACKAGE_PIN R2 [get_ports {sys_clkp}]
+# Phase 6a: MIG (src/ip/ddr3_256_16) owns this pin pair directly (System
+# Clock = Differential) instead of our own IBUFGDS -- renamed
+# sys_clkp/sys_clkn -> sys_clk_p/sys_clk_n to match ramtester's/MIG's
+# convention. No create_clock here anymore: MIG's own generated IP
+# constraints supply it once the pin is in the ddr3_256_16 instance
+# (confirmed by ramtester's own xem7305.xdc, which likewise declares no
+# create_clock for sys_clk_p).
+set_property IOSTANDARD LVDS_25 [get_ports {sys_clk_p}]
+set_property PACKAGE_PIN R2 [get_ports {sys_clk_p}]
 
-set_property IOSTANDARD LVDS_25 [get_ports {sys_clkn}]
-set_property PACKAGE_PIN R1 [get_ports {sys_clkn}]
+set_property IOSTANDARD LVDS_25 [get_ports {sys_clk_n}]
+set_property PACKAGE_PIN R1 [get_ports {sys_clk_n}]
 
-set_property DIFF_TERM FALSE [get_ports {sys_clkp}]
+set_property DIFF_TERM FALSE [get_ports {sys_clk_p}]
 
-create_clock -name sys_clk -period 5 [get_ports sys_clkp]
-set_clock_groups -asynchronous -group [get_clocks {sys_clk}] -group [get_clocks {mmcm0_clk0 okUH0}]
+# Adopted verbatim from ramtester's proven xem7305.xdc (its clock names
+# for MIG's own internal clocks, sys_clk_p/clk_pll_i, should be identical
+# here since it's the exact same IP core) -- TODO verify against this
+# project's own report_clocks/timing summary once it builds, same as any
+# other MIG-generated clock name we haven't independently confirmed yet.
+set_clock_groups -asynchronous -group [get_clocks {mmcm0_clk0 okUH0}] -group [get_clocks {sys_clk_p clk_pll_i}]
 
 # Phase 2 gap, only now surfaced by Vivado's timing report: clk_wiz_0's
 # output clocks (clk_200/clk_100/clk_20, Vivado-named clk_out1/2/3_clk_wiz_0)
-# are derived from sys_clk, but declaring sys_clk asynchronous to
-# mmcm0_clk0/okUH0 above does NOT automatically propagate through clk_wiz_0
-# to ITS output clocks -- that needs its own declaration. mmcm0_clk0 is
+# are derived from ui_clk (Phase 6a: MIG's ui_clk, was sys_clk directly),
+# but declaring sys_clk_p/clk_pll_i asynchronous to mmcm0_clk0/okUH0 above
+# does NOT automatically propagate through MIG and clk_wiz_0 to clk_wiz_0's
+# OWN output clocks -- that needs its own declaration below. mmcm0_clk0 is
 # okClk's source (see src/okLibrary.vhd's mmcm0 MMCME2_BASE, CLKOUT0 ->
 # okHC(0) -> okClk), so this is exactly the clock pair our Phase 3 FIFOs
 # (pulse_fifo/fifo_photon/normal_pmt_fifo/readout_count_fifo) cross between
@@ -138,6 +150,98 @@ set_clock_groups -asynchronous -group [get_clocks {sys_clk}] -group [get_clocks 
 # Opal Kelly's own WireIn/WireOut/TriggerIn primitives, not raw combinational
 # logic that would need synchronous timing closure.
 set_clock_groups -asynchronous -group [get_clocks {clk_out1_clk_wiz_0 clk_out2_clk_wiz_0 clk_out3_clk_wiz_0}] -group [get_clocks {mmcm0_clk0 okUH0}]
+
+# DRAM (Phase 6a: ddr3_256_16's physical DDR3 interface), copied verbatim
+# from ../XEM7305_references/Locally_compiled_ramtester/ramtester.srcs/
+# sources_1/new/xem7305.xdc -- same board, same proven pinout; do not
+# "fix" any of these to satisfy a software validator (see AR#45588 /
+# create_project.tcl's comments on why -- these pins are correct on
+# real, already-manufactured hardware even where MIG's own Pin
+# Selection GUI validator disagrees).
+############################################################################
+set_property PACKAGE_PIN F4 [get_ports {ddr3_dq[0]}]
+set_property PACKAGE_PIN F2 [get_ports {ddr3_dq[1]}]
+set_property PACKAGE_PIN G5 [get_ports {ddr3_dq[2]}]
+set_property PACKAGE_PIN E1 [get_ports {ddr3_dq[3]}]
+set_property PACKAGE_PIN E4 [get_ports {ddr3_dq[4]}]
+set_property PACKAGE_PIN D2 [get_ports {ddr3_dq[5]}]
+set_property PACKAGE_PIN F5 [get_ports {ddr3_dq[6]}]
+set_property PACKAGE_PIN E2 [get_ports {ddr3_dq[7]}]
+set_property PACKAGE_PIN H2 [get_ports {ddr3_dq[8]}]
+set_property PACKAGE_PIN H4 [get_ports {ddr3_dq[9]}]
+set_property PACKAGE_PIN J1 [get_ports {ddr3_dq[10]}]
+set_property PACKAGE_PIN H6 [get_ports {ddr3_dq[11]}]
+set_property PACKAGE_PIN J3 [get_ports {ddr3_dq[12]}]
+set_property PACKAGE_PIN J4 [get_ports {ddr3_dq[13]}]
+set_property PACKAGE_PIN J2 [get_ports {ddr3_dq[14]}]
+set_property PACKAGE_PIN H5 [get_ports {ddr3_dq[15]}]
+set_property SLEW FAST [get_ports {ddr3_dq[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_dq[*]}]
+
+set_property PACKAGE_PIN A5 [get_ports {ddr3_addr[0]}]
+set_property PACKAGE_PIN B3 [get_ports {ddr3_addr[1]}]
+set_property PACKAGE_PIN A6 [get_ports {ddr3_addr[2]}]
+set_property PACKAGE_PIN D7 [get_ports {ddr3_addr[3]}]
+set_property PACKAGE_PIN B2 [get_ports {ddr3_addr[4]}]
+set_property PACKAGE_PIN C7 [get_ports {ddr3_addr[5]}]
+set_property PACKAGE_PIN C4 [get_ports {ddr3_addr[6]}]
+set_property PACKAGE_PIN A8 [get_ports {ddr3_addr[7]}]
+set_property PACKAGE_PIN C2 [get_ports {ddr3_addr[8]}]
+set_property PACKAGE_PIN A4 [get_ports {ddr3_addr[9]}]
+set_property PACKAGE_PIN B4 [get_ports {ddr3_addr[10]}]
+set_property PACKAGE_PIN B1 [get_ports {ddr3_addr[11]}]
+set_property PACKAGE_PIN A3 [get_ports {ddr3_addr[12]}]
+set_property PACKAGE_PIN E5 [get_ports {ddr3_addr[13]}]
+set_property PACKAGE_PIN C1 [get_ports {ddr3_addr[14]}]
+set_property SLEW FAST [get_ports {ddr3_addr[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_addr[*]}]
+
+set_property PACKAGE_PIN F6 [get_ports {ddr3_ba[0]}]
+set_property PACKAGE_PIN A2 [get_ports {ddr3_ba[1]}]
+set_property PACKAGE_PIN D6 [get_ports {ddr3_ba[2]}]
+set_property SLEW FAST [get_ports {ddr3_ba[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_ba[*]}]
+
+set_property PACKAGE_PIN E6 [get_ports {ddr3_ras_n}]
+set_property SLEW FAST [get_ports {ddr3_ras_n}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_ras_n}]
+
+set_property PACKAGE_PIN B7 [get_ports {ddr3_cas_n}]
+set_property SLEW FAST [get_ports {ddr3_cas_n}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_cas_n}]
+
+set_property PACKAGE_PIN D5 [get_ports {ddr3_we_n}]
+set_property SLEW FAST [get_ports {ddr3_we_n}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_we_n}]
+
+set_property PACKAGE_PIN F1 [get_ports {ddr3_reset_n}]
+set_property SLEW FAST [get_ports {ddr3_reset_n}]
+set_property IOSTANDARD LVCMOS15 [get_ports {ddr3_reset_n}]
+
+set_property PACKAGE_PIN C3 [get_ports {ddr3_cke[0]}]
+set_property SLEW FAST [get_ports {ddr3_cke[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_cke[*]}]
+
+set_property PACKAGE_PIN A7 [get_ports {ddr3_odt[0]}]
+set_property SLEW FAST [get_ports {ddr3_odt[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_odt[*]}]
+
+set_property PACKAGE_PIN D1 [get_ports {ddr3_dm[0]}]
+set_property PACKAGE_PIN H3 [get_ports {ddr3_dm[1]}]
+set_property SLEW FAST [get_ports {ddr3_dm[*]}]
+set_property IOSTANDARD SSTL15 [get_ports {ddr3_dm[*]}]
+
+set_property PACKAGE_PIN F3 [get_ports {ddr3_dqs_p[0]}]
+set_property PACKAGE_PIN E3 [get_ports {ddr3_dqs_n[0]}]
+set_property PACKAGE_PIN G2 [get_ports {ddr3_dqs_p[1]}]
+set_property PACKAGE_PIN G1 [get_ports {ddr3_dqs_n[1]}]
+set_property SLEW FAST [get_ports {ddr3_dqs*}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr3_dqs*}]
+
+set_property PACKAGE_PIN C5 [get_ports {ddr3_ck_p[0]}]
+set_property PACKAGE_PIN B5 [get_ports {ddr3_ck_n[0]}]
+set_property SLEW FAST [get_ports {ddr3_ck*}]
+set_property IOSTANDARD DIFF_SSTL15 [get_ports {ddr3_ck_*}]
 
 # LEDs #####################################################################
 set_property PACKAGE_PIN J5 [get_ports {led[0]}]
