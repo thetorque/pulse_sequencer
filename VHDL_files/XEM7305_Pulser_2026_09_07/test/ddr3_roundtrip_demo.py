@@ -333,7 +333,15 @@ def read_words(xem, n_words, reset_fifo=True):
         reset_read_fifo(xem)
 
     target_commands = n_words // 2
+    # Commit the read-command budget (ep07) in its OWN UpdateWireIns
+    # BEFORE raising read mode (ep00 bit 4). The hardware latches the
+    # budget on read mode's rising edge; committing both wires together
+    # let ep07 still be crossing into ui_clk when that edge fired,
+    # occasionally latching a stale budget of 0 -- read-prefetch then
+    # issued nothing and the FIFO stayed empty. Committing it first lets
+    # it settle a full USB round-trip before the edge.
     xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
+    xem.UpdateWireIns()
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
