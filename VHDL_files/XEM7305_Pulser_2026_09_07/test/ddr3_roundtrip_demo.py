@@ -214,21 +214,26 @@ def read_halves(xem, n_words):
 
 
 def determine_read_order(xem):
-    """DIAGNOSTIC version: writes two words with clearly distinct,
+    """DIAGNOSTIC version: writes four words with clearly distinct,
     recognizable halves (no zeros, so a wrong value is easy to
-    recognize by which word/half it actually came from) and prints
-    all 4 halves read back, rather than just checking the first two --
+    recognize by which word/half it actually came from -- two bursts'
+    worth, to see whether a shift/skip pattern is a one-time first-
+    burst glitch or systematic) and prints all 8 halves read back --
     see the temporary diagnostic note in the module docstring."""
     print("\n--- Determining ddr3_read_fifo 32-bit split order (diagnostic) ---")
     reset_ddr3(xem)
 
-    word0 = 0xAAAAAAAA_55555555  # high=0xAAAAAAAA, low=0x55555555
-    word1 = 0x11112222_33334444  # high=0x11112222, low=0x33334444
-    write_words(xem, [word0, word1])
+    words = [
+        0xAAAAAAAA_55555555,
+        0x11112222_33334444,
+        0x66667777_88889999,
+        0xCCCCDDDD_EEEEFFFF,
+    ]
+    write_words(xem, words)
 
-    halves = read_halves(xem, 2)
-    print(f"  Wrote word0 high={0xAAAAAAAA:#010x} low={0x55555555:#010x}")
-    print(f"  Wrote word1 high={0x11112222:#010x} low={0x33334444:#010x}")
+    halves = read_halves(xem, len(words))
+    for i, w in enumerate(words):
+        print(f"  Wrote word{i} high={(w>>32)&0xFFFFFFFF:#010x} low={w&0xFFFFFFFF:#010x}")
     print("  Readback halves: " + ", ".join(f"{h:#010x}" for h in halves))
     sys.exit("Diagnostic run -- inspect the halves above, not a real failure.")
 
