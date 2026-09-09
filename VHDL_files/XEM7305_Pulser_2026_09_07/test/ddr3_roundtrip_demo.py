@@ -63,7 +63,9 @@ and wrap. It verifies every batch, prints progress every 15 s, counts
 mismatches (re-syncing after each so an overnight run keeps going), and
 prints PASS/FAIL at the end. Ctrl+C stops early with a summary. Use
 --random for fresh random data each batch. words_per_batch defaults to
-256 (must be even, <= 500 -- the read FIFO holds 256 128-bit entries).
+256 (must be even, <= 256 -- read_words piles the whole batch into the
+256-deep read FIFO before the host reads it, so 256 words = 128 entries
+keeps it ~half full; larger batches run it near-full and can corrupt).
 
 --random switches from the structured, easy-to-recognize test pattern
 (constant high bits, small incrementing low bits) to full 64-bit
@@ -591,8 +593,12 @@ def main():
         words_per_batch = int(argv[4]) if len(argv) == 5 else 256
         if words_per_batch % 2 != 0:
             sys.exit("words_per_batch must be even -- see module docstring")
-        if words_per_batch > 500:
-            sys.exit("words_per_batch must be <= 500 (read FIFO holds 256 128-bit entries)")
+        if words_per_batch > 256:
+            sys.exit("words_per_batch must be <= 256. read_words issues the whole batch "
+                     "before the host reads any of it, so all n_words/2 entries pile up in "
+                     "the 256-deep read FIFO at once; 256 words = 128 entries (~half full) "
+                     "is proven clean, while 448 words (224 entries, ~87% full) occasionally "
+                     "corrupts near the full boundary.")
         xem = connect(argv[1])
         run_endurance_test(xem, duration_sec, words_per_batch, rng)
         return
