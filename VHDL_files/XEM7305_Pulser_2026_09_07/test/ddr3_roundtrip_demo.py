@@ -213,17 +213,21 @@ def wait_write_idle(xem):
 def wait_read_ready(xem, min_count):
     last_count = None
     last_status = None
-    for _ in range(READ_POLL_ATTEMPTS):
+    trace = []
+    for attempt in range(READ_POLL_ATTEMPTS):
         xem.UpdateWireOuts()
         status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
         last_status = status
         count = status & DDR3_READ_COUNT_MASK
+        if not trace or count != trace[-1][1]:
+            trace.append((attempt, count))
         last_count = count
         if count >= min_count:
             return count
         time.sleep(READ_POLL_INTERVAL)
     primed = bool(last_status & DDR3_READ_PRIMED_BIT)
     issued = (last_status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
+    print("  count trajectory (attempt, count) at each change: " + ", ".join(f"({a},{c})" for a, c in trace))
     print_dup_diagnostics(xem)
     raise RuntimeError(
         f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F) "
