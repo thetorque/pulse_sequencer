@@ -1227,19 +1227,24 @@ begin
 							rd_pf_primed     <= '1';
 							rd_pf_state      <= 3;
 						-- gate on occupancy well below actual capacity
-						-- (~33 entries, confirmed via the IP's Data
-						-- Counts tab) rather than ddr3_read_full alone --
-						-- read-prefetch runs eagerly with no host-side
-						-- back-pressure, and by the time a slow
-						-- host-side poll loop (USB round trips) even
-						-- checks in, it can otherwise blast through many
-						-- more commands than the FIFO can safely hold
-						-- (confirmed on hardware: 20 commands / 40
-						-- entries attempted against ~33 actual capacity),
+						-- (ddr3_read_rd_data_count counts 32-bit halves
+						-- on the read side; Actual Read Depth = 64,
+						-- confirmed via the IP's Data Counts tab)
+						-- rather than ddr3_read_full alone -- read-
+						-- prefetch runs eagerly with no host-side back-
+						-- pressure, and by the time a slow host-side
+						-- poll loop (USB round trips) even checks in,
+						-- it can otherwise blast through many more
+						-- commands than the FIFO can safely hold,
 						-- overflowing it -- writing past a FIFO's true
 						-- fullness point is undefined/corrupting
-						-- behavior, not just "extra data lost".
-						elsif ddr3_read_rd_data_count < 16 then
+						-- behavior, not just "extra data lost". 48
+						-- leaves a 16-entry margin below the 64-entry
+						-- actual capacity, while still leaving enough
+						-- room for the priming push plus a reasonably
+						-- sized readback (each real word needs 2
+						-- halves, plus the priming push's own pair).
+						elsif ddr3_read_rd_data_count < 48 then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
