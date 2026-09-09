@@ -1349,12 +1349,19 @@ begin
 						-- rd_pf_issued/rd_pf_target declaration comment),
 						-- keeping rd_pf_addr in lockstep with wr_asm_addr
 						-- across batches instead of eagerly racing ahead.
-						-- ddr3_read_rd_data_count < 48 remains as a safety
-						-- net well below the 64-entry actual read-side
-						-- capacity (confirmed via the IP's Data Counts
-						-- tab), in case a future caller ever requests a
-						-- batch too large to fit.
-						elsif ddr3_read_rd_data_count < 48 and rd_pf_issued < rd_pf_target then
+						-- ddr3_read_full = '0' is the overflow safety net.
+						-- It replaced an earlier ddr3_read_rd_data_count <
+						-- 48 check: that count is the FIFO's READ-side
+						-- (okClk-synchronized) occupancy, and reading a
+						-- multi-bit okClk bus from this ui_clk state machine
+						-- is a genuine CDC violation -- mid-transition it
+						-- can momentarily sample garbage, glitching >= 48
+						-- and stalling issuance (observed on hardware as a
+						-- read that never completes). ddr3_read_full is a
+						-- write-side (ui_clk) single-bit flag, natively safe
+						-- to read here -- same class of signal as
+						-- ddr3_write_empty, used the same way above.
+						elsif ddr3_read_full = '0' and rd_pf_issued < rd_pf_target then
 							mig_app_addr <= rd_pf_addr;
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
