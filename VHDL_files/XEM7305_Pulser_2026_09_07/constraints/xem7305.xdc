@@ -129,10 +129,9 @@ set_property PACKAGE_PIN R1 [get_ports {sys_clk_n}]
 set_property DIFF_TERM FALSE [get_ports {sys_clk_p}]
 
 # Adopted verbatim from ramtester's proven xem7305.xdc (its clock names
-# for MIG's own internal clocks, sys_clk_p/clk_pll_i, should be identical
-# here since it's the exact same IP core) -- TODO verify against this
-# project's own report_clocks/timing summary once it builds, same as any
-# other MIG-generated clock name we haven't independently confirmed yet.
+# for MIG's own internal clocks, sys_clk_p/clk_pll_i) -- confirmed
+# correct: clk_pll_i shows up by that exact name in this project's own
+# implemented timing report (see the clk_pll_i-vs-clk_wiz_0 gap below).
 set_clock_groups -asynchronous -group [get_clocks {mmcm0_clk0 okUH0}] -group [get_clocks {sys_clk_p clk_pll_i}]
 
 # Phase 2 gap, only now surfaced by Vivado's timing report: clk_wiz_0's
@@ -150,6 +149,18 @@ set_clock_groups -asynchronous -group [get_clocks {mmcm0_clk0 okUH0}] -group [ge
 # Opal Kelly's own WireIn/WireOut/TriggerIn primitives, not raw combinational
 # logic that would need synchronous timing closure.
 set_clock_groups -asynchronous -group [get_clocks {clk_out1_clk_wiz_0 clk_out2_clk_wiz_0 clk_out3_clk_wiz_0}] -group [get_clocks {mmcm0_clk0 okUH0}]
+
+# Phase 6a gap: cascading MIG's PLL into clk_wiz_0's own MMCM (see
+# create_project.tcl's comment on the resulting non-clean 81.25 MHz
+# input) means clk_wiz_0's output clocks now ALSO need declaring
+# asynchronous to clk_pll_i itself, not just to okClk's domain above --
+# without this, Vivado tries to close synchronous timing across two
+# cascaded, unrelated MMCM stages and (confirmed on real implementation
+# runs) reports large bogus setup violations, e.g. clk_pll_i ->
+# clk_out2_clk_wiz_0 landing on pulser_ram's write-port registers, even
+# though nothing in the design actually needs a fixed phase relationship
+# between these two domains.
+set_clock_groups -asynchronous -group [get_clocks {sys_clk_p clk_pll_i}] -group [get_clocks {clk_out1_clk_wiz_0 clk_out2_clk_wiz_0 clk_out3_clk_wiz_0}]
 
 # DRAM (Phase 6a: ddr3_256_16's physical DDR3 interface), copied verbatim
 # from ../XEM7305_references/Locally_compiled_ramtester/ramtester.srcs/
