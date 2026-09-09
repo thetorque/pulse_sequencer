@@ -412,13 +412,22 @@ architecture arch of photon is
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
-	-- DIAGNOSTIC (temporary, WireOut 0x30): counts every
-	-- mig_app_rd_data_valid pulse regardless of rd_pf_state, to test
-	-- whether each MIG read command asserts it once (as assumed) or
-	-- twice (which would mean state 2 only ever captures the first of
-	-- two beats, explaining the observed "each high shifted by one
-	-- entry" readback pattern).
+	-- DIAGNOSTIC (temporary, WireOut 0x30): counts rising edges of
+	-- mig_app_rd_data_valid (not every cycle it's held high -- a first
+	-- version of this counter did that and got confusingly large
+	-- numbers, which turned out to be ambiguous between "many separate
+	-- pulses" and "few pulses each held for many cycles") regardless
+	-- of rd_pf_state, to test whether each MIG read command asserts it
+	-- once (as assumed) or more than once.
 	signal dbg_valid_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+	signal dbg_valid_prev  : STD_LOGIC := '0';
+
+	-- DIAGNOSTIC (temporary, WireOut 0x31): counts how many read
+	-- commands read-prefetch itself actually issues (accepted by MIG,
+	-- i.e. rd_pf_addr incrementing), to cross-check against
+	-- dbg_valid_count -- if they don't match, the mismatch is between
+	-- issuing and MIG's response, not in how we process a response.
+	signal dbg_cmd_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
@@ -434,9 +443,10 @@ architecture arch of photon is
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
 
-	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
-	-- dbg_valid_count declaration comment.
+	-- WireOut endpoints (0x30/0x31) -- DIAGNOSTIC (temporary), see
+	-- dbg_valid_count/dbg_cmd_count declaration comments.
 	signal ep30wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep31wire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -643,7 +653,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*22-1 downto 0); -- 22 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*23-1 downto 0); -- 23 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -870,13 +880,15 @@ begin
 	-- declaration comment.
 	------------------------------------------------------------------
 	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
+	ep31wire <= (31 downto 8 => '0') & dbg_cmd_count;
 
 	process (ui_clk)
 	begin
 		if rising_edge(ui_clk) then
+			dbg_valid_prev <= mig_app_rd_data_valid;
 			if ep40wire(5) = '1' then
 				dbg_valid_count <= (others => '0');
-			elsif mig_app_rd_data_valid = '1' then
+			elsif mig_app_rd_data_valid = '1' and dbg_valid_prev = '0' then
 				dbg_valid_count <= dbg_valid_count + 1;
 			end if;
 		end if;
@@ -1100,10 +1112,11 @@ begin
 			rd_pf_idle       <= '0';
 
 			if ep40wire(5) = '1' then
-				wr_asm_state <= 0;
-				wr_asm_addr  <= (others => '0');
-				rd_pf_state  <= 0;
-				rd_pf_addr   <= (others => '0');
+				wr_asm_state  <= 0;
+				wr_asm_addr   <= (others => '0');
+				rd_pf_state   <= 0;
+				rd_pf_addr    <= (others => '0');
+				dbg_cmd_count <= (others => '0');
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1174,8 +1187,9 @@ begin
 						mig_app_cmd  <= "001";
 						mig_app_en   <= '1';
 						if mig_app_rdy = '1' then
-							rd_pf_addr  <= rd_pf_addr + 8;
-							rd_pf_state <= 2;
+							rd_pf_addr    <= rd_pf_addr + 8;
+							rd_pf_state   <= 2;
+							dbg_cmd_count <= dbg_cmd_count + 1;
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
@@ -1304,7 +1318,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 22) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 23) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1382,6 +1396,7 @@ begin
 	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
 	-- dbg_valid_count declaration comment.
 	wo30 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"30", ep_datain => ep30wire);
+	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"31", ep_datain => ep31wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (
