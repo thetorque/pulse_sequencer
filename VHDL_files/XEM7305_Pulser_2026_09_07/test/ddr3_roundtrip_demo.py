@@ -593,7 +593,7 @@ def _find_alias_index(value, total_words, seed):
     return lut.get(value)
 
 
-def run_memtest(xem, mib, chunk_words, seed):
+def run_memtest(xem, mib, chunk_words, seed, sacrifice_beats=0):
     """Rigorous memory-integrity test: write address-derived data
     (memtest_value(word_index)) across `mib` MiB of DDR3 in a single
     write phase (write mode throughout, no reads), THEN read it all
@@ -608,10 +608,40 @@ def run_memtest(xem, mib, chunk_words, seed):
     total_words = (mib * 1024 * 1024) // 8
     total_words -= total_words % chunk_words        # whole chunks only
     n_chunks = total_words // chunk_words
+
+    # Sacrifice-beat-0 workaround (sacrifice_beats > 0): reserve the first
+    # `sacrifice_beats` beats (2 words each) of every chunk as throwaway
+    # dummies. The first read of a batch is the cold one that can mis-address
+    # (see the priming-read discussion); making it a discarded dummy means the
+    # sacrificial cold read still warms the controller, but real data lives
+    # ONLY in the warm beats -- all through the known-good read path, no RTL
+    # change. sacrifice_beats=0 keeps the original behaviour byte-for-byte.
+    skip_words = sacrifice_beats * 2
+    reals_per_chunk = chunk_words - skip_words
+    if reals_per_chunk <= 0:
+        sys.exit("sacrifice_beats too large for chunk_words")
+    alias_total = reals_per_chunk * n_chunks  # count of real (non-dummy) words
+    DUMMY = 0xDEADBEEFCAFEF00D
+
+    def chunk_data(c):
+        """The full chunk_words list written (and expected) for chunk c:
+        `skip_words` leading dummies, then real address-derived values over a
+        dummy-free real-index space so no real value is ever placed on the
+        sacrificed cold beat."""
+        reals = [memtest_value(c * reals_per_chunk + j, seed)
+                 for j in range(reals_per_chunk)]
+        return [DUMMY] * skip_words + reals
+
+    mode = (f", sacrificing first {sacrifice_beats} beat(s)/chunk"
+            if sacrifice_beats else "")
     print(f"\n--- DDR3 memtest: write all {mib} MiB, then verify all "
-          f"(seed={seed:#010x}) ---")
-    print(f"    {total_words} words in {n_chunks} chunks of {chunk_words} "
-          f"(each location must survive the whole write phase)")
+          f"(seed={seed:#010x}{mode}) ---")
+    if sacrifice_beats:
+        print(f"    {total_words} words in {n_chunks} chunks of {chunk_words} "
+              f"({reals_per_chunk} real + {skip_words} dummy each)")
+    else:
+        print(f"    {total_words} words in {n_chunks} chunks of {chunk_words} "
+              f"(each location must survive the whole write phase)")
     reset_ddr3(xem)  # zero wr_asm_addr AND rd_pf_addr
 
     # ---- write phase (write mode throughout; no reads) ----
@@ -619,8 +649,7 @@ def run_memtest(xem, mib, chunk_words, seed):
     t0 = time.time()
     nxt = t0 + 15.0
     for c in range(n_chunks):
-        base = c * chunk_words
-        write_words(xem, [memtest_value(base + i, seed) for i in range(chunk_words)])
+        write_words(xem, chunk_data(c))
         if time.time() >= nxt:
             done = (c + 1) / n_chunks
             print(f"    write {done*100:5.1f}%  {(c+1)*chunk_words*8/1e6:7.0f} MB  "
@@ -645,13 +674,15 @@ def run_memtest(xem, mib, chunk_words, seed):
         first_fail = None
         failed_chunks = []
         for c in range(n_chunks):
-            base = c * chunk_words
-            expected = [memtest_value(base + i, seed) for i in range(chunk_words)]
+            expected = chunk_data(c)
             got = read_words(xem, chunk_words)
-            if got != expected:
+            # Verify only the real (warm) words; the leading `skip_words` are
+            # the sacrificed cold beat and are intentionally NOT checked.
+            if got[skip_words:] != expected[skip_words:]:
                 mismatches += 1
                 failed_chunks.append(c)
-                bad_offsets = [i for i in range(chunk_words) if got[i] != expected[i]]
+                bad_offsets = [i for i in range(skip_words, chunk_words)
+                               if got[i] != expected[i]]
                 bad = bad_offsets[0]
                 if first_fail is None:
                     first_fail = (c, bad, expected[bad], got[bad])
@@ -660,21 +691,23 @@ def run_memtest(xem, mib, chunk_words, seed):
                 # beat aliased to a wrong DRAM row, BOTH its halves shift
                 # together. If only one half shifts, it's a data-path artifact,
                 # not row aliasing.
+                sac = f" (first {skip_words} word(s) sacrificed)" if skip_words else ""
                 print(f"    [MISMATCH] pass {label} chunk {c}: "
                       f"{len(bad_offsets)} bad word(s) at offsets "
                       f"{bad_offsets[:8]}{' ...' if len(bad_offsets) > 8 else ''}"
-                      f"  (beat 0 = words 0,1)")
+                      f"{sac}")
                 for off in bad_offsets[:8]:
-                    gi = base + off
+                    gi = c * chunk_words + off      # physical word position
                     sib = off ^ 1  # other 64-bit half of the same 128-bit beat
-                    sib_state = ("OK" if got[sib] == expected[sib] else "ALSO-BAD")
-                    msg = (f"        word #{off} (idx 0x{gi:x}): "
+                    sib_ok = sib >= skip_words and got[sib] == expected[sib]
+                    sib_state = "OK" if sib_ok else "ALSO-BAD"
+                    msg = (f"        word #{off} (pos 0x{gi:x}): "
                            f"exp {expected[off]:#018x} got {got[off]:#018x}  "
                            f"[beat-sibling #{sib}: {sib_state}]")
                     if mismatches <= 20:  # identify the alias source
-                        alias = _find_alias_index(got[off], total_words, seed)
+                        alias = _find_alias_index(got[off], alias_total, seed)
                         if alias is not None:
-                            msg += (f"  <- idx 0x{alias:x} (delta {alias-gi:+d} w)")
+                            msg += f"  <- real idx 0x{alias:x}"
                         else:
                             msg += "  <- not any written index (corruption, not alias)"
                     print(msg)
@@ -698,7 +731,9 @@ def run_memtest(xem, mib, chunk_words, seed):
 
     print("\n--- Memtest summary ---")
     if not fails1 and not fails2:
-        print(f"  RESULT: PASS -- wrote and verified {mib} MiB, no mismatches")
+        extra = (f" (sacrificed first {sacrifice_beats} beat(s)/chunk as "
+                 f"cold-read dummies)" if sacrifice_beats else "")
+        print(f"  RESULT: PASS -- wrote and verified {mib} MiB, no mismatches{extra}")
     else:
         both = fails1 & fails2
         only1 = fails1 - fails2
@@ -748,8 +783,30 @@ def parse_random_flag(argv):
     return remaining, random.Random(seed)
 
 
+def parse_sacrifice_flag(argv):
+    """Extracts --sacrifice-beat0 (=1 beat) or --sacrifice=N (=N beats) from
+    argv, returning (remaining_argv, n_beats). Reserving the first N beats of
+    every memtest chunk as throwaway dummies makes the cold first-read of each
+    batch land on a discarded beat -- the safe, RTL-free version of a priming
+    read (see run_memtest)."""
+    remaining = []
+    beats = 0
+    for arg in argv:
+        if arg == "--sacrifice-beat0":
+            beats = 1
+        elif arg.startswith("--sacrifice="):
+            beats = int(arg.split("=", 1)[1])
+        else:
+            remaining.append(arg)
+    if beats:
+        print(f"  sacrifice-beat mode: first {beats} beat(s) of each chunk are "
+              f"discarded cold-read dummies")
+    return remaining, beats
+
+
 def main():
     argv, rng = parse_random_flag(sys.argv[1:])
+    argv, sacrifice_beats = parse_sacrifice_flag(argv)
     argv = [sys.argv[0]] + argv
 
     if len(argv) >= 3 and argv[2] == "soak":
@@ -782,7 +839,8 @@ def main():
 
     if len(argv) >= 3 and argv[2] == "memtest":
         if len(argv) not in (3, 4, 5, 6):
-            sys.exit(f"Usage: {argv[0]} path/to/photon.bit memtest [mib] [chunk_words] [seed]")
+            sys.exit(f"Usage: {argv[0]} path/to/photon.bit memtest [mib] [chunk_words] [seed] "
+                     f"[--sacrifice-beat0 | --sacrifice=N]")
         mib = int(argv[3]) if len(argv) >= 4 else 512
         chunk_words = int(argv[4]) if len(argv) >= 5 else 256
         seed = int(argv[5], 0) if len(argv) == 6 else 0xA5A5A5A5
@@ -791,7 +849,7 @@ def main():
         if not 1 <= mib <= 512:
             sys.exit("mib must be 1..512 (the device is 512 MiB)")
         xem = connect(argv[1])
-        run_memtest(xem, mib, chunk_words, seed)
+        run_memtest(xem, mib, chunk_words, seed, sacrifice_beats)
         return
 
     if len(argv) not in (2, 3):
