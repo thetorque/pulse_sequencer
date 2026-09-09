@@ -79,8 +79,10 @@ begin
   seq : entity work.pulse_sequencer
     port map (clk => seq_clk, reset => seq_reset, start => seq_start,
               infinite => seq_infinite, prog_ready => primed,
+              line_trig_en => '0', line_trig_pulse => '0', loop_limit => (others => '0'),
               line_dout => line_dout, line_empty => line_empty, line_rd_en => line_rd_en,
-              restart => restart, master_logic => master_logic, seq_done => seq_done);
+              restart => restart, master_logic => master_logic,
+              seq_count_out => open, seq_done => seq_done);
 
   -- monitor: report each master_logic segment and check the value sequence +
   -- the two clean mid-sequence dwell durations.

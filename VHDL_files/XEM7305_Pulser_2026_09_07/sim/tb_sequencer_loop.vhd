@@ -71,8 +71,10 @@ begin
   seq : entity work.pulse_sequencer
     port map (clk => seq_clk, reset => seq_reset, start => seq_start,
               infinite => '1', prog_ready => primed_seq,
+              line_trig_en => '0', line_trig_pulse => '0', loop_limit => (others => '0'),
               line_dout => line_dout, line_empty => line_empty, line_rd_en => line_rd_en,
-              restart => restart, master_logic => master_logic, seq_done => seq_done);
+              restart => restart, master_logic => master_logic,
+              seq_count_out => open, seq_done => seq_done);
 
   -- CDC: restart pulse seq_clk -> ui_clk, and primed level ui_clk -> seq_clk
   rst_cdc : entity work.pulse_cdc

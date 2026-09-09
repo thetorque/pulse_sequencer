@@ -21,8 +21,10 @@
 GHDL="${GHDL:-ghdl}"
 cd "$(dirname "$0")"
 
-SRCS="line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd \
-      ddr3_line_streamer.vhd pulse_sequencer.vhd pulse_cdc.vhd \
+# synthesizable modules live in ../src (built by create_project.tcl); the
+# behavioural models + testbenches live here.
+SRCS="../src/ddr3_line_streamer.vhd ../src/pulse_sequencer.vhd ../src/pulse_cdc.vhd \
+      line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd \
       tb_line_streamer.vhd tb_streamer_throughput.vhd \
       tb_sequencer.vhd tb_sequencer_loop.vhd tb_sequencer_stall.vhd"
 
