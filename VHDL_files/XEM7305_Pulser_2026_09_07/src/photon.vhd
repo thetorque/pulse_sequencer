@@ -408,7 +408,7 @@ architecture arch of photon is
 	-- write-assembler/read-prefetch process below for why reads and
 	-- writes are time-multiplexed onto MIG's single shared command
 	-- channel via this host-controlled bit instead of a runtime arbiter.
-	signal rd_pf_state      : INTEGER range 0 to 3 := 0;
+	signal rd_pf_state      : INTEGER range 0 to 4 := 0;
 	signal rd_pf_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
 	signal rd_pf_pending_hi : STD_LOGIC_VECTOR(63 downto 0);
 
@@ -1055,8 +1055,9 @@ begin
 	-- confirmed.
 	--
 	-- Read mode: issues one read command (state 0, 1), waits for
-	-- app_rd_data_valid (state 2), then pushes the low half immediately
-	-- and the high half on the following cycle (state 3) into
+	-- app_rd_data_valid (state 2, which pushes the low half and latches
+	-- the high half), waits one settling cycle (state 3, diagnostic --
+	-- see its comment), then pushes the high half (state 4) into
 	-- ddr3_read_fifo -- single request outstanding at a time.
 	------------------------------------------------------------------
 	process (ui_clk)
@@ -1154,7 +1155,14 @@ begin
 							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
 							rd_pf_state      <= 3;
 						end if;
-					when others => -- 3
+					when 3 =>
+						-- diagnostic wait cycle: testing whether
+						-- ddr3_read_fifo's asymmetric (64W/32R) internal
+						-- width-conversion needs a settling cycle between
+						-- two writes on immediately-consecutive cycles,
+						-- analogous to the write-assembler's earlier fix.
+						rd_pf_state <= 4;
+					when others => -- 4
 						ddr3_read_din   <= rd_pf_pending_hi;
 						ddr3_read_wr_en <= '1';
 						rd_pf_state     <= 0;
