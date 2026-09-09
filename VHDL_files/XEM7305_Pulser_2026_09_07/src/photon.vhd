@@ -931,7 +931,13 @@ begin
 	-- bit 16: rd_pf_idle -- host MUST check this before switching
 	-- ep00wire(4) back to write mode, see rd_pf_idle declaration
 	-- comment. bits 5:0: ddr3_read_rd_data_count.
-	ep2Fwire <= (31 downto 17 => '0') & rd_pf_idle & (15 downto 6 => '0') & ddr3_read_rd_data_count;
+	-- DIAGNOSTIC (temporary): bit 17 = rd_pf_primed, bits 25:18 =
+	-- rd_pf_issued -- added to directly confirm whether the priming
+	-- push completed and how many real commands the budget gate let
+	-- through, instead of inferring it from ddr3_read_rd_data_count
+	-- alone (see the read-command-budget investigation).
+	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
+	            rd_pf_primed & rd_pf_idle & (15 downto 6 => '0') & ddr3_read_rd_data_count;
 
 	------------------------------------------------------------------
 	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count

@@ -108,6 +108,9 @@ WRITE_IDLE_POLL_INTERVAL = 0.01
 DDR3_READ_STATUS_WIRE = 0x2F
 DDR3_READ_IDLE_BIT = 1 << 16
 DDR3_READ_COUNT_MASK = 0xFFFF  # bits below rd_pf_idle (bit 16); actual count is 6 bits wide
+DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
+DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
+DDR3_READ_ISSUED_MASK = 0xFF
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
@@ -160,16 +163,21 @@ def wait_write_idle(xem):
 
 def wait_read_ready(xem, min_count):
     last_count = None
+    last_status = None
     for _ in range(READ_POLL_ATTEMPTS):
         xem.UpdateWireOuts()
-        count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
+        status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
+        last_status = status
+        count = status & DDR3_READ_COUNT_MASK
         last_count = count
         if count >= min_count:
             return count
         time.sleep(READ_POLL_INTERVAL)
+    primed = bool(last_status & DDR3_READ_PRIMED_BIT)
+    issued = (last_status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
     raise RuntimeError(
         f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F) "
-        f"-- stuck at {last_count}")
+        f"-- stuck at {last_count}, rd_pf_primed={primed}, rd_pf_issued={issued}")
 
 
 def wait_read_idle(xem):
