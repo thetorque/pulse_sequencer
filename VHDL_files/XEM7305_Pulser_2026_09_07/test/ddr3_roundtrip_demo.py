@@ -141,6 +141,11 @@ READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
 READ_IDLE_POLL_INTERVAL = 0.01
 
+DDR3_CALIB_STATUS_WIRE = 0x2D  # ep2Dwire bit 0: MIG init_calib_complete
+DDR3_CALIB_COMPLETE_BIT = 1
+CALIB_POLL_ATTEMPTS = 500
+CALIB_POLL_INTERVAL = 0.01
+
 
 def connect(bit_path):
     xem = ok.FrontPanel()
@@ -153,7 +158,26 @@ def connect(bit_path):
     if result:
         sys.exit(f"Failed to configure FPGA with {bit_path} (ConfigureFPGA returned {result})")
     print(f"Configured FPGA with {bit_path}")
+    wait_calib_complete(xem)
     return xem
+
+
+def wait_calib_complete(xem):
+    """Waits for MIG's init_calib_complete (WireOut 0x2D bit 0) before
+    letting any test proceed. ConfigureFPGA() triggers MIG's DDR3
+    calibration sequence; issuing app_* commands before it finishes is
+    undefined behavior. This was never checked before -- a real gap,
+    not just a diagnostic -- found while chasing intermittent
+    data-path corruption that turned out to be timing-correlated
+    (same seed, same host-side overhead before the first command,
+    similarly likely to race calibration) rather than data-dependent."""
+    for _ in range(CALIB_POLL_ATTEMPTS):
+        xem.UpdateWireOuts()
+        if xem.GetWireOutValue(DDR3_CALIB_STATUS_WIRE) & DDR3_CALIB_COMPLETE_BIT:
+            print("  DDR3 calibration complete (WireOut 0x2D bit 0)  [OK]")
+            return
+        time.sleep(CALIB_POLL_INTERVAL)
+    raise RuntimeError("DDR3 calibration (init_calib_complete, WireOut 0x2D bit 0) never completed")
 
 
 def pack_word(value):
