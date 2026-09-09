@@ -55,6 +55,15 @@ reference design).
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit [n_words] [--random[=SEED]]
     python ddr3_roundtrip_demo.py path/to/photon.bit soak [n_batches] [words_per_batch] [--random[=SEED]]
+    python ddr3_roundtrip_demo.py path/to/photon.bit endurance [duration_sec] [words_per_batch] [--random[=SEED]]
+
+endurance runs continuously for duration_sec (default 3600 = 1 hr),
+sweeping the whole 512 MiB device by letting the DDR3 address advance
+and wrap. It verifies every batch, prints progress every 15 s, counts
+mismatches (re-syncing after each so an overnight run keeps going), and
+prints PASS/FAIL at the end. Ctrl+C stops early with a summary. Use
+--random for fresh random data each batch. words_per_batch defaults to
+256 (must be even, <= 500 -- the read FIFO holds 256 128-bit entries).
 
 --random switches from the structured, easy-to-recognize test pattern
 (constant high bits, small incrementing low bits) to full 64-bit
@@ -84,6 +93,11 @@ import ok
 PIPE_BLOCK_SIZE = 16  # bytes; matches the block size used elsewhere in this project
 
 N_WORDS = 8  # must be even -- see module docstring
+
+# XEM7305 DDR3 is 512 MiB: 4 Gib x16 = 8 banks x 32768 rows x 1024 cols
+# x 16 bits (from ddr3_256_16_mig.v: BANK_WIDTH=3, ROW_WIDTH=15,
+# COL_WIDTH=10, MEM_DEVICE_WIDTH=16). Used only to report % coverage.
+DDR3_TOTAL_BYTES = 512 * 1024 * 1024
 
 DDR3_READ_ENABLE_BIT = 1 << 4  # ep00wire(4)
 DDR3_PTR_RESET_BIT = 1 << 5    # ep40wire(5)
@@ -292,11 +306,17 @@ def reset_read_fifo(xem):
     time.sleep(READ_FIFO_RESET_HOLD)
 
 
-def read_words(xem, n_words):
-    """Resets the read FIFO so this batch starts empty, switches to read
-    mode, waits for read-prefetch to issue n_words/2 read commands (one
-    128-bit MIG response each), reads them back, and switches to write
-    mode.
+def read_words(xem, n_words, reset_fifo=True):
+    """Optionally resets the read FIFO so this batch starts empty,
+    switches to read mode, waits for read-prefetch to issue n_words/2
+    read commands (one 128-bit MIG response each), reads them back, and
+    switches to write mode.
+
+    reset_fifo (default True) pulses ddr3_read_fifo_rst before the
+    batch. It's belt-and-suspenders: each batch is already balanced
+    (pushes and reads exactly n_words/2 entries, leaving the FIFO
+    empty), so it's safe to skip -- the endurance test does, to avoid
+    the reset's ~4 ms hold and sweep the device far faster.
 
     Ramtester-style single-push: each read command's whole 128-bit
     response is pushed into the 128-write/32-read ddr3_read_fifo in one
@@ -309,7 +329,8 @@ def read_words(xem, n_words):
     with read mode off on entry (write_words leaves it there)."""
     # Clean read-side state for this batch -- must happen before read
     # mode is enabled and while read-prefetch is idle.
-    reset_read_fifo(xem)
+    if reset_fifo:
+        reset_read_fifo(xem)
 
     target_commands = n_words // 2
     xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
@@ -424,6 +445,71 @@ def run_soak_test(xem, n_batches, words_per_batch, rng=None):
     print_dup_diagnostics(xem)
 
 
+def _endurance_progress(xem, start, batch, total_words, mismatches, tag):
+    """One progress/summary line for the endurance test."""
+    elapsed = max(time.time() - start, 1e-6)
+    data_bytes = total_words * 8
+    mb_s = data_bytes / 1e6 / elapsed
+    sweeps = data_bytes / DDR3_TOTAL_BYTES
+    xem.UpdateWireOuts()
+    retry8 = (xem.GetWireOutValue(CMD_COUNT_WIRE) >> 8) & 0xFF  # 8-bit, wraps -- liveness only
+    print(f"  [{tag}] {elapsed:7.0f}s  batches={batch}  data={data_bytes/1e9:.2f} GB  "
+          f"{mb_s:.2f} MB/s  ~{sweeps:.2f}x 512MiB sweeps  mismatches={mismatches}  "
+          f"retry8={retry8}")
+
+
+def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
+    """Continuously writes+verifies batches for duration_sec, letting the
+    DDR3 address sweep forward (and wrap) to exercise the whole 512 MiB
+    device. Verifies every batch; counts mismatches but keeps going
+    (re-syncing addresses after each) so one glitch doesn't end an
+    overnight run. Ctrl+C stops early and still prints the summary.
+    Skips the per-batch FIFO reset for speed -- see read_words()."""
+    print(f"\n--- DDR3 endurance test: {duration_sec}s, {words_per_batch} words/batch ---")
+    print(f"    each batch sweeps {words_per_batch*8} bytes; "
+          f"a full 512 MiB sweep is {DDR3_TOTAL_BYTES // (words_per_batch*8)} batches")
+    reset_ddr3(xem)
+    reset_read_fifo(xem)  # once, up front -- not per batch
+    start = time.time()
+    batch = 0
+    total_words = 0
+    mismatches = 0
+    report_interval = 15.0
+    next_report = start + report_interval
+    try:
+        while time.time() - start < duration_sec:
+            test_words = make_test_words(words_per_batch, batch & 0xFFFF, rng)
+            offset = (total_words * 8) % DDR3_TOTAL_BYTES  # ~byte addr this batch hits
+            write_words(xem, test_words)
+            readback = read_words(xem, words_per_batch, reset_fifo=False)
+            if readback != test_words:
+                mismatches += 1
+                bad = next(i for i in range(words_per_batch) if readback[i] != test_words[i])
+                print(f"  [MISMATCH #{mismatches}] batch {batch}, ~offset 0x{offset:x}, "
+                      f"first bad word #{bad}: wrote {test_words[bad]:#018x} "
+                      f"read {readback[bad]:#018x}")
+                print_dup_diagnostics(xem)
+                reset_ddr3(xem)        # re-sync so one glitch doesn't cascade
+                reset_read_fifo(xem)
+                total_words = 0        # address restarts at 0
+                batch += 1
+                continue
+            total_words += words_per_batch
+            batch += 1
+            if time.time() >= next_report:
+                _endurance_progress(xem, start, batch, total_words, mismatches, "progress")
+                next_report = time.time() + report_interval
+    except KeyboardInterrupt:
+        print("\n  (interrupted)")
+    print("\n--- Endurance summary ---")
+    _endurance_progress(xem, start, batch, total_words, mismatches, "final")
+    if mismatches == 0:
+        print(f"  RESULT: PASS -- {batch} batches, no mismatches")
+    else:
+        print(f"  RESULT: FAIL -- {mismatches} mismatch(es) over {batch} batches")
+        raise AssertionError(f"endurance test saw {mismatches} mismatch(es)")
+
+
 def parse_random_flag(argv):
     """Extracts a trailing --random or --random=SEED flag from argv
     (any position), returning (remaining_argv, rng_or_None). Prints
@@ -460,6 +546,19 @@ def main():
             sys.exit("words_per_batch must be even -- see module docstring")
         xem = connect(argv[1])
         run_soak_test(xem, n_batches, words_per_batch, rng)
+        return
+
+    if len(argv) >= 3 and argv[2] == "endurance":
+        if len(argv) not in (3, 4, 5):
+            sys.exit(f"Usage: {argv[0]} path/to/photon.bit endurance [duration_sec] [words_per_batch] [--random[=SEED]]")
+        duration_sec = int(argv[3]) if len(argv) >= 4 else 3600
+        words_per_batch = int(argv[4]) if len(argv) == 5 else 256
+        if words_per_batch % 2 != 0:
+            sys.exit("words_per_batch must be even -- see module docstring")
+        if words_per_batch > 500:
+            sys.exit("words_per_batch must be <= 500 (read FIFO holds 256 128-bit entries)")
+        xem = connect(argv[1])
+        run_endurance_test(xem, duration_sec, words_per_batch, rng)
         return
 
     if len(argv) not in (2, 3):
