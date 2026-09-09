@@ -55,14 +55,28 @@ batch's read-command count (n_words/2) to WireIn 0x07 before entering
 read mode; see rd_pf_issued/rd_pf_target's declaration comment in
 photon.vhd.
 
+Per-batch trailing flush: removing that overshoot also exposed a
+second, related effect -- ddr3_read_rd_data_count plateaus at
+2*(total_pushes-1) halves, not 2*total_pushes, meaning the MOST
+RECENTLY pushed word never becomes visible until something else is
+pushed after it (confirmed on hardware; same FWFT-lookahead mechanism
+as the priming push's PG057 finding, just biting the tail of a batch
+instead of the head -- the old eager overshoot always supplied that
+"something else" for free). photon.vhd's read-prefetch now pushes one
+more throwaway dummy after each batch's real commands finish
+(rd_pf_flushed) to flush the batch's own last word into visibility.
+
 Multi-batch continuation: as long as reset_ddr3() isn't called between
-batches, wr_asm_addr/rd_pf_addr keep advancing and the FIFO's
-priming-push offset only needs accounting for on the very first batch
-since the last reset -- see read_words()'s first_read parameter.
-run_soak_test() strings many batches together this way to walk further
-into DDR3's address space than a single batch's FIFO depth allows,
-verifying each batch immediately (in the spirit of the
-Locally_compiled_ramtester reference design).
+batches, wr_asm_addr/rd_pf_addr keep advancing, and every batch's
+reconstruction uses the *same* offset -- each batch's trailing flush
+doubles as the next batch's leading dummy, so there's always exactly
+one dummy pair immediately before a batch's real data, whether that's
+the once-ever priming push (batch 0) or the previous batch's own
+trailing flush (every batch after). run_soak_test() strings many
+batches together this way to walk further into DDR3's address space
+than a single batch's FIFO depth allows, verifying each batch
+immediately (in the spirit of the Locally_compiled_ramtester reference
+design).
 
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit [n_words]
@@ -230,35 +244,32 @@ def drain_read_fifo(xem):
         assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
 
 
-def read_words(xem, n_words, first_read=True):
+def read_words(xem, n_words):
     """Switches to read mode, waits for this batch's real words (plus
-    the priming push on the first call), reads them back as a list of
-    n_words 64-bit integers, switches back to write mode, then drains
-    any leftover prefetched words.
+    the leading dummy that precedes them -- the once-ever priming push
+    for the very first batch, or the previous batch's own trailing
+    flush for any later one -- and this batch's own trailing flush),
+    reads them back as a list of n_words 64-bit integers, switches
+    back to write mode, then drains any leftover prefetched words.
 
-    first_read (default True) selects the reconstruction offset: True
-    is for the first read_words() call since the last reset_ddr3()
-    (must account for and discard the priming push's own garbage
-    word); False is for a later batch within the same reset epoch,
-    where the priming offset was already consumed by the first batch
-    and the stream continues with a plain high-then-low pairing. See
-    the module docstring's "Multi-batch continuation" section."""
+    Every batch uses the same reconstruction offset: read-prefetch's
+    per-batch trailing flush (rd_pf_flushed in photon.vhd) guarantees
+    something is always pushed immediately before, and immediately
+    after, this batch's own real words, so the leading garbage pair is
+    always exactly 2 halves regardless of which batch this is. See the
+    module docstring's "Multi-batch continuation" section."""
     xem.SetWireInValue(READ_BUDGET_WIRE, n_words // 2, 0xFFFFFFFF)
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
-    if first_read:
-        # +3 halves: halves[0] is a leftover/unused half before the
-        # stream settles, and halves[1]/halves[2] reconstruct as a
-        # (garbage) *whole* word -- the priming push's own low half
-        # plus the next push's high half that structurally leaks into
-        # its slot. That whole pair must be discarded, not just one
-        # half. See module docstring.
-        needed_halves = n_words * 2 + 3
-        offset = 3
-    else:
-        needed_halves = n_words * 2
-        offset = 0
+    # +3 halves: halves[0] is a leftover/unused half before the
+    # stream settles, and halves[1]/halves[2] reconstruct as a
+    # (garbage) *whole* word -- the leading dummy's own low half plus
+    # the next push's high half that structurally leaks into its
+    # slot. That whole pair must be discarded, not just one half. See
+    # module docstring.
+    needed_halves = n_words * 2 + 3
+    offset = 3
     wait_read_ready(xem, needed_halves)
 
     total_bytes = needed_halves * 4
@@ -301,7 +312,7 @@ def run_soak_test(xem, n_batches, words_per_batch):
             for i in range(words_per_batch)
         ]
         write_words(xem, test_words)
-        readback_words = read_words(xem, words_per_batch, first_read=(batch == 0))
+        readback_words = read_words(xem, words_per_batch)
         if readback_words != test_words:
             print(f"  batch {batch}: [MISMATCH]")
             print(f"    wrote:     " + ", ".join(f"{w:#018x}" for w in test_words))

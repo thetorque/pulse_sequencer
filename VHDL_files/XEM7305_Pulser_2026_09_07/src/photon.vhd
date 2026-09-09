@@ -494,6 +494,26 @@ architecture arch of photon is
 	signal rd_pf_target  : INTEGER range 0 to 65535 := 0;
 	signal ep00wire4_prev : STD_LOGIC := '0';
 
+	-- rd_pf_flushed: confirmed on hardware (via rd_pf_primed/rd_pf_issued
+	-- readback while chasing the read-command-budget change above) that
+	-- ddr3_read_rd_data_count plateaus at 2*(total_pushes-1) halves, not
+	-- 2*total_pushes -- i.e. the MOST RECENTLY pushed 64-bit word never
+	-- becomes visible on the read side until something else is pushed
+	-- after it (same underlying FWFT-lookahead mechanism as
+	-- rd_pf_primed's PG057 finding, just biting the *tail* of a batch
+	-- instead of the head). Before the read-command budget existed,
+	-- read-prefetch's eager overshoot always supplied that "something
+	-- else" for free; budget-gating removed the overshoot and exposed
+	-- this. Fixed the same way rd_pf_primed fixes the head: after this
+	-- batch's real commands are done (rd_pf_issued = rd_pf_target), push
+	-- one more throwaway 64-bit dummy (bypassing MIG/rd_pf_addr, so it
+	-- can't desync addresses) to flush the batch's own last real word
+	-- into visibility -- see state 0's use of this flag below. Resets
+	-- every batch (on ep00wire(4)'s rising edge, alongside rd_pf_issued)
+	-- rather than once-ever like rd_pf_primed, since every batch's own
+	-- tail needs its own flush.
+	signal rd_pf_flushed : STD_LOGIC := '0';
+
 	-- WireOut endpoints (0x2E/0x2F) -- Phase 6b bring-up only, no
 	-- legacy equivalent; see file header comment.
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
@@ -1187,8 +1207,9 @@ begin
 			-- same as any other edge detector.
 			ep00wire4_prev <= ep00wire(4);
 			if ep00wire(4) = '1' and ep00wire4_prev = '0' then
-				rd_pf_issued <= 0;
-				rd_pf_target <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
+				rd_pf_issued  <= 0;
+				rd_pf_flushed <= '0';
+				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
 			end if;
 
 			if ep40wire(5) = '1' then
@@ -1201,6 +1222,7 @@ begin
 				rd_pf_primed   <= '0';
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
+				rd_pf_flushed  <= '0';
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1286,6 +1308,17 @@ begin
 							mig_app_cmd  <= "001";
 							mig_app_en   <= '1';
 							rd_pf_state  <= 1;
+						elsif rd_pf_flushed = '0' then
+							-- per-batch trailing flush, see rd_pf_flushed
+							-- declaration comment -- same dummy-push
+							-- mechanism as the priming branch above, just
+							-- gated per-batch (once real commands are
+							-- done) instead of once-ever.
+							ddr3_read_din    <= (others => '0');
+							ddr3_read_wr_en  <= '1';
+							rd_pf_pending_hi <= (others => '0');
+							rd_pf_flushed    <= '1';
+							rd_pf_state      <= 3;
 						end if;
 					when 1 =>
 						mig_app_addr <= rd_pf_addr;
