@@ -32,11 +32,13 @@ high half rather than the current one, with the very first entry's own
 high half permanently unavailable otherwise. photon.vhd's read-prefetch
 absorbs this with a one-time throwaway priming push immediately after
 reset, before any real data (see rd_pf_primed's declaration comment
-there). That shifts the whole readback stream by exactly one 32-bit
-position: after discarding the priming push's own low half (the very
-first 32-bit value ever read back after a reset), each real word's
-HIGH half comes first and its LOW half second -- the opposite of a
-naive "low first" assumption, and only correct for the first read
+there). That shifts the whole readback stream: the priming push itself
+reconstructs as a (garbage) whole word -- its own low half plus the
+NEXT push's high half, which structurally leaks into its slot -- so
+the first two 32-bit halves ever read back after a reset must be
+discarded as a pair, not just the first half. After that, each real
+word's HIGH half comes first and its LOW half second -- the opposite
+of a naive "low first" assumption, and only correct for the first read
 session following a reset (ep40wire(5)), since the shift is a one-time
 offset in the lifetime push sequence, not something re-established per
 read call.
@@ -195,7 +197,12 @@ def read_words(xem, n_words):
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
 
-    needed_halves = n_words * 2 + 1  # +1 for the priming push's own low half
+    # +3 halves: halves[0] is a leftover/unused half before the stream
+    # settles, and halves[1]/halves[2] reconstruct as a (garbage) *whole*
+    # word -- the priming push's own low half plus the next push's high
+    # half that structurally leaks into its slot. That whole pair must be
+    # discarded, not just one half. See module docstring.
+    needed_halves = n_words * 2 + 3
     wait_read_ready(xem, needed_halves)
 
     total_bytes = needed_halves * 4
@@ -207,12 +214,13 @@ def read_words(xem, n_words):
 
     halves = list(struct.unpack(f'<{total_bytes // 4}I', bytes(buf)))
 
-    # halves[0] is the priming push's own (unused) low half. Each real
-    # word k's high half is at halves[1 + 2k], low half at halves[2 + 2k].
+    # halves[0] is unused, halves[1]/halves[2] reconstruct the priming
+    # push itself (discarded). Real word k's high half is at
+    # halves[3 + 2k], low half at halves[4 + 2k].
     words = []
     for k in range(n_words):
-        high = halves[1 + 2 * k]
-        low = halves[2 + 2 * k]
+        high = halves[3 + 2 * k]
+        low = halves[4 + 2 * k]
         words.append((high << 32) | low)
 
     wait_read_idle(xem)
