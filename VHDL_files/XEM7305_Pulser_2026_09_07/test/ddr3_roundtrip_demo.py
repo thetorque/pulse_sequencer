@@ -316,6 +316,34 @@ def reset_read_fifo(xem):
     time.sleep(READ_FIFO_RESET_HOLD)
 
 
+def _enter_read_mode(xem, target_commands):
+    """Sets the read-command budget (ep07) then raises read mode (ep00
+    bit 4), which latches the budget on its rising edge -- and verifies
+    read-prefetch actually started. That latch samples a CDC-crossing
+    multi-bit ep07, so it occasionally captures a stale 0 (issued stays
+    0, read-prefetch idle in state 0). If that happens, drop read mode
+    and re-latch. Self-healing so a rare mis-latch doesn't fail a run."""
+    for attempt in range(6):
+        xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
+        xem.UpdateWireIns()  # commit budget first, let it settle
+        xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
+        xem.UpdateWireIns()  # rising edge latches the (now-settled) budget
+        # confirm read-prefetch started within ~150 ms
+        for _ in range(15):
+            xem.UpdateWireOuts()
+            status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
+            issued = (status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
+            idle = bool(status & DDR3_READ_IDLE_BIT)
+            state = (status >> DDR3_READ_STATE_SHIFT) & DDR3_READ_STATE_MASK
+            if issued > 0 or state != 0 or (issued >= target_commands and idle):
+                return  # started (or already finished) -- budget latched fine
+            time.sleep(0.01)
+        # budget latched 0: read-prefetch never moved. Drop read mode and retry.
+        xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
+        xem.UpdateWireIns()
+    # Fell through -- leave read mode on so wait_batch_done raises with detail.
+
+
 def read_words(xem, n_words, reset_fifo=True):
     """Optionally resets the read FIFO so this batch starts empty,
     switches to read mode, waits for read-prefetch to issue n_words/2
@@ -344,17 +372,7 @@ def read_words(xem, n_words, reset_fifo=True):
         reset_read_fifo(xem)
 
     target_commands = n_words // 2
-    # Commit the read-command budget (ep07) in its OWN UpdateWireIns
-    # BEFORE raising read mode (ep00 bit 4). The hardware latches the
-    # budget on read mode's rising edge; committing both wires together
-    # let ep07 still be crossing into ui_clk when that edge fired,
-    # occasionally latching a stale budget of 0 -- read-prefetch then
-    # issued nothing and the FIFO stayed empty. Committing it first lets
-    # it settle a full USB round-trip before the edge.
-    xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
-    xem.UpdateWireIns()
-    xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
-    xem.UpdateWireIns()
+    _enter_read_mode(xem, target_commands)
 
     # Gate on read-prefetch's own (non-CDC) completion state.
     wait_batch_done(xem, target_commands)
