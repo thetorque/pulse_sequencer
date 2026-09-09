@@ -1,9 +1,15 @@
 """
-Phase 1/2/3/5a bring-up smoke test for the XEM7305 pulser scaffold
+Phase 1/2/3/5a/6a bring-up smoke test for the XEM7305 pulser scaffold
 (../src/photon.vhd). Exercises every endpoint address in the legacy map,
-plus the Phase 2 clocking, Phase 3 RAM/FIFO, and Phase 5a sequencer
-bring-up-only endpoints, and checks the fixed/echoed/measured values the
-scaffold is expected to return.
+plus the Phase 2 clocking, Phase 3 RAM/FIFO, Phase 5a sequencer, and
+Phase 6a DDR3 MIG bring-up-only endpoints, and checks the
+fixed/echoed/measured values the scaffold is expected to return.
+
+test_ddr3_calib() polls WireOut 0x2D for init_calib_complete -- the
+real proof MIG calibrated against the XEM7305's actual DDR3 chip, not
+just that the design built and timing closed. Placed right after
+test_clocking() since both are foundational clock/infra checks the
+rest of the design (and this whole test file) already depends on.
 
 Phase 3 note: BTPipeOut 0xA0/0xA1/0xA2 used to return a fixed test
 pattern (Phase 1 stub); they now reach real FIFOs instead, but nothing
@@ -71,6 +77,15 @@ PIPE_BLOCK_SIZE = 16  # bytes; matches the block size used elsewhere in this pro
 CLOCK_CHECKS = {0x24: 200e6, 0x25: 100e6, 0x26: 20e6}
 CLOCK_MEASURE_SECONDS = 1.0
 CLOCK_TOLERANCE = 0.05  # 5%; generous margin for wall-clock jitter over a 1s window
+
+# Phase 6a DDR3 MIG bring-up: init_calib_complete status, see src/photon.vhd
+# WireOut 0x2D. Generous poll margin -- real MIG calibration against the
+# XEM7305's actual DDR3 chip should complete in well under 1ms, but by the
+# time this script gets here ConfigureFPGA has already taken far longer
+# than that, so this mostly just needs to not be flaky.
+DDR3_CALIB_WIRE = 0x2D
+DDR3_CALIB_POLL_ATTEMPTS = 200
+DDR3_CALIB_POLL_INTERVAL = 0.01  # 2s total margin
 
 # Phase 3 RAM/FIFO bring-up: WireOut address reporting each FIFO's
 # read-side occupancy (rd_data_count), see src/photon.vhd.
@@ -389,6 +404,25 @@ def test_clocking(xem):
             f"expected ~{expected_hz/1e6:.1f} MHz")
 
 
+def test_ddr3_calib(xem):
+    print("\n--- Phase 6a DDR3 MIG bring-up (WireOut 0x2D) ---")
+    calib = 0
+    for _ in range(DDR3_CALIB_POLL_ATTEMPTS):
+        xem.UpdateWireOuts()
+        calib = xem.GetWireOutValue(DDR3_CALIB_WIRE) & 0x1
+        if calib == 1:
+            break
+        time.sleep(DDR3_CALIB_POLL_INTERVAL)
+    waited_s = DDR3_CALIB_POLL_ATTEMPTS * DDR3_CALIB_POLL_INTERVAL
+    status = "OK" if calib == 1 else "NEVER ASSERTED"
+    print(f"  init_calib_complete (0x2D bit 0) = {calib} "
+          f"(waited up to {waited_s:.1f}s)  [{status}]")
+    assert calib == 1, (
+        "MIG never reported init_calib_complete -- check mig_sys_rst pulse, "
+        "sys_clk_p/sys_clk_n and the DDR3 pin constraints in "
+        "constraints/xem7305.xdc")
+
+
 def test_pipe_in_stub(xem):
     print("\n--- BTPipeIn 0x81 (DDS program, still a discard-everything stub) ---")
     dummy = bytearray(PIPE_BLOCK_SIZE)
@@ -405,6 +439,7 @@ if __name__ == "__main__":
     test_wire_in_leds(xem)
     test_wire_out_echo(xem)
     test_clocking(xem)
+    test_ddr3_calib(xem)
     test_pulse_fifo_drain(xem)
     test_sequencer_basic(xem)
     test_manual_override(xem)
