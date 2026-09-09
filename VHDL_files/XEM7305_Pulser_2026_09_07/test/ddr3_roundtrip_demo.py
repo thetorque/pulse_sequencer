@@ -628,60 +628,101 @@ def run_memtest(xem, mib, chunk_words, seed):
             nxt = time.time() + 15.0
     print(f"  write phase done: {mib} MiB in {time.time()-t0:.0f}s")
 
-    # ---- read/verify phase (data has now sat in DRAM) ----
-    print("  read/verify phase...")
-    t1 = time.time()
-    nxt = t1 + 15.0
-    mismatches = 0
-    first_fail = None
-    for c in range(n_chunks):
-        base = c * chunk_words
-        expected = [memtest_value(base + i, seed) for i in range(chunk_words)]
-        got = read_words(xem, chunk_words)
-        if got != expected:
-            mismatches += 1
-            bad_offsets = [i for i in range(chunk_words) if got[i] != expected[i]]
-            bad = bad_offsets[0]
-            fi = base + bad  # failing global word index
-            if first_fail is None:
-                first_fail = (c, bad, expected[bad], got[bad])
-            # Report EVERY bad word in this chunk, not just the first. The
-            # sibling half of a 128-bit beat is word offset (i ^ 1); if a beat
-            # aliased to a wrong DRAM row, BOTH its halves shift together. If
-            # only one half shifts, it's a data-path artifact, not row aliasing.
-            print(f"    [MISMATCH] chunk {c}: {len(bad_offsets)} bad word(s) "
-                  f"at offsets {bad_offsets[:8]}"
-                  f"{' ...' if len(bad_offsets) > 8 else ''}  "
-                  f"(beat 0 = words 0,1)")
-            for off in bad_offsets[:8]:
-                gi = base + off
-                sib = off ^ 1  # other 64-bit half of the same 128-bit beat
-                sib_state = ("OK" if got[sib] == expected[sib] else "ALSO-BAD")
-                msg = (f"        word #{off} (idx 0x{gi:x}): "
-                       f"exp {expected[off]:#018x} got {got[off]:#018x}  "
-                       f"[beat-sibling #{sib}: {sib_state}]")
-                if mismatches <= 20:  # identify the alias source for the first few
-                    alias = _find_alias_index(got[off], total_words, seed)
-                    if alias is not None:
-                        msg += (f"  <- idx 0x{alias:x} (delta {alias-gi:+d} w)")
-                    else:
-                        msg += "  <- not any written index (corruption, not alias)"
-                print(msg)
-        if time.time() >= nxt:
-            done = (c + 1) / n_chunks
-            print(f"    read  {done*100:5.1f}%  {time.time()-t1:5.0f}s  "
-                  f"mismatches={mismatches}")
-            nxt = time.time() + 15.0
-    print(f"  read phase done in {time.time()-t1:.0f}s")
+    # ---- read/verify pass (data has now sat in DRAM) ----
+    # Runs the whole read/verify sweep once. reset_ddr3() before each pass
+    # rewinds rd_pf_addr to 0 (it does NOT rewrite DRAM), so pass 2 re-reads
+    # the SAME stored data. Comparing which chunks fail across passes is the
+    # decisive test: if the failing set changes run-to-run, the DRAM data is
+    # intact and the fault is a transient READ mis-address (below the MIG app
+    # interface, since rd_pf_addr is a clean register); if the SAME chunks
+    # fail every pass, the data itself is wrong (a write mis-addressed).
+    def verify_pass(label):
+        print(f"  read/verify pass {label}...")
+        reset_ddr3(xem)  # rewind rd_pf_addr to 0; DRAM contents untouched
+        t1 = time.time()
+        nxt = t1 + 15.0
+        mismatches = 0
+        first_fail = None
+        failed_chunks = []
+        for c in range(n_chunks):
+            base = c * chunk_words
+            expected = [memtest_value(base + i, seed) for i in range(chunk_words)]
+            got = read_words(xem, chunk_words)
+            if got != expected:
+                mismatches += 1
+                failed_chunks.append(c)
+                bad_offsets = [i for i in range(chunk_words) if got[i] != expected[i]]
+                bad = bad_offsets[0]
+                if first_fail is None:
+                    first_fail = (c, bad, expected[bad], got[bad])
+                # Report EVERY bad word in this chunk, not just the first. The
+                # sibling half of a 128-bit beat is word offset (i ^ 1); if a
+                # beat aliased to a wrong DRAM row, BOTH its halves shift
+                # together. If only one half shifts, it's a data-path artifact,
+                # not row aliasing.
+                print(f"    [MISMATCH] pass {label} chunk {c}: "
+                      f"{len(bad_offsets)} bad word(s) at offsets "
+                      f"{bad_offsets[:8]}{' ...' if len(bad_offsets) > 8 else ''}"
+                      f"  (beat 0 = words 0,1)")
+                for off in bad_offsets[:8]:
+                    gi = base + off
+                    sib = off ^ 1  # other 64-bit half of the same 128-bit beat
+                    sib_state = ("OK" if got[sib] == expected[sib] else "ALSO-BAD")
+                    msg = (f"        word #{off} (idx 0x{gi:x}): "
+                           f"exp {expected[off]:#018x} got {got[off]:#018x}  "
+                           f"[beat-sibling #{sib}: {sib_state}]")
+                    if mismatches <= 20:  # identify the alias source
+                        alias = _find_alias_index(got[off], total_words, seed)
+                        if alias is not None:
+                            msg += (f"  <- idx 0x{alias:x} (delta {alias-gi:+d} w)")
+                        else:
+                            msg += "  <- not any written index (corruption, not alias)"
+                    print(msg)
+            if time.time() >= nxt:
+                done = (c + 1) / n_chunks
+                print(f"    read  {done*100:5.1f}%  {time.time()-t1:5.0f}s  "
+                      f"mismatches={mismatches}")
+                nxt = time.time() + 15.0
+        print(f"  pass {label} done in {time.time()-t1:.0f}s "
+              f"({mismatches} mismatched chunk(s))")
+        return set(failed_chunks), first_fail
+
+    fails1, first_fail = verify_pass("1")
+    # Second pass only when the first found something -- it's the experiment
+    # that separates a transient read fault from a persistent data error.
+    fails2 = set()
+    if fails1:
+        fails2, ff2 = verify_pass("2")
+        if first_fail is None:
+            first_fail = ff2
 
     print("\n--- Memtest summary ---")
-    if mismatches == 0:
+    if not fails1 and not fails2:
         print(f"  RESULT: PASS -- wrote and verified {mib} MiB, no mismatches")
     else:
+        both = fails1 & fails2
+        only1 = fails1 - fails2
+        only2 = fails2 - fails1
+        print(f"  pass1 failed chunks: {len(fails1)}   "
+              f"pass2 failed chunks: {len(fails2)}")
+        print(f"  failed in BOTH passes (persistent):        "
+              f"{len(both)}  {sorted(both)[:12]}")
+        print(f"  failed in pass1 ONLY (transient read):     "
+              f"{len(only1)}  {sorted(only1)[:12]}")
+        print(f"  failed in pass2 ONLY (transient read):     "
+              f"{len(only2)}  {sorted(only2)[:12]}")
+        if fails1 and not both:
+            print("  => DIAGNOSIS: no chunk failed both passes. The stored "
+                  "data is intact; the fault is a TRANSIENT read mis-address.")
+        elif both:
+            print("  => DIAGNOSIS: some chunks fail every pass -- those "
+                  "locations hold wrong data (a write mis-addressed).")
         c, bad, exp, got = first_fail
-        print(f"  RESULT: FAIL -- {mismatches} chunk(s) mismatched; first at "
-              f"chunk {c} word #{bad}: expected {exp:#018x} got {got:#018x}")
-        raise AssertionError(f"memtest saw {mismatches} mismatched chunk(s)")
+        total_bad = len(fails1 | fails2)
+        print(f"  RESULT: FAIL -- {total_bad} distinct chunk(s) mismatched; "
+              f"first at chunk {c} word #{bad}: "
+              f"expected {exp:#018x} got {got:#018x}")
+        raise AssertionError(f"memtest saw {total_bad} mismatched chunk(s)")
 
 
 def parse_random_flag(argv):
