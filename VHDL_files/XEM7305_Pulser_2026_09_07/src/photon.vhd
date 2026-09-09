@@ -1096,10 +1096,10 @@ begin
 	-- confirmed.
 	--
 	-- Read mode: issues one read command (state 0, 1), waits for
-	-- app_rd_data_valid (state 2, which pushes the low half and latches
-	-- the high half), waits one settling cycle (state 3, diagnostic --
-	-- see its comment), then pushes the high half (state 4) into
-	-- ddr3_read_fifo -- single request outstanding at a time.
+	-- app_rd_data_valid (state 2, which pushes the low half only),
+	-- samples the high half one cycle later (state 3, diagnostic --
+	-- see its comment), then pushes it (state 4) into ddr3_read_fifo
+	-- -- single request outstanding at a time.
 	------------------------------------------------------------------
 	process (ui_clk)
 	begin
@@ -1206,18 +1206,21 @@ begin
 						end if;
 					when 2 =>
 						if mig_app_rd_data_valid = '1' then
-							ddr3_read_din    <= mig_app_rd_data(63 downto 0);
-							ddr3_read_wr_en  <= '1';
-							rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
-							rd_pf_state      <= 3;
+							ddr3_read_din   <= mig_app_rd_data(63 downto 0);
+							ddr3_read_wr_en <= '1';
+							rd_pf_state     <= 3;
 						end if;
 					when 3 =>
-						-- diagnostic wait cycle: testing whether
-						-- ddr3_read_fifo's asymmetric (64W/32R) internal
-						-- width-conversion needs a settling cycle between
-						-- two writes on immediately-consecutive cycles,
-						-- analogous to the write-assembler's earlier fix.
-						rd_pf_state <= 4;
+						-- DIAGNOSTIC: testing whether mig_app_rd_data's
+						-- upper 64 bits become valid one cycle later than
+						-- the lower 64 bits, relative to when
+						-- mig_app_rd_data_valid first asserts (a lag
+						-- internal to MIG's own datapath, not a FIFO
+						-- issue) -- sampling the high half here, one
+						-- cycle after state 2 sampled the low half,
+						-- instead of both on the same cycle.
+						rd_pf_pending_hi <= mig_app_rd_data(127 downto 64);
+						rd_pf_state      <= 4;
 					when others => -- 4
 						ddr3_read_din   <= rd_pf_pending_hi;
 						ddr3_read_wr_en <= '1';
