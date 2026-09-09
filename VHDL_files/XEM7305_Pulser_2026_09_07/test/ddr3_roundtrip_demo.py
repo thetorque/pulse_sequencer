@@ -103,7 +103,10 @@ DDR3_READ_ENABLE_BIT = 1 << 4  # ep00wire(4)
 DDR3_PTR_RESET_BIT = 1 << 5    # ep40wire(5)
 RAM_PTR_RESET_BIT = 1 << 1     # ep40wire(1), reset alongside for a clean run
 DDR3_READ_FIFO_RESET_BIT = 1 << 6  # ep00wire(6): per-batch read-FIFO reset
-READ_FIFO_RESET_HOLD = 0.002   # seconds to hold the read-FIFO reset asserted / recover
+READ_FIFO_RESET_HOLD = 0.0002  # seconds around the read-FIFO reset pulse; the
+                               # UpdateWireIns USB round-trips already hold rst for
+                               # ~1 ms (>> the FIFO's few-cycle minimum), so this
+                               # is just a small margin, kept short for throughput
 
 READ_BUDGET_WIRE = 0x07  # ep07wire: this batch's read-command count
 
@@ -249,8 +252,15 @@ def wait_read_not_empty(xem):
         if not (xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_EMPTY_BIT):
             return
         time.sleep(NOT_EMPTY_POLL_INTERVAL)
+    status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
+    issued = (status >> DDR3_READ_ISSUED_SHIFT) & DDR3_READ_ISSUED_MASK
+    state = (status >> DDR3_READ_STATE_SHIFT) & DDR3_READ_STATE_MASK
+    idle = bool(status & DDR3_READ_IDLE_BIT)
     print_dup_diagnostics(xem)
-    raise RuntimeError("ddr3_read_fifo still reports empty after read-prefetch finished (WireOut 0x2F bit 14)")
+    raise RuntimeError(
+        f"ddr3_read_fifo still reports empty after read-prefetch finished (WireOut 0x2F bit 14) "
+        f"-- issued={issued}, rd_pf_state={state}, idle={idle} "
+        f"(issued=0 => budget latched 0; issued>0 => data not visible on read side)")
 
 
 def wait_read_idle(xem):
@@ -313,10 +323,11 @@ def read_words(xem, n_words, reset_fifo=True):
     switches to write mode.
 
     reset_fifo (default True) pulses ddr3_read_fifo_rst before the
-    batch. It's belt-and-suspenders: each batch is already balanced
-    (pushes and reads exactly n_words/2 entries, leaving the FIFO
-    empty), so it's safe to skip -- the endurance test does, to avoid
-    the reset's ~4 ms hold and sweep the device far faster.
+    batch, clearing the read FIFO and read-prefetch state. All callers
+    currently keep it on: skipping it (an attempted throughput
+    optimization) was found to wedge the second batch -- something in
+    the read FIFO's state after a full drain still needs the reset --
+    so the flag stays as a hook but defaults to the proven behavior.
 
     Ramtester-style single-push: each read command's whole 128-bit
     response is pushed into the 128-write/32-read ddr3_read_fifo in one
@@ -472,12 +483,11 @@ def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
     device. Verifies every batch; counts mismatches but keeps going
     (re-syncing addresses after each) so one glitch doesn't end an
     overnight run. Ctrl+C stops early and still prints the summary.
-    Skips the per-batch FIFO reset for speed -- see read_words()."""
+    Uses the same proven per-batch FIFO reset as the soak test."""
     print(f"\n--- DDR3 endurance test: {duration_sec}s, {words_per_batch} words/batch ---")
     print(f"    each batch sweeps {words_per_batch*8} bytes; "
           f"a full 512 MiB sweep is {DDR3_TOTAL_BYTES // (words_per_batch*8)} batches")
     reset_ddr3(xem)
-    reset_read_fifo(xem)  # once, up front -- not per batch
     start = time.time()
     batch = 0
     total_words = 0
@@ -489,7 +499,7 @@ def run_endurance_test(xem, duration_sec, words_per_batch, rng=None):
             test_words = make_test_words(words_per_batch, batch & 0xFFFF, rng)
             offset = (total_words * 8) % DDR3_TOTAL_BYTES  # ~byte addr this batch hits
             write_words(xem, test_words)
-            readback = read_words(xem, words_per_batch, reset_fifo=False)
+            readback = read_words(xem, words_per_batch)
             if readback != test_words:
                 mismatches += 1
                 bad = next(i for i in range(words_per_batch) if readback[i] != test_words[i])
