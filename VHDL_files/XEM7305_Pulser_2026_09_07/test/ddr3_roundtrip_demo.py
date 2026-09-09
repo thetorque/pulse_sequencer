@@ -159,14 +159,17 @@ def wait_write_idle(xem):
 
 
 def wait_read_ready(xem, min_count):
+    last_count = None
     for _ in range(READ_POLL_ATTEMPTS):
         xem.UpdateWireOuts()
         count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
+        last_count = count
         if count >= min_count:
             return count
         time.sleep(READ_POLL_INTERVAL)
     raise RuntimeError(
-        f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F)")
+        f"ddr3_read_fifo never reached {min_count} halves (WireOut 0x2F) "
+        f"-- stuck at {last_count}")
 
 
 def wait_read_idle(xem):
