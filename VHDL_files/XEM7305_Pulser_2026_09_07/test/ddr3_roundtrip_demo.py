@@ -56,27 +56,30 @@ read mode; see rd_pf_issued/rd_pf_target's declaration comment in
 photon.vhd.
 
 Per-batch trailing flush: removing that overshoot also exposed a
-second, related effect -- ddr3_read_rd_data_count plateaus at
-2*(total_pushes-1) halves, not 2*total_pushes, meaning the MOST
-RECENTLY pushed word never becomes visible until something else is
-pushed after it (confirmed on hardware; same FWFT-lookahead mechanism
-as the priming push's PG057 finding, just biting the tail of a batch
-instead of the head -- the old eager overshoot always supplied that
-"something else" for free). photon.vhd's read-prefetch now pushes one
-more throwaway dummy after each batch's real commands finish
-(rd_pf_flushed) to flush the batch's own last word into visibility.
+second, related effect -- the MOST RECENTLY pushed word never becomes
+visible on the read side until something else is pushed after it (same
+FWFT-lookahead mechanism as the priming push's PG057 finding, just
+biting the tail of a batch instead of the head). photon.vhd's
+read-prefetch pushes one more throwaway dummy after each batch's real
+commands finish (rd_pf_flushed) to flush the batch's own last word
+into visibility.
 
-Multi-batch continuation: as long as reset_ddr3() isn't called between
-batches, wr_asm_addr/rd_pf_addr keep advancing, and every batch's
-reconstruction uses the *same* offset -- each batch's trailing flush
-doubles as the next batch's leading dummy, so there's always exactly
-one dummy pair immediately before a batch's real data, whether that's
-the once-ever priming push (batch 0) or the previous batch's own
-trailing flush (every batch after). run_soak_test() strings many
-batches together this way to walk further into DDR3's address space
-than a single batch's FIFO depth allows, verifying each batch
-immediately (in the spirit of the Locally_compiled_ramtester reference
-design).
+Multi-batch continuation via per-batch read-FIFO reset: an earlier
+scheme let each batch's trailing flush carry over as the next batch's
+leading dummy, sharing one FIFO lifetime across all batches. That
+2-halve carryover raced across the ui_clk->okClk crossing and
+intermittently vanished (confirmed on hardware: failing batches ended
+with read count=0 instead of the healthy 2, then read dummy/shifted
+data). Instead, read_words() now pulses ddr3_read_fifo_rst
+(ep00wire(6), see reset_read_fifo) before each batch, clearing the
+read FIFO and re-priming so every batch reproduces batch 0's exact,
+always-correct stream -- with NO inter-batch carryover to lose. The
+reset deliberately leaves rd_pf_addr/wr_asm_addr untouched, so the
+DDR3 address walk still advances across batches. run_soak_test()
+strings many batches together this way to walk further into DDR3's
+address space than a single batch's FIFO depth allows, verifying each
+batch immediately (in the spirit of the Locally_compiled_ramtester
+reference design).
 
 Usage:
     python ddr3_roundtrip_demo.py path/to/photon.bit [n_words] [--random[=SEED]]
@@ -114,6 +117,8 @@ N_WORDS = 8  # must be even -- see module docstring
 DDR3_READ_ENABLE_BIT = 1 << 4  # ep00wire(4)
 DDR3_PTR_RESET_BIT = 1 << 5    # ep40wire(5)
 RAM_PTR_RESET_BIT = 1 << 1     # ep40wire(1), reset alongside for a clean run
+DDR3_READ_FIFO_RESET_BIT = 1 << 6  # ep00wire(6): per-batch read-FIFO reset
+READ_FIFO_RESET_HOLD = 0.002   # seconds to hold the read-FIFO reset asserted / recover
 
 READ_BUDGET_WIRE = 0x07  # ep07wire: this batch's read-command count
 
@@ -128,12 +133,6 @@ WRITE_IDLE_POLL_INTERVAL = 0.01
 
 DDR3_READ_STATUS_WIRE = 0x2F
 DDR3_READ_IDLE_BIT = 1 << 16
-DDR3_READ_COUNT_MASK = 0x3F  # ddr3_read_rd_data_count is bits 5:0 only -- must NOT
-                             # overlap ddr3_read_empty (bit 14) / rd_pf_flushed (bit 15),
-                             # which a wider 0xFFFF mask wrongly folded in (flushed is set
-                             # after every batch, so the count read as >= 0x8000 and
-                             # drain_read_fifo's "count < 4" stop check never fired ->
-                             # infinite blocking block-reads -> hang)
 DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
 DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
 DDR3_READ_ISSUED_MASK = 0xFF
@@ -305,43 +304,40 @@ def write_words(xem, words):
     wait_write_idle(xem)
 
 
-def drain_read_fifo(xem):
-    """Reads (and discards) whatever's left in ddr3_read_fifo, in whole
-    blocks. Only safe to call once read mode is off (ep00wire(4)=0) --
-    otherwise read-prefetch keeps eagerly refilling it from
-    ever-increasing addresses and this would never terminate. Returns
-    (pre_count, pre_empty, blocks_drained) for the per-batch drift
-    diagnostic (see read_words)."""
-    xem.UpdateWireOuts()
-    status = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE)
-    pre_count = status & DDR3_READ_COUNT_MASK
-    pre_empty = bool(status & DDR3_READ_EMPTY_BIT)
-    blocks_drained = 0
-    buf = bytearray(PIPE_BLOCK_SIZE)
-    while True:
-        xem.UpdateWireOuts()
-        count = xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_COUNT_MASK
-        if count < PIPE_BLOCK_SIZE // 4:  # fewer than one block's worth of halves left
-            return pre_count, pre_empty, blocks_drained
-        n = xem.ReadFromBlockPipeOut(0xA3, PIPE_BLOCK_SIZE, buf)
-        assert n == PIPE_BLOCK_SIZE, f"ReadFromBlockPipeOut returned {n}, expected {PIPE_BLOCK_SIZE}"
-        blocks_drained += 1
+def reset_read_fifo(xem):
+    """Pulses ddr3_read_fifo_rst (ep00wire(6)): clears the read FIFO and
+    read-prefetch state (rd_pf_primed/state/issued/flushed) WITHOUT
+    touching the addresses, so each batch reads from a clean read-side
+    state -- the identical starting condition batch 0 always read
+    correctly from -- instead of relying on a fragile inter-batch FIFO
+    carryover that raced across the ui_clk->okClk crossing. Must be
+    called with read mode off (ep00wire(4)=0) and read-prefetch idle.
+    The FIFO IP's rst is asynchronous; the hold/recover margins here are
+    orders of magnitude longer than its few-cycle minimum."""
+    xem.SetWireInValue(0x00, DDR3_READ_FIFO_RESET_BIT, DDR3_READ_FIFO_RESET_BIT)
+    xem.UpdateWireIns()
+    time.sleep(READ_FIFO_RESET_HOLD)
+    xem.SetWireInValue(0x00, 0, DDR3_READ_FIFO_RESET_BIT)
+    xem.UpdateWireIns()
+    time.sleep(READ_FIFO_RESET_HOLD)
 
 
 def read_words(xem, n_words):
-    """Switches to read mode, waits for this batch's real words (plus
-    the leading dummy that precedes them -- the once-ever priming push
-    for the very first batch, or the previous batch's own trailing
-    flush for any later one -- and this batch's own trailing flush),
-    reads them back as a list of n_words 64-bit integers, switches
-    back to write mode, then drains any leftover prefetched words.
+    """Resets the read FIFO (so this batch starts from the same clean
+    read-side state batch 0 always read correctly from -- see
+    reset_read_fifo), switches to read mode, waits for the priming push
+    plus this batch's real words plus the trailing flush, reads them
+    back as a list of n_words 64-bit integers, and switches back to
+    write mode.
 
-    Every batch uses the same reconstruction offset: read-prefetch's
-    per-batch trailing flush (rd_pf_flushed in photon.vhd) guarantees
-    something is always pushed immediately before, and immediately
-    after, this batch's own real words, so the leading garbage pair is
-    always exactly 2 halves regardless of which batch this is. See the
-    module docstring's "Multi-batch continuation" section."""
+    Because every batch re-primes from an empty FIFO, every batch
+    reproduces batch 0's exact stream, so the reconstruction offset is
+    the same for all batches. Must be called with read mode off on
+    entry (write_words leaves it there)."""
+    # Clean read-side state for this batch -- must happen before read
+    # mode is enabled and while read-prefetch is idle.
+    reset_read_fifo(xem)
+
     target_commands = n_words // 2
     xem.SetWireInValue(READ_BUDGET_WIRE, target_commands, 0xFFFFFFFF)
     xem.SetWireInValue(0x00, DDR3_READ_ENABLE_BIT, DDR3_READ_ENABLE_BIT)
@@ -349,7 +345,7 @@ def read_words(xem, n_words):
 
     # +3 halves: halves[0] is a leftover/unused half before the
     # stream settles, and halves[1]/halves[2] reconstruct as a
-    # (garbage) *whole* word -- the leading dummy's own low half plus
+    # (garbage) *whole* word -- the priming push's own low half plus
     # the next push's high half that structurally leaks into its
     # slot. That whole pair must be discarded, not just one half. See
     # module docstring.
@@ -383,11 +379,8 @@ def read_words(xem, n_words):
     wait_read_idle(xem)
     xem.SetWireInValue(0x00, 0, DDR3_READ_ENABLE_BIT)
     xem.UpdateWireIns()
-    pre_count, pre_empty, blocks_drained = drain_read_fifo(xem)
-    # DIAGNOSTIC (temporary): per-batch drift. If drain removes a
-    # variable number of blocks across batches, that's the read-window
-    # misalignment source -- see the batch-N mismatch analysis.
-    print(f"    [drain diag] pre-drain count={pre_count} empty={pre_empty} blocks_drained={blocks_drained}")
+    # No drain needed: the next batch's reset_read_fifo() clears any
+    # leftover, so there is no inter-batch carryover to manage.
 
     return words
 

@@ -131,7 +131,12 @@
 -- command budget (see rd_pf_issued/rd_pf_target declaration comment),
 -- letting multiple write/read batches share one reset epoch (and
 -- therefore walk further into DDR3's address space across a soak
--- test) without rd_pf_addr desyncing from wr_asm_addr.
+-- test) without rd_pf_addr desyncing from wr_asm_addr. New WireIn bit
+-- ep00wire(6) (ddr3_read_fifo_rst) clears the read FIFO and read-
+-- prefetch state per batch, WITHOUT touching the addresses, so each
+-- batch reads from a clean read-side state (like batch 0) instead of
+-- relying on a fragile inter-batch FIFO carryover that raced across
+-- the ui_clk->okClk crossing -- see its declaration comment.
 -- ddr3_read_fifo is natively asymmetric (64-bit write / 32-bit read)
 -- so BTPipeOut 0xA3 wires directly to it, no intermediary logic --
 -- a symmetric-FIFO-plus-hand-rolled-splitter version broke
@@ -366,6 +371,20 @@ architecture arch of photon is
 	signal ddr3_read_full          : STD_LOGIC;
 	signal ddr3_read_empty         : STD_LOGIC;
 	signal ddr3_read_rd_data_count : STD_LOGIC_VECTOR(5 downto 0);
+	-- Per-batch read-FIFO reset (level, host-controlled via ep00wire(6)).
+	-- Clears ONLY the read FIFO and read-prefetch state (rd_pf_primed/
+	-- state/issued/flushed), NOT the addresses (rd_pf_addr/wr_asm_addr),
+	-- so each soak-test batch starts from the same clean read-side state
+	-- as batch 0 (which always passed) while the DDR3 address walk
+	-- continues across batches. Replaces the fragile inter-batch
+	-- 2-halve carryover (trailing flush becoming the next batch's
+	-- leading dummy), which raced across the ui_clk->okClk crossing and
+	-- intermittently lost sync (confirmed: failing batches ended with
+	-- read count=0 instead of the healthy 2). The FIFO IP's rst is
+	-- asynchronous, so driving it from this okClk-domain WireIn level is
+	-- fine; the host holds it asserted with generous margin (ms) around
+	-- each batch's read.
+	signal ddr3_read_fifo_rst      : STD_LOGIC;
 
 	-- MIG app_* command/write-data interface, now driven by the
 	-- write-assembler/read-prefetch process below instead of tied
@@ -867,6 +886,10 @@ begin
 	normal_pmt_fifo_reset    <= ep40wire(2);
 	readout_count_fifo_reset <= ep40wire(4);
 
+	-- Phase 6b: per-batch read-FIFO reset, see ddr3_read_fifo_rst
+	-- declaration comment.
+	ddr3_read_fifo_rst <= ep00wire(6);
+
 	-- Note: master_logic(17) is the legacy "TimeResolvedCount" bit --
 	-- fifo_photon_wr_en would be wired to it directly in the legacy
 	-- design, but fifo_photon_din (photon_time_tag) doesn't exist until
@@ -1274,6 +1297,16 @@ begin
 				dbg_dup_addr_match <= '0';
 				dbg_prev_rd_data   <= (others => '0');
 				dbg_prev_addr      <= (others => '0');
+			elsif ddr3_read_fifo_rst = '1' then
+				-- per-batch read-FIFO reset (see ddr3_read_fifo_rst
+				-- declaration comment): clean read-side state so the
+				-- next batch re-primes and reads exactly like batch 0,
+				-- but preserve rd_pf_addr/wr_asm_addr so the DDR3
+				-- address walk continues across batches.
+				rd_pf_state    <= 0;
+				rd_pf_primed   <= '0';
+				rd_pf_issued   <= 0;
+				rd_pf_flushed  <= '0';
 			elsif ep00wire(4) = '0' then
 				-- write mode
 				case wr_asm_state is
@@ -1505,7 +1538,7 @@ begin
 	);
 
 	ddr3_read_fifo_inst : ddr3_read_fifo port map (
-		rst    => '0',
+		rst    => ddr3_read_fifo_rst,
 		wr_clk => ui_clk,
 		rd_clk => okClk,
 		din    => ddr3_read_din,
