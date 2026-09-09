@@ -133,8 +133,11 @@ DDR3_READ_PRIMED_BIT = 1 << 17     # DIAGNOSTIC (temporary): rd_pf_primed
 DDR3_READ_ISSUED_SHIFT = 18        # DIAGNOSTIC (temporary): rd_pf_issued, bits 25:18
 DDR3_READ_ISSUED_MASK = 0xFF
 DDR3_READ_FLUSHED_BIT = 1 << 15    # rd_pf_flushed -- see photon.vhd's ep2Fwire comment
+DDR3_READ_EMPTY_BIT = 1 << 14      # ddr3_read_empty -- see photon.vhd's ep2Fwire comment
 BATCH_DONE_POLL_ATTEMPTS = 200
 BATCH_DONE_POLL_INTERVAL = 0.01
+NOT_EMPTY_POLL_ATTEMPTS = 200
+NOT_EMPTY_POLL_INTERVAL = 0.01
 
 DUP_STATUS_WIRE = 0x34  # DIAGNOSTIC (temporary): see photon.vhd's dbg_dup_count comment
 VALID_COUNT_WIRE = 0x30  # DIAGNOSTIC (temporary): dbg_valid_count, rising edges of app_rd_data_valid
@@ -242,6 +245,26 @@ def wait_batch_done(xem, target_commands):
         f"primed={primed}, issued={issued}/{target_commands}, flushed={flushed}, idle={idle}")
 
 
+def wait_read_not_empty(xem):
+    """Sanity gate before ReadFromBlockPipeOut, on top of
+    wait_batch_done(): confirming the *write side* finished pushing
+    (rd_pf_primed/issued/flushed/idle) says nothing about whether that
+    data has actually crossed into the read clock domain yet --
+    calling ReadFromBlockPipeOut before it has crossed hangs (no
+    software timeout on that call, confirmed on hardware). Unlike
+    ddr3_read_rd_data_count, ddr3_read_empty is a single bit -- no
+    "different bits resolve at different times" glitch risk -- so it's
+    safe to gate on, the same way this design already trusts
+    ddr3_write_empty elsewhere."""
+    for _ in range(NOT_EMPTY_POLL_ATTEMPTS):
+        xem.UpdateWireOuts()
+        if not (xem.GetWireOutValue(DDR3_READ_STATUS_WIRE) & DDR3_READ_EMPTY_BIT):
+            return
+        time.sleep(NOT_EMPTY_POLL_INTERVAL)
+    print_dup_diagnostics(xem)
+    raise RuntimeError("ddr3_read_fifo still reports empty after read-prefetch finished (WireOut 0x2F bit 14)")
+
+
 def wait_read_idle(xem):
     """Must be checked before switching ep00wire(4) back to write mode
     -- see rd_pf_idle's declaration comment in photon.vhd for why."""
@@ -322,6 +345,10 @@ def read_words(xem, n_words):
     # Gate on read-prefetch's own (non-CDC) completion state, not on
     # ddr3_read_rd_data_count -- see wait_batch_done()'s docstring.
     wait_batch_done(xem, target_commands)
+    # Then confirm the data has actually crossed into the read clock
+    # domain before calling ReadFromBlockPipeOut -- see
+    # wait_read_not_empty()'s docstring.
+    wait_read_not_empty(xem)
 
     total_bytes = needed_halves * 4
     if total_bytes % PIPE_BLOCK_SIZE:

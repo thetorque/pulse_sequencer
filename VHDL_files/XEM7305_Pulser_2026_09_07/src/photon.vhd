@@ -989,8 +989,18 @@ begin
 	-- exposing rd_pf_flushed lets the host stop gating on that
 	-- unreliable count and instead wait on this pure ui_clk-domain
 	-- state (no CDC crossing) to know a batch's pushes are all done.
+	-- bit 14 = ddr3_read_empty -- gating purely on the write side's
+	-- own bookkeeping (bits 17/16/15/25:18) turned out to be unsafe on
+	-- its own: it says nothing about whether that data has actually
+	-- crossed into the read clock domain yet, and calling
+	-- ReadFromBlockPipeOut before it has crossed hangs (no software
+	-- timeout on that call). ddr3_read_empty is a single bit, not a
+	-- multi-bit bus, so it doesn't have the count's "different bits
+	-- resolve at different times" glitch risk -- same class of signal
+	-- ddr3_write_empty already is, safely, elsewhere in this design.
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
-	            rd_pf_primed & rd_pf_idle & rd_pf_flushed & (14 downto 6 => '0') & ddr3_read_rd_data_count;
+	            rd_pf_primed & rd_pf_idle & rd_pf_flushed & ddr3_read_empty &
+	            (13 downto 6 => '0') & ddr3_read_rd_data_count;
 
 	------------------------------------------------------------------
 	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count
