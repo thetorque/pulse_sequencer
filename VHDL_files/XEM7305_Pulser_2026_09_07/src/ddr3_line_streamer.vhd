@@ -264,6 +264,16 @@ begin
           when others =>  -- S_DRAIN: after a restart, let any in-flight read's
             -- response arrive and be discarded (app_en stays deasserted, no
             -- push) before issuing fresh reads from the rewound address.
+            --
+            -- Hold fifo_rst asserted for most of the drain: the real
+            -- fifo_generator IP needs its reset held several wr+rd clocks (a
+            -- 1-cycle pulse leaves the FIFO unable to re-prime -> the loop
+            -- restart hung on hardware, though the behavioural model reset in
+            -- one cycle so sim passed). Release it while >16 drain cycles
+            -- remain so the IP finishes reset-recovery before reads resume.
+            if drain_ctr > 16 then
+              fifo_rst <= '1';
+            end if;
             if drain_ctr = 0 then
               state <= S_IDLE;
             else
