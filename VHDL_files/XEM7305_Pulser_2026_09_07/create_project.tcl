@@ -92,7 +92,7 @@ generate_target {instantiation_template synthesis simulation} [get_files ./src/i
 # beats, pulse_sequencer pops one 64-bit line at a time. Must match the
 # 128/64 Standard-FIFO ports the streamer declares (full/empty/wr_data_count/
 # rd_data_count) and the LOW-first half ordering assumed by the sequencer.
-create_ip -name fifo_generator -vendor xilinx.com -library ip -version 13.2 -module_name line_fifo_128x64 -dir ./src/ip
+create_ip -name fifo_generator -vendor xilinx.com -library ip -version 13.2 -module_name fifo_128x4 -dir ./src/ip
 set_property -dict [list \
   CONFIG.Fifo_Implementation {Independent_Clocks_Block_RAM} \
   CONFIG.Input_Data_Width {128} \
@@ -101,8 +101,8 @@ set_property -dict [list \
   CONFIG.Performance_Options {Standard_FIFO} \
   CONFIG.Read_Data_Count {true} \
   CONFIG.Write_Data_Count {true} \
-] [get_ips line_fifo_128x64]
-generate_target {instantiation_template synthesis simulation} [get_files ./src/ip/line_fifo_128x64/line_fifo_128x64.xci]
+] [get_ips fifo_128x4]
+generate_target {instantiation_template synthesis simulation} [get_files ./src/ip/fifo_128x4/fifo_128x4.xci]
 
 # Phase 6b: DDR3 write FIFO -- 64-bit FWFT, independent clocks. The write
 # assembler reads 64-bit words and pairs two into one 128-bit MIG write.

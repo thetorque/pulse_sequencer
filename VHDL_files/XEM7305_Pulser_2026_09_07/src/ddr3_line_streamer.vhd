@@ -73,7 +73,7 @@ architecture rtl of ddr3_line_streamer is
   -- 128-write / 64-read independent-clocks Standard FIFO. In the real design
   -- this is the Xilinx fifo_generator IP (ddr3_line_fifo); for simulation a
   -- behavioural architecture of the same entity is provided in sim/.
-  component line_fifo_128x64 is
+  component fifo_128x4 is
     port (
       rst           : in  std_logic;
       wr_clk        : in  std_logic;
@@ -113,7 +113,7 @@ architecture rtl of ddr3_line_streamer is
 
 begin
 
-  fifo : line_fifo_128x64
+  fifo : fifo_128x4
     port map (
       rst           => fifo_rst,
       wr_clk        => ui_clk,
