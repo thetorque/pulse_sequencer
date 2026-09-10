@@ -190,16 +190,20 @@ def write_and_verify(xem, prog, verify_words):
     sys.exit("aborting: fix the write path before bringing up the stream")
 
 
-def start_sequencer(xem, infinite=False):
+def start_sequencer(xem, infinite=False, loop_limit=0):
     """Enter DDR3 sequencer mode and start. Leaves write mode (bit4=0): while
     streaming, the mux hands MIG's command channel to the streamer and the
-    write path sits idle."""
+    write path sits idle. loop_limit (ep05, 16-bit) caps infinite loops: 0 =
+    unlimited, N = stop after N iterations."""
+    xem.SetWireInValue(0x05, loop_limit & 0xFFFF, 0xFFFFFFFF)  # ep05: loop_limit
+    xem.UpdateWireIns()
     base = SEQMODE_BIT | (INFINITE_BIT if infinite else 0)
     set_ep00(xem, base)              # seq mode (+ infinite), start still off
     pulse_reset(xem)                 # reset the sequencer FSM
     set_ep00(xem, base | START_BIT)  # start -> streamer primes, sequencer runs
     print(f"  DDR3 sequencer started (ep00 bit5=seq mode, bit2=start"
-          f"{', bit1=infinite' if infinite else ''})")
+          f"{', bit1=infinite' if infinite else ''}"
+          f"{', loop_limit=' + str(loop_limit) if loop_limit else ''})")
 
 
 def run_long(xem, n_lines, dwell_ticks):
@@ -311,6 +315,86 @@ def run_long(xem, n_lines, dwell_ticks):
         time.sleep(0.01)
 
 
+def run_loops(xem, n_lines, dwell_ticks, loops):
+    """Finite-loop mode: run the program `loops` times (loop_limit) then stop.
+    Verifies seq_count == loops, seq_done, drop flag 0, and line_count ==
+    loops*(n_lines+1) + (loops-1) -- each loop pops n_lines+1 lines, plus one
+    extra per loop boundary (the restart re-prime); sim-derived formula."""
+    dwell_s = dwell_ticks / TICKS_PER_SEC
+    loop_s = n_lines * dwell_s
+    expect_lc = loops * (n_lines + 1) + (loops - 1)
+    timeout = loop_s * loops * 1.5 + 8.0
+    print(f"  {loops} loops of {n_lines} lines @ {dwell_s * 1e3:.3f} ms/line "
+          f"(~{loop_s:.1f} s/loop, ~{loop_s * loops:.1f} s total)\n")
+    t0 = time.time()
+    last_seq = -1
+    while time.time() - t0 < timeout:
+        xem.UpdateWireOuts()
+        seq = xem.GetWireOutValue(SEQ_WIRE)
+        seq_count = seq & 0xFFFF
+        if seq_count != last_seq:
+            print(f"    t={time.time() - t0:6.1f}s  seq_count={seq_count}")
+            last_seq = seq_count
+        if seq & SEQ_DONE_BIT:
+            overflow = bool(seq & OVERFLOW_BIT)
+            lc = xem.GetWireOutValue(LINE_COUNT_WIRE)
+            set_ep00(xem, 0)
+            print(f"    seq_done at seq_count={seq_count}, drop flag={int(overflow)}, "
+                  f"line_count={lc} (expect {expect_lc})")
+            print("\n--- N-loop result ---")
+            if seq_count == loops and not overflow and lc == expect_lc:
+                print(f"  RESULT: PASS -- ran exactly {loops} loops, seq_done, drop flag 0, "
+                      f"and line_count {lc} == {loops}*(n+1)+(n-1). Every line of every "
+                      f"loop accounted for; restart/rewind/re-prime verified.")
+                return
+            print(f"  RESULT: FAIL -- seq_count {seq_count} (expect {loops}), drop flag "
+                  f"{int(overflow)}, line_count {lc} (expect {expect_lc}).")
+            sys.exit(1)
+        time.sleep(0.02)
+    set_ep00(xem, 0)
+    sys.exit(f"  RESULT: FAIL -- {loops} loops did not finish within {timeout:.0f}s "
+             f"(last seq_count={last_seq}).")
+
+
+def run_loop(xem, n_lines, dwell_ticks, watch=8):
+    """Infinite-loop mode: loop_limit=0, watch seq_count climb through `watch`
+    iterations to confirm the restart/rewind/re-prime path repeats forever, then
+    stop. Checks seq_count advances, seq_done never asserts, drop flag stays 0."""
+    dwell_s = dwell_ticks / TICKS_PER_SEC
+    loop_s = n_lines * dwell_s
+    timeout = loop_s * (watch + 2) * 1.5 + 8.0
+    print(f"  infinite loop of {n_lines} lines @ {dwell_s * 1e3:.3f} ms/line "
+          f"(~{loop_s:.1f} s/loop); watching {watch} iterations\n")
+    t0 = time.time()
+    last_seq = -1
+    done_seen = False
+    while time.time() - t0 < timeout:
+        xem.UpdateWireOuts()
+        seq = xem.GetWireOutValue(SEQ_WIRE)
+        seq_count = seq & 0xFFFF
+        if seq & SEQ_DONE_BIT:
+            done_seen = True
+        if seq_count != last_seq:
+            lc = xem.GetWireOutValue(LINE_COUNT_WIRE)
+            ovf = bool(seq & OVERFLOW_BIT)
+            print(f"    t={time.time() - t0:6.1f}s  seq_count={seq_count}  "
+                  f"line_count={lc}  drop={int(ovf)}")
+            last_seq = seq_count
+            if seq_count >= watch:
+                break
+        time.sleep(0.02)
+    overflow = bool(xem.GetWireOutValue(SEQ_WIRE) & OVERFLOW_BIT)
+    set_ep00(xem, 0)   # stop
+    print("\n--- Infinite-loop result ---")
+    if last_seq >= watch and not done_seen and not overflow:
+        print(f"  RESULT: PASS -- looped {last_seq}+ times without stopping (seq_done "
+              f"never asserted), drop flag 0. Restart/rewind/re-prime repeats "
+              f"indefinitely; stop it by clearing the start bit.")
+        return
+    sys.exit(f"  RESULT: FAIL -- last seq_count={last_seq} (wanted >={watch}), "
+             f"seq_done_seen={done_seen}, drop flag={int(overflow)}.")
+
+
 def main():
     def flag_value(name, default, cast):
         if name in args:
@@ -324,13 +408,18 @@ def main():
     args = sys.argv[1:]
     fast = "--fast" in args
     long = "--long" in args
-    n_lines = flag_value("--lines", 8192, int)
+    loop = "--loop" in args
+    loops_n = flag_value("--loops", None, int)     # finite loop count
     dwell_ms = flag_value("--dwell-ms", 2.0, float)
+    n_lines_arg = flag_value("--lines", None, int)
+    # loop modes want a smaller program so iterations are observable
+    loop_mode = loop or (loops_n is not None)
+    n_lines = n_lines_arg if n_lines_arg is not None else (1000 if loop_mode else 8192)
     # positional args = anything that is neither a flag nor a flag's value
     positional, i = [], 0
     while i < len(args):
         a = args[i]
-        if a in ("--lines", "--dwell-ms"):
+        if a in ("--lines", "--dwell-ms", "--loops"):
             i += 2
         elif a.startswith("--"):
             i += 1
@@ -339,7 +428,7 @@ def main():
             i += 1
     if not positional:
         sys.exit("usage: python ddr3_sequencer_bringup.py <photon.bit> "
-                 "[--fast | --long [--lines N] [--dwell-ms X]]")
+                 "[--fast | --long | --loop | --loops N] [--lines N] [--dwell-ms X]")
     bit_path = positional[0]
 
     xem = connect(bit_path)   # ConfigureFPGA + wait for MIG calibration
@@ -351,6 +440,22 @@ def main():
     xem.SetWireInValue(0x03, 0, 0xFFFFFFFF)   # ep03: override values off
     xem.SetWireInValue(0x05, 0, 0xFFFFFFFF)   # ep05: loop_limit 0
     xem.UpdateWireIns()
+
+    # ---- Loop modes (finite / infinite repeat of the program) ---------------
+    if loop_mode:
+        dwell_ticks = int(dwell_ms / 1e3 * TICKS_PER_SEC)
+        prog, dwell_ticks = build_long_program(n_lines, dwell_ticks)
+        kind = f"{loops_n} LOOPS" if loops_n is not None else "INFINITE LOOP"
+        print(f"\n--- Phase 6c DDR3 sequencer bring-up: {kind} "
+              f"({n_lines} lines, {dwell_ticks / TICKS_PER_SEC * 1e3:.3f} ms/line) ---")
+        write_and_verify(xem, prog, min(256, len(prog)))
+        if loops_n is not None:
+            start_sequencer(xem, infinite=True, loop_limit=loops_n)
+            run_loops(xem, n_lines, dwell_ticks, loops_n)
+        else:
+            start_sequencer(xem, infinite=True, loop_limit=0)
+            run_loop(xem, n_lines, dwell_ticks)
+        return
 
     # ---- Long heartbeat / cold-start-crossing test --------------------------
     if long:
