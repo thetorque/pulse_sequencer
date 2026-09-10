@@ -75,29 +75,54 @@ def line(time_ticks, channel):
     return ((time_ticks & 0x3FFFFFFF) << 32) | (channel & 0xFFFFFFFF)
 
 
+# Program steps as (absolute time, channel). Semantics (see pulse_sequencer):
+# the FIRST step's channel is applied IMMEDIATELY (its time is ignored); every
+# later step's channel is applied when the free-running tick count reaches its
+# absolute time, so times MUST strictly increase. A final channel-0 step turns
+# everything off, then the all-zero terminator ends the run.
+#
+# Channels are kept within the low 12 bits (the explicitly override-muxed
+# channels 0-11) so master_logic reads back cleanly on WireOut 0x2B; low 6 bits
+# also drive led_ext. Dwells are deliberately NON-uniform to stress the
+# absolute-time engine, and the patterns are distinct (walking fill, alternating
+# 0x555/0xAAA, nibble patterns, all-on 0xFFF) so any residual ordering or bit
+# mapping error is obvious.
+STEPS_SLOW = [
+    # (t seconds, channel)
+    (0.0, 0x001),   # applied immediately (time ignored)
+    (0.6, 0x003),
+    (1.1, 0x007),
+    (1.5, 0x00F),
+    (2.2, 0x03F),   # low 6 all on -> all LEDs on
+    (2.7, 0x555),   # alternating
+    (3.3, 0xAAA),   # alternating (complement)
+    (3.8, 0xFFF),   # all 12 on
+    (4.6, 0xF0F),
+    (5.1, 0x0F0),
+    (5.9, 0x111),
+    (6.5, 0x888),
+    (7.2, 0x000),   # all off (real line, not terminator)
+]
+
+# Fast (scope / logic-analyzer) variant: tight absolute ticks, more edges.
+STEPS_FAST = [
+    (0,  0x01), (3,  0x02), (6,  0x04), (9,  0x08),
+    (12, 0x10), (15, 0x20), (18, 0x3F), (21, 0x2A),
+    (24, 0x15), (27, 0x00),
+]
+
+
 def build_program(fast):
     """The bring-up program as an ordered list of 64-bit lines, terminator
-    included, padded to PRIME_LINES with terminators (even count)."""
-    if fast:
-        # sim PROG_SEL=0 demo: tight absolute ticks, for a scope / LA.
-        lines = [line(3, 0x01), line(8, 0x02), line(10, 0x04), 0x0]
-        expected = [0x01, 0x02, 0x04]
-    else:
-        # host-observable: one state per second so master_logic / led_ext can
-        # be watched live. A line's channel holds until the NEXT line's time,
-        # so each of 0x01/0x02/0x04/0x08 is held a full second; the 5 s line
-        # turns everything off, then the terminator ends the run.
-        lines = [
-            line(1 * TICKS_PER_SEC, 0x01),
-            line(2 * TICKS_PER_SEC, 0x02),
-            line(3 * TICKS_PER_SEC, 0x04),
-            line(4 * TICKS_PER_SEC, 0x08),
-            line(5 * TICKS_PER_SEC, 0x00),   # all-off (real line, not terminator)
-            0x0,                              # terminator -> seq_done
-        ]
-        expected = [0x01, 0x02, 0x04, 0x08]
-    while len(lines) < PRIME_LINES:
-        lines.append(0x0)                     # pad with terminators (even count)
+    included, padded to PRIME_LINES with terminators (even count). Returns
+    (lines, expected) where expected is the nonzero channels in order."""
+    steps = STEPS_FAST if fast else STEPS_SLOW
+    scale = 1 if fast else TICKS_PER_SEC
+    lines = [line(int(t * scale), ch) for (t, ch) in steps]
+    lines.append(0x0)                          # terminator -> seq_done
+    while len(lines) < PRIME_LINES or len(lines) % 2 != 0:
+        lines.append(0x0)                      # pad with terminators (even count)
+    expected = [ch for (_, ch) in steps if ch != 0]
     return lines, expected
 
 
@@ -130,7 +155,8 @@ def main():
     xem.UpdateWireIns()
 
     prog, expected = build_program(fast)
-    mode = "fast (scope/LA)" if fast else "slow (host-observable, 1 s/state)"
+    mode = ("fast (scope/LA)" if fast
+            else f"slow (host-observable, {len(expected)} states, varied dwells)")
     print(f"\n--- Phase 6c DDR3 sequencer bring-up: {mode} ---")
 
     # 1) Write the program into DDR3 at address 0 (write mode, pointers reset).
@@ -172,7 +198,7 @@ def main():
     done = False
     seq_count = 0
     t0 = time.time()
-    timeout = 3.0 if fast else 8.0
+    timeout = 3.0 if fast else 10.0
     while time.time() - t0 < timeout:
         xem.UpdateWireOuts()
         logic = xem.GetWireOutValue(LOGIC_WIRE)
@@ -188,7 +214,7 @@ def main():
             print(f"    t={time.time() - t0:5.2f}s  seq_done asserted (seq_count={seq_count})")
             done = True
             break
-        time.sleep(0.02 if fast else 0.1)
+        time.sleep(0.02 if fast else 0.05)
 
     # 5) Stop and clear control state.
     set_ep00(xem, 0x00000000)
