@@ -60,6 +60,7 @@ LOGIC_WIRE   = 0x2B     # ep2Bwire = logic_out (= master_logic, overrides off)
 SEQ_WIRE     = 0x2C     # ep2Cwire: bit16 = seq_done, bits[15:0] = seq_count
 SEQ_DONE_BIT = 1 << 16
 OVERFLOW_BIT = 1 << 17   # ep2Cwire bit 17: streamer sticky dropped-beat flag
+LINE_COUNT_WIRE = 0x35   # ep35wire: lines the sequencer popped this run (integrity)
 RESET_TRIG_ADDR = 0x40  # TriggerIn 0x40
 RESET_TRIG_BIT  = 0     # bit 0: pulser_counter_reset
 
@@ -230,22 +231,32 @@ def run_long(xem, n_lines, dwell_ticks):
         seq = xem.GetWireOutValue(SEQ_WIRE)
         if seq & SEQ_DONE_BIT:
             overflow = bool(seq & OVERFLOW_BIT)
+            line_count = xem.GetWireOutValue(LINE_COUNT_WIRE)
+            expected = n_lines + 1     # lines 0..terminator (see pulse_sequencer)
             print(f"    t={now - t0:6.1f}s  seq_done asserted (seq_count={seq & 0xFFFF}), "
-                  f"drop flag={int(overflow)}")
+                  f"drop flag={int(overflow)}, line_count={line_count} (expect {expected})")
             set_ep00(xem, 0)
             print("\n--- Long-stream result ---")
+            # reaching seq_done is NOT sufficient: a dropped beat that missed the
+            # terminator would silently skip lines yet still finish. Two independent
+            # integrity checks close that: the streamer drop flag (overflow only)
+            # and the line-pop count (any cause).
             if overflow:
-                # reaching seq_done is NOT sufficient: a dropped beat that missed
-                # the terminator would silently skip 2 lines yet still finish.
-                print(f"  RESULT: FAIL -- seq_done reached but the streamer DROP flag "
-                      f"(0x2C bit17) is SET: at least one beat was pushed into a full "
-                      f"FIFO and lost (2 lines skipped). Sustained-streaming overflow "
-                      f"-- the FILL_MARGIN gate did not hold; increase it.")
+                print(f"  RESULT: FAIL -- streamer DROP flag (0x2C bit17) is SET: a beat "
+                      f"was pushed into a full FIFO and lost. FILL_MARGIN did not hold.")
                 sys.exit(1)
-            print(f"  RESULT: PASS -- streamed all {n_lines} lines to completion past "
-                  f"the immune boundary at line {IMMUNE_LINES}, seq_done asserted, and "
-                  f"the drop flag is 0 (no beats dropped -- verified directly, not just "
-                  f"by non-stall). Sustained streaming + keep-warm heartbeat validated.")
+            if line_count != expected:
+                lost = expected - line_count
+                print(f"  RESULT: FAIL -- sequencer popped {line_count} lines but "
+                      f"expected {expected} ({'+' if lost < 0 else ''}{-lost} vs expected): "
+                      f"{'lines LOST' if lost > 0 else 'DUPLICATE lines'} somewhere in the "
+                      f"stream. Since the drop flag is 0, the loss is NOT FIFO overflow -- "
+                      f"investigate the read path / streamer.")
+                sys.exit(1)
+            print(f"  RESULT: PASS -- streamed all {n_lines} lines past the immune "
+                  f"boundary at line {IMMUNE_LINES}, seq_done asserted, drop flag 0, and "
+                  f"the sequencer popped exactly {expected} lines. Every line accounted "
+                  f"for -- no drops or duplicates from any cause.")
             return
         if logic != last_logic:
             last_logic = logic

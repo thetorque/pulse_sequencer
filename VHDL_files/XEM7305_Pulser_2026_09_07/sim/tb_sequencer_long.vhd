@@ -47,6 +47,7 @@ architecture tb of tb_sequencer_long is
   signal seq_start : std_logic := '0';
   signal master_logic : std_logic_vector(31 downto 0);
   signal seq_done  : std_logic;
+  signal seq_lc    : std_logic_vector(31 downto 0);
 
   signal prev_master : std_logic_vector(31 downto 0) := (others => '0');
   signal reached     : integer := 0;   -- highest channel seen
@@ -84,7 +85,7 @@ begin
               line_trig_en => '0', line_trig_pulse => '0', loop_limit => (others => '0'),
               line_dout => line_dout, line_empty => line_empty, line_rd_en => line_rd_en,
               restart => restart, master_logic => master_logic,
-              seq_count_out => open, seq_done => seq_done);
+              seq_count_out => open, seq_done => seq_done, line_count => seq_lc);
 
   rst_cdc : entity work.pulse_cdc
     port map (src_clk => seq_clk, src_pulse => restart,
@@ -132,10 +133,17 @@ begin
 
     report "long test: reached channel " & integer'image(reached) &
            " of " & integer'image(NPROG) & ", errors " & integer'image(errors) &
-           ", done_seen " & integer'image(done_seen);
+           ", done_seen " & integer'image(done_seen) &
+           ", line_count " & integer'image(to_integer(unsigned(seq_lc)));
     assert errors = 0 report "values out of order (streaming corruption)" severity failure;
     assert dbg_ovf = '0'
       report "streamer overflow flag set -- a beat was pushed into a full FIFO (dropped)"
+      severity failure;
+    -- integrity: the sequencer must have popped exactly NPROG+1 lines (lines
+    -- 0..terminator). Any dropped/duplicated line -- from ANY cause -- changes it.
+    assert to_integer(unsigned(seq_lc)) = NPROG + 1
+      report "line_count " & integer'image(to_integer(unsigned(seq_lc))) &
+             " /= expected " & integer'image(NPROG+1) & " (lines lost or duplicated)"
       severity failure;
     -- the line immediately before the terminator does not emit its channel (a
     -- known sequencer quirk, see mig_prog_model PROG0), so the highest channel

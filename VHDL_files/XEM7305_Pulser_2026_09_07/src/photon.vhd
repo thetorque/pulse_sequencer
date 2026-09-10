@@ -432,6 +432,7 @@ architecture arch of photon is
 	signal str_primed     : STD_LOGIC;                       -- ui_clk, from streamer
 	signal str_primed_seq : STD_LOGIC;                       -- clk_100, via level_sync
 	signal str_overflow   : STD_LOGIC;                       -- streamer sticky drop flag (ui_clk)
+	signal str_line_count : STD_LOGIC_VECTOR(31 downto 0);   -- lines the sequencer popped (clk_100)
 	signal ddr3_seq_mode  : STD_LOGIC;                       -- ep00wire(5): use DDR3 sequencer
 	signal stream_active  : STD_LOGIC;                       -- ddr3_seq_mode AND running
 	signal stream_active_ui : STD_LOGIC;                     -- ui_clk, via level_sync
@@ -585,6 +586,7 @@ architecture arch of photon is
 	-- WireOut endpoint (0x34) -- DIAGNOSTIC (temporary), see
 	-- dbg_dup_count/dbg_dup_at_cmd/dbg_dup_addr_match comments.
 	signal ep34wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep35wire : STD_LOGIC_VECTOR(31 downto 0);   -- streamer/sequencer line-pop count
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -791,7 +793,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*26-1 downto 0); -- 26 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*27-1 downto 0); -- 27 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -1049,6 +1051,10 @@ begin
 	-- bits 31:16: dbg_dup_at_cmd. bits 15:1: dbg_dup_count. bit 0:
 	-- dbg_dup_addr_match. See dbg_dup_count declaration comment.
 	ep34wire <= dbg_dup_at_cmd & dbg_dup_count(14 downto 0) & dbg_dup_addr_match;
+	-- WireOut 0x35: lines the DDR3 sequencer popped this run (integrity check --
+	-- host compares to program length + 1; catches a dropped/duplicated line
+	-- from any cause, not just FIFO overflow). See pulse_sequencer line_count.
+	ep35wire <= str_line_count;
 
 	process (ui_clk)
 	begin
@@ -1306,7 +1312,7 @@ begin
 		          line_dout => str_line_dout, line_empty => str_line_empty,
 		          line_rd_en => str_line_rd_en, restart => str_restart,
 		          master_logic => master_logic_ddr3, seq_count_out => seq_count_ddr3,
-		          seq_done => pulser_done_ddr3);
+		          seq_done => pulser_done_ddr3, line_count => str_line_count);
 
 	------------------------------------------------------------------
 	-- Phase 6b: write-assembler / read-prefetch, combined into one
@@ -1645,7 +1651,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 26) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 27) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1730,6 +1736,7 @@ begin
 	wo32 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"32", ep_datain => ep32wire);
 	wo33 : okWireOut port map (okHE => okHE, okEH => okEHx(25*65-1 downto 24*65), ep_addr => x"33", ep_datain => ep33wire);
 	wo34 : okWireOut port map (okHE => okHE, okEH => okEHx(26*65-1 downto 25*65), ep_addr => x"34", ep_datain => ep34wire);
+	wo35 : okWireOut port map (okHE => okHE, okEH => okEHx(27*65-1 downto 26*65), ep_addr => x"35", ep_datain => ep35wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (

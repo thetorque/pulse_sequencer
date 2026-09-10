@@ -42,7 +42,10 @@ entity pulse_sequencer is
     -- outputs
     master_logic : out std_logic_vector(31 downto 0);
     seq_count_out: out std_logic_vector(15 downto 0);   -- completed loop iterations
-    seq_done     : out std_logic
+    seq_done     : out std_logic;
+    -- integrity: total lines popped from the FIFO this run (host compares to the
+    -- program length -- a dropped/duplicated line from ANY cause changes it).
+    line_count   : out std_logic_vector(31 downto 0)
   );
 end entity;
 
@@ -61,6 +64,9 @@ architecture rtl of pulse_sequencer is
   signal time_stamp: integer := 0;
   signal seq_count : integer range 0 to 65535 := 0;
 
+  signal rd_en_i   : std_logic;                          -- internal copy of line_rd_en (readable)
+  signal line_cnt  : unsigned(31 downto 0) := (others => '0');  -- lines popped this run
+
   function tfield(l : std_logic_vector(63 downto 0)) return integer is
   begin
     return to_integer(unsigned(l(61 downto 32)));
@@ -68,12 +74,14 @@ architecture rtl of pulse_sequencer is
 begin
 
   -- combinational Standard-FIFO read strobe: one cycle in each REQ/prefetch
-  line_rd_en <= '1' when line_empty = '0' and
+  rd_en_i <= '1' when line_empty = '0' and
                   ( st = S_P0REQ or st = S_P1REQ or
                     (st = S_RUN and pop_phase = 0 and pf_valid = '0') )
                 else '0';
+  line_rd_en <= rd_en_i;
 
   seq_count_out <= std_logic_vector(to_unsigned(seq_count, 16));
+  line_count    <= std_logic_vector(line_cnt);
 
   process (clk, reset)
   begin
@@ -88,8 +96,12 @@ begin
       time_count   <= 0;
       time_stamp   <= 0;
       seq_count    <= 0;
+      line_cnt     <= (others => '0');
     elsif rising_edge(clk) then
       restart <= '0';   -- default single-cycle strobe
+
+      -- integrity counter: one increment per line actually popped from the FIFO
+      if rd_en_i = '1' then line_cnt <= line_cnt + 1; end if;
 
       case st is
         when S_IDLE =>
