@@ -4,14 +4,17 @@
 -- Behavioural stand-in for the Xilinx fifo_generator IP used by
 -- ddr3_line_streamer: 128-bit write / 64-bit read, independent clocks,
 -- Standard FIFO (NOT FWFT). One 128-bit write becomes two 64-bit reads,
--- LOW 64 bits first (din[63:0] then din[127:64]).
+-- HIGH 64 bits first (din[127:64] then din[63:0]) -- hardware-confirmed in the
+-- Phase 6c bring-up: the real fifo_128x4 IP serialises the high half first.
+-- (ddr3_line_streamer swaps the beat halves on the way in so the FIRST program
+-- line, packed in the beat's LOW 64, is the one that comes out first.)
 --
 -- This is a FUNCTIONAL model (in-order data, correct full/empty/counts). It is
 -- NOT bit-accurate to the real IP's clock-domain-crossing timing -- simulation
 -- cannot verify CDC metastability anyway. At integration this entity is
--- replaced by the generated IP; the half-ordering (low-first) must be matched
--- to the write-assembler's line packing on hardware, exactly as the Phase 6b
--- read path's byte order was matched.
+-- replaced by the generated IP; the half-ordering (high-first) is matched to
+-- the real IP so the streamer's compensating swap is exercised the same way in
+-- sim and on hardware.
 --
 -- Depth: 512 x 64-bit words = 256 x 128-bit beats.
 -------------------------------------------------------------------------------
@@ -56,15 +59,16 @@ begin
   rd_data_count <= std_logic_vector(to_unsigned(occ, 9))   when occ   < 512 else std_logic_vector(to_unsigned(511, 9));
   wr_data_count <= std_logic_vector(to_unsigned(occ/2, 8)) when occ/2 < 256 else std_logic_vector(to_unsigned(255, 8));
 
-  -- write side (one 128-bit beat -> two 64-bit words, low half first)
+  -- write side (one 128-bit beat -> two 64-bit words, HIGH half first: the read
+  -- side emits mem in ptr order, so store din(127:64) at the earlier slot).
   wr_proc : process (wr_clk, rst)
   begin
     if rst = '1' then
       wr_ptr <= 0;
     elsif rising_edge(wr_clk) then
       if wr_en = '1' and (occ <= DEPTH-2) then
-        mem(wr_ptr mod DEPTH)       <= din(63 downto 0);
-        mem((wr_ptr+1) mod DEPTH)   <= din(127 downto 64);
+        mem(wr_ptr mod DEPTH)       <= din(127 downto 64);
+        mem((wr_ptr+1) mod DEPTH)   <= din(63 downto 0);
         wr_ptr <= (wr_ptr + 2) mod PWRAP;
       end if;
     end if;

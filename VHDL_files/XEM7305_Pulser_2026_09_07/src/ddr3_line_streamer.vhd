@@ -216,7 +216,14 @@ begin
                 -- discard the warm-up read; do not push, do not advance
                 hb_count <= hb_count + 1;
               else
-                fifo_din   <= app_rd_data;
+                -- Half-order match (hardware-confirmed Phase 6c bring-up): the
+                -- write-assembler packs the FIRST program line into the beat's
+                -- LOW 64 bits, but the fifo_128x4 IP serialises a 128-bit word
+                -- HIGH 64 bits first. Swap the halves on the way in so the FIFO
+                -- emits the low half (first line) first -- otherwise every line
+                -- pair comes out swapped (the analogue of the Phase 6b byte
+                -- order). See memory/ddr3-streamer-phase6c.
+                fifo_din   <= app_rd_data(63 downto 0) & app_rd_data(127 downto 64);
                 fifo_wr_en <= '1';
                 rd_addr    <= rd_addr + ADDR_INC;
               end if;
