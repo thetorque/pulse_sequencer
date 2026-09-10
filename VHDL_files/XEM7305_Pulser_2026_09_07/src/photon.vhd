@@ -1184,7 +1184,7 @@ begin
 
 					when 4 =>
 						ram_data_out_2    := pulser_ram_doutb;
-						time_stamp        := CONV_INTEGER(UNSIGNED(ram_data_out_2(61 downto 32)));
+						time_stamp        := CONV_INTEGER(UNSIGNED(ram_data_out_2(62 downto 32)));
 						ram_read_address  := 2; -- prefetch word 2, needed for the first run-loop transition
 						count1             := 0;
 						ram_process_count := 5;
@@ -1207,7 +1207,7 @@ begin
 								ram_data_out_1   := ram_data_out_2;
 								ram_data_out_2   := pulser_ram_doutb;
 								ram_read_address := ram_read_address + 1;
-								time_stamp       := CONV_INTEGER(UNSIGNED(ram_data_out_2(61 downto 32)));
+								time_stamp       := CONV_INTEGER(UNSIGNED(ram_data_out_2(62 downto 32)));
 								if time_stamp = 0 then
 									-- end-of-sequence sentinel word reached
 									if pulser_infinite_loop = '1' then

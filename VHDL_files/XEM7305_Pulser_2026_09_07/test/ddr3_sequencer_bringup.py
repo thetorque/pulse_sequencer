@@ -73,8 +73,10 @@ PRIME_LINES = 16
 
 
 def line(time_ticks, channel):
-    """Pack one 64-bit pulse line: time in bits[61:32], channel in [31:0]."""
-    return ((time_ticks & 0x3FFFFFFF) << 32) | (channel & 0xFFFFFFFF)
+    """Pack one 64-bit pulse line: time in bits[62:32] (31 bits, ~86 s max),
+    channel in [31:0]. Bit 63 reserved; bit 62 was reclaimed to double the
+    time range (was 30-bit [61:32])."""
+    return ((time_ticks & 0x7FFFFFFF) << 32) | (channel & 0xFFFFFFFF)
 
 
 # Program steps as (absolute time, channel). Semantics (see pulse_sequencer):
@@ -142,7 +144,7 @@ def build_long_program(n_lines, dwell_ticks):
     between refills -- exercising the keep-warm heartbeat. Returns
     (lines, dwell_ticks) with dwell_ticks possibly clamped to fit the 30-bit
     absolute-time field."""
-    max_dwell = (2 ** 30 - 1) // (n_lines + 1)
+    max_dwell = (2 ** 31 - 1) // (n_lines + 1)   # 31-bit time field (~86 s max total)
     if dwell_ticks > max_dwell:
         dwell_ticks = max_dwell
     # channel = 1..4095 (NEVER 0) so master_logic==0 means ONLY done/terminator,

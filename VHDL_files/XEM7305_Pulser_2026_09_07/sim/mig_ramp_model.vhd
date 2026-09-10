@@ -48,8 +48,8 @@ architecture behav of mig_ramp_model is
     end if;
     t  := (i + 1) * DWELL;
     ch := (i mod 4095) + 1;
-    -- line = "00"(63:62) & time(61:32) & channel(31:0) = 64 bits
-    return "00" & std_logic_vector(to_unsigned(t, 30)) & std_logic_vector(to_unsigned(ch, 32));
+    -- line = "0"(63) & time(62:32, 31 bits) & channel(31:0) = 64 bits
+    return "0" & std_logic_vector(to_unsigned(t, 31)) & std_logic_vector(to_unsigned(ch, 32));
   end function;
 
   signal pend_active : std_logic := '0';

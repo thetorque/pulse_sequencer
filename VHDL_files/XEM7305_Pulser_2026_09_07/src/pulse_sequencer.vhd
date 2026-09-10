@@ -68,9 +68,14 @@ architecture rtl of pulse_sequencer is
   signal rd_en_i   : std_logic;                          -- internal copy of line_rd_en (readable)
   signal line_cnt  : unsigned(31 downto 0) := (others => '0');  -- lines popped this run
 
+  -- time = line[62:32] (31 bits, max 2^31-1 ticks ~= 86 s @ 40 ns/tick). Bit 63
+  -- stays reserved; bit 62 was reclaimed from the historically-unused top bits
+  -- to double the range (was [61:32]/30-bit). 2^31-1 fits VHDL INTEGER exactly,
+  -- so time_count/time_stamp stay INTEGER. Old programs decode identically
+  -- (bit 62 was always 0). channel = line[31:0]; terminator = all time bits 0.
   function tfield(l : std_logic_vector(63 downto 0)) return integer is
   begin
-    return to_integer(unsigned(l(61 downto 32)));
+    return to_integer(unsigned(l(62 downto 32)));
   end function;
 begin
 
