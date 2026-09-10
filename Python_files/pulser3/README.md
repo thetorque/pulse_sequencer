@@ -18,7 +18,8 @@ which the test scripts under `VHDL_files/.../test/` already validated.
 | file | role |
 |---|---|
 | `wiremap.py` | 2026 endpoint constants (single source of truth for the host<->FPGA contract). Pure, hardware-free. |
-| `_ddr3.py` | Bridge to the proven DDR3 pipe primitives in `ddr3_roundtrip_demo.py` (lazy `ok` import). |
+| `ddr3_backend.py` | Canonical low-level DDR3 pipe primitives (connect, calib wait, write/read). Single source of truth (M1.5). |
+| `_ddr3.py` | Thin lazy seam over `ddr3_backend` that keeps the `ok` import deferred for off-bench use. |
 | `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status. |
 | `sequence.py` | `Sequence`: build TTL pulses in seconds (int or named channels) -> compile to the 64-bit line list. |
 | `hwconfig.py` | Experiment config: channel name->number map + timing; `new_sequence()` factory. |
@@ -37,12 +38,18 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   pass off the bench. Preserves the legacy absolute-tick timing model; refuses
   empty sequences (which would hang the FSM). Not yet exercised on hardware
   through the driver -- that lands with M3's runner.
-- **M3 (done, pending bench run):** `hwconfig.py` (channel name->number map +
+- **M3 (done, hardware-verified):** `hwconfig.py` (channel name->number map +
   timing, ported from the legacy TTL channelDict) + `run_sequence.py`, an
-  ergonomic named-channel CLI (`hwconfig -> Sequence -> Driver`). Hardware-free
-  paths (`--list-channels`, `--human`) verified; the on-hardware `single`/
-  `--loops`/`--infinite` run is the first end-to-end exercise of the compiler
-  through the driver -- run it on the bench to close M3.
+  ergonomic named-channel CLI (`hwconfig -> Sequence -> Driver`). `run_sequence`
+  drives the walking-staircase LED pattern on silicon -- the full compiler ->
+  driver path is proven end to end.
+- **M1.5 (done):** made `pulser3` self-contained -- lifted the DDR3 pipe
+  primitives out of the FPGA test tree into `ddr3_backend.py` (byte-faithful
+  move, diff-verified), and flipped `ddr3_roundtrip_demo.py` to import them from
+  here (it self-bootstraps `pulser3` onto `sys.path`, so `ddr3_sequencer_bringup`
+  and `run_all_6c` keep working unchanged). The package no longer reaches into
+  `VHDL_files/`. Re-verify `run_all_6c` on the bench once (behavior is identical
+  by construction, but it touches the green 6c path).
 
 ## Deferred (M4) -- DDS + PMT
 
