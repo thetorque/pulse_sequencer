@@ -42,6 +42,7 @@ architecture tb of tb_sequencer_long is
   signal line_empty : std_logic;
   signal line_rd_en : std_logic;
   signal dbg_retry, dbg_hb : std_logic_vector(7 downto 0);
+  signal dbg_ovf : std_logic;
   signal seq_reset : std_logic := '1';
   signal seq_start : std_logic := '0';
   signal master_logic : std_logic_vector(31 downto 0);
@@ -66,7 +67,8 @@ begin
               app_rdy => app_rdy, app_rd_data => app_rd_data,
               app_rd_data_valid => app_rd_data_valid,
               line_rd_en => line_rd_en, line_dout => line_dout, line_empty => line_empty,
-              dbg_retry_count => dbg_retry, dbg_hb_count => dbg_hb);
+              dbg_retry_count => dbg_retry, dbg_hb_count => dbg_hb,
+              dbg_overflow => dbg_ovf);
 
   mig : entity work.mig_ramp_model
     generic map (ADDR_WIDTH => AW, ADDR_INC => 8, READ_LATENCY => 24,
@@ -132,6 +134,9 @@ begin
            " of " & integer'image(NPROG) & ", errors " & integer'image(errors) &
            ", done_seen " & integer'image(done_seen);
     assert errors = 0 report "values out of order (streaming corruption)" severity failure;
+    assert dbg_ovf = '0'
+      report "streamer overflow flag set -- a beat was pushed into a full FIFO (dropped)"
+      severity failure;
     -- the line immediately before the terminator does not emit its channel (a
     -- known sequencer quirk, see mig_prog_model PROG0), so the highest channel
     -- emitted is NPROG-1, not NPROG.

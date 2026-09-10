@@ -64,7 +64,12 @@ entity ddr3_line_streamer is
 
     -- diagnostics (ui_clk domain, 8-bit wrapping)
     dbg_retry_count   : out std_logic_vector(7 downto 0);
-    dbg_hb_count      : out std_logic_vector(7 downto 0)
+    dbg_hb_count      : out std_logic_vector(7 downto 0);
+    -- sticky: set (until ui_rst) if a real beat was ever presented to a FULL
+    -- FIFO, i.e. a dropped write / lost 2 lines. With the FILL_MARGIN gate this
+    -- must stay 0; the host reads it after a long run to CONFIRM no beats were
+    -- dropped even when the drop would not have stalled the sequence.
+    dbg_overflow      : out std_logic
   );
 end entity;
 
@@ -100,6 +105,7 @@ architecture rtl of ddr3_line_streamer is
 
   signal retry_count : unsigned(7 downto 0) := (others => '0');
   signal hb_count    : unsigned(7 downto 0) := (others => '0');
+  signal overflow_sticky : std_logic := '0';   -- a beat was pushed into a full FIFO (dropped)
 
   -- FIFO glue
   signal fifo_rst   : std_logic := '0';
@@ -144,6 +150,7 @@ begin
 
   dbg_retry_count <= std_logic_vector(retry_count);
   dbg_hb_count    <= std_logic_vector(hb_count);
+  dbg_overflow    <= overflow_sticky;
 
   -- primed: enough beats buffered for the sequencer to start without starving
   -- during the initial read-latency window. Derived from the write-side count
@@ -167,6 +174,7 @@ begin
         hb_timer    <= (others => '0');
         retry_count <= (others => '0');
         hb_count    <= (others => '0');
+        overflow_sticky <= '0';
         fifo_rst    <= '1';
 
       elsif restart = '1' then
@@ -240,6 +248,9 @@ begin
                 fifo_din   <= app_rd_data(63 downto 0) & app_rd_data(127 downto 64);
                 fifo_wr_en <= '1';
                 rd_addr    <= rd_addr + ADDR_INC;
+                -- must never fire with the FILL_MARGIN gate: a real beat reaching
+                -- a full FIFO means the write is dropped (2 lines lost).
+                if fifo_full = '1' then overflow_sticky <= '1'; end if;
               end if;
               state <= S_IDLE;
             elsif wait_ctr >= RETRY_TIMEOUT then

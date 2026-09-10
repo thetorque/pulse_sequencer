@@ -431,6 +431,7 @@ architecture arch of photon is
 	signal str_restart_ui : STD_LOGIC;                       -- ui_clk, via pulse_cdc
 	signal str_primed     : STD_LOGIC;                       -- ui_clk, from streamer
 	signal str_primed_seq : STD_LOGIC;                       -- clk_100, via level_sync
+	signal str_overflow   : STD_LOGIC;                       -- streamer sticky drop flag (ui_clk)
 	signal ddr3_seq_mode  : STD_LOGIC;                       -- ep00wire(5): use DDR3 sequencer
 	signal stream_active  : STD_LOGIC;                       -- ddr3_seq_mode AND running
 	signal stream_active_ui : STD_LOGIC;                     -- ui_clk, via level_sync
@@ -1001,7 +1002,10 @@ begin
 	-- count (bits 15:0, same as legacy's seq_count_bit).
 	------------------------------------------------------------------
 	ep2Bwire <= logic_out;
-	ep2Cwire <= (31 downto 17 => '0') & pulser_sequence_done & seq_count_bit;
+	-- bit 17 = streamer dropped-beat flag (sticky, ui_clk): stays 0 if no beat
+	-- was ever pushed into a full line FIFO -- the host reads it after a long
+	-- run to confirm no silent drops (see ddr3_line_streamer dbg_overflow).
+	ep2Cwire <= (31 downto 18 => '0') & str_overflow & pulser_sequence_done & seq_count_bit;
 
 	------------------------------------------------------------------
 	-- Phase 6a bring-up (0x2D): MIG calibration status, since nothing
@@ -1288,7 +1292,8 @@ begin
 		          app_rd_data_valid => mig_app_rd_data_valid,
 		          line_rd_en => str_line_rd_en, line_dout => str_line_dout,
 		          line_empty => str_line_empty,
-		          dbg_retry_count => open, dbg_hb_count => open);
+		          dbg_retry_count => open, dbg_hb_count => open,
+		          dbg_overflow => str_overflow);
 
 	-- FIFO-fed pulse sequencer (clk_100): the DDR3 alternative to the legacy
 	-- pulser_ram FSM. Drives the _ddr3 mux inputs.

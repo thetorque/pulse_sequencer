@@ -59,6 +59,7 @@ SEQMODE_BIT  = 1 << 5   # ep00wire(5): 1 = DDR3 sequencer, 0 = legacy pulser_ram
 LOGIC_WIRE   = 0x2B     # ep2Bwire = logic_out (= master_logic, overrides off)
 SEQ_WIRE     = 0x2C     # ep2Cwire: bit16 = seq_done, bits[15:0] = seq_count
 SEQ_DONE_BIT = 1 << 16
+OVERFLOW_BIT = 1 << 17   # ep2Cwire bit 17: streamer sticky dropped-beat flag
 RESET_TRIG_ADDR = 0x40  # TriggerIn 0x40
 RESET_TRIG_BIT  = 0     # bit 0: pulser_counter_reset
 
@@ -228,12 +229,23 @@ def run_long(xem, n_lines, dwell_ticks):
         logic = xem.GetWireOutValue(LOGIC_WIRE)
         seq = xem.GetWireOutValue(SEQ_WIRE)
         if seq & SEQ_DONE_BIT:
-            print(f"    t={now - t0:6.1f}s  seq_done asserted (seq_count={seq & 0xFFFF})")
+            overflow = bool(seq & OVERFLOW_BIT)
+            print(f"    t={now - t0:6.1f}s  seq_done asserted (seq_count={seq & 0xFFFF}), "
+                  f"drop flag={int(overflow)}")
             set_ep00(xem, 0)
             print("\n--- Long-stream result ---")
-            print(f"  RESULT: PASS -- streamed all {n_lines} lines to completion, "
-                  f"past the immune boundary at line {IMMUNE_LINES}, with no "
-                  f"cold-start mis-read. Keep-warm heartbeat validated on silicon.")
+            if overflow:
+                # reaching seq_done is NOT sufficient: a dropped beat that missed
+                # the terminator would silently skip 2 lines yet still finish.
+                print(f"  RESULT: FAIL -- seq_done reached but the streamer DROP flag "
+                      f"(0x2C bit17) is SET: at least one beat was pushed into a full "
+                      f"FIFO and lost (2 lines skipped). Sustained-streaming overflow "
+                      f"-- the FILL_MARGIN gate did not hold; increase it.")
+                sys.exit(1)
+            print(f"  RESULT: PASS -- streamed all {n_lines} lines to completion past "
+                  f"the immune boundary at line {IMMUNE_LINES}, seq_done asserted, and "
+                  f"the drop flag is 0 (no beats dropped -- verified directly, not just "
+                  f"by non-stall). Sustained streaming + keep-warm heartbeat validated.")
             return
         if logic != last_logic:
             last_logic = logic
