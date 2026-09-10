@@ -126,6 +126,30 @@ def build_program(fast):
     return lines, expected
 
 
+# The DDR3 address the streamer reaches leaves the cold-start-immune low 32 KiB
+# (app_addr < 0x4000) after this many program lines: 0x4000 / ADDR_INC(8) beats
+# x 2 lines/beat.
+IMMUNE_LINES = (0x4000 // 8) * 2   # = 4096
+
+
+def build_long_program(n_lines, dwell_ticks):
+    """A long ramp program: n_lines states of dwell_ticks each, channel = line
+    index in the low 12 bits so a hang location is identifiable. Streaming it
+    forces the streamer past the cold-start-immune boundary (IMMUNE_LINES) and,
+    with per-line dwells that keep the FIFO full, forces the controller to idle
+    between refills -- exercising the keep-warm heartbeat. Returns
+    (lines, dwell_ticks) with dwell_ticks possibly clamped to fit the 30-bit
+    absolute-time field."""
+    max_dwell = (2 ** 30 - 1) // (n_lines + 1)
+    if dwell_ticks > max_dwell:
+        dwell_ticks = max_dwell
+    lines = [line((i + 1) * dwell_ticks, (i + 1) & 0xFFF) for i in range(n_lines)]
+    lines.append(0x0)                          # terminator -> seq_done
+    while len(lines) < PRIME_LINES or len(lines) % 2 != 0:
+        lines.append(0x0)
+    return lines, dwell_ticks
+
+
 def set_ep00(xem, value):
     """Drive ep00wire to an absolute value (all bits) and commit."""
     xem.SetWireInValue(0x00, value, 0xFFFFFFFF)
@@ -136,13 +160,139 @@ def pulse_reset(xem):
     xem.ActivateTriggerIn(RESET_TRIG_ADDR, RESET_TRIG_BIT)  # pulser_counter_reset
 
 
+def write_and_verify(xem, prog, verify_words):
+    """Write prog to DDR3 @ 0, then read back the first verify_words words
+    (kept within the cold-start-immune low 32 KiB) to confirm the write path
+    landed before we trust the streamer. Aborts on mismatch."""
+    reset_ddr3(xem)
+    write_words(xem, prog)
+    print(f"  wrote {len(prog)} lines to DDR3 @ address 0")
+    reset_ddr3(xem)
+    got = read_words(xem, verify_words)
+    if got == prog[:verify_words]:
+        scope = "all" if verify_words == len(prog) else f"first {verify_words}"
+        print(f"  readback verify ({scope} words): DDR3 matches the program  [OK]")
+        return
+    print("  readback verify: MISMATCH -- the WRITE path is wrong, not the")
+    print("  streamer. First differences (index: wrote -> read):")
+    shown = 0
+    for i, (w, r) in enumerate(zip(prog[:verify_words], got)):
+        if w != r:
+            print(f"    [{i}] {w:#018x} -> {r:#018x}")
+            shown += 1
+            if shown >= 6:
+                break
+    sys.exit("aborting: fix the write path before bringing up the stream")
+
+
+def start_sequencer(xem, infinite=False):
+    """Enter DDR3 sequencer mode and start. Leaves write mode (bit4=0): while
+    streaming, the mux hands MIG's command channel to the streamer and the
+    write path sits idle."""
+    base = SEQMODE_BIT | (INFINITE_BIT if infinite else 0)
+    set_ep00(xem, base)              # seq mode (+ infinite), start still off
+    pulse_reset(xem)                 # reset the sequencer FSM
+    set_ep00(xem, base | START_BIT)  # start -> streamer primes, sequencer runs
+    print(f"  DDR3 sequencer started (ep00 bit5=seq mode, bit2=start"
+          f"{', bit1=infinite' if infinite else ''})")
+
+
+def run_long(xem, n_lines, dwell_ticks):
+    """Stream the long ramp program and watch for either completion (seq_done)
+    or a hang. A cold-start mis-read returns a line ~IMMUNE_LINES earlier, whose
+    smaller absolute time drives time_stamp backward -> the sequencer stalls
+    forever. So: reaching seq_done proves the streamer read every line correctly
+    across the immune boundary with the heartbeat keeping the controller warm;
+    a hang localizes the failure by the line index it froze at."""
+    dwell_s = dwell_ticks / TICKS_PER_SEC
+    runtime_s = n_lines * dwell_s
+    boundary_s = IMMUNE_LINES * dwell_s
+    timeout = runtime_s * 1.5 + 8.0
+    hang_win = max(1.0, dwell_s * 400)   # unchanged this long while running = stuck
+    print(f"  streaming {n_lines} lines @ {dwell_s * 1e3:.3f} ms/line "
+          f"(~{runtime_s:.1f} s); crosses the 32 KiB immune boundary at line "
+          f"{IMMUNE_LINES} (~{boundary_s:.1f} s)")
+    print(f"  seq_done => whole stream correct (heartbeat OK); a freeze => "
+          f"cold-start mis-read at that line\n")
+
+    t0 = time.time()
+    last_logic = None
+    last_change = t0
+    next_report = t0 + 1.0
+    while True:
+        now = time.time()
+        xem.UpdateWireOuts()
+        logic = xem.GetWireOutValue(LOGIC_WIRE)
+        seq = xem.GetWireOutValue(SEQ_WIRE)
+        if seq & SEQ_DONE_BIT:
+            print(f"    t={now - t0:6.1f}s  seq_done asserted (seq_count={seq & 0xFFFF})")
+            set_ep00(xem, 0)
+            print("\n--- Long-stream result ---")
+            print(f"  RESULT: PASS -- streamed all {n_lines} lines to completion, "
+                  f"past the immune boundary at line {IMMUNE_LINES}, with no "
+                  f"cold-start mis-read. Keep-warm heartbeat validated on silicon.")
+            return
+        if logic != last_logic:
+            last_logic = logic
+            last_change = now
+        if now >= next_report:
+            approx_line = int((now - t0) / dwell_s) if dwell_s > 0 else 0
+            print(f"    t={now - t0:6.1f}s  master_logic=0x{logic:08x}  "
+                  f"~line {approx_line}"
+                  f"{'  (PAST immune boundary)' if approx_line > IMMUNE_LINES else ''}")
+            next_report = now + 1.0
+        if now - last_change > hang_win:
+            approx_line = int((now - t0) / dwell_s) if dwell_s > 0 else 0
+            set_ep00(xem, 0)
+            print("\n--- Long-stream result ---")
+            print(f"  RESULT: FAIL -- froze at master_logic=0x{last_logic:08x} for "
+                  f">{hang_win:.1f} s, ~line {approx_line} (app_addr ~0x{approx_line * 4:x}).")
+            print(f"   * frozen PAST line {IMMUNE_LINES} => almost certainly a "
+                  f"cold-start mis-read (line from ~{IMMUNE_LINES} earlier drove "
+                  f"time_stamp backward); the heartbeat did not keep the "
+                  f"controller warm through the dwell."
+                  if approx_line > IMMUNE_LINES else
+                  "   * frozen BEFORE the immune boundary => not cold-start; "
+                  "suspect underrun/streamer stall or a program error.")
+            sys.exit(1)
+        if now - t0 > timeout:
+            set_ep00(xem, 0)
+            sys.exit(f"  RESULT: INCONCLUSIVE -- ran {timeout:.0f}s without "
+                     f"seq_done or a clear freeze; raise the timeout or lower "
+                     f"--lines/--dwell-ms.")
+        time.sleep(0.01)
+
+
 def main():
+    def flag_value(name, default, cast):
+        if name in args:
+            i = args.index(name)
+            try:
+                return cast(args[i + 1])
+            except (IndexError, ValueError):
+                sys.exit(f"{name} needs a value")
+        return default
+
     args = sys.argv[1:]
     fast = "--fast" in args
-    args = [a for a in args if a != "--fast"]
-    if not args:
-        sys.exit("usage: python ddr3_sequencer_bringup.py <photon.bit> [--fast]")
-    bit_path = args[0]
+    long = "--long" in args
+    n_lines = flag_value("--lines", 8192, int)
+    dwell_ms = flag_value("--dwell-ms", 2.0, float)
+    # positional args = anything that is neither a flag nor a flag's value
+    positional, i = [], 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--lines", "--dwell-ms"):
+            i += 2
+        elif a.startswith("--"):
+            i += 1
+        else:
+            positional.append(a)
+            i += 1
+    if not positional:
+        sys.exit("usage: python ddr3_sequencer_bringup.py <photon.bit> "
+                 "[--fast | --long [--lines N] [--dwell-ms X]]")
+    bit_path = positional[0]
 
     xem = connect(bit_path)   # ConfigureFPGA + wait for MIG calibration
 
@@ -154,45 +304,30 @@ def main():
     xem.SetWireInValue(0x05, 0, 0xFFFFFFFF)   # ep05: loop_limit 0
     xem.UpdateWireIns()
 
+    # ---- Long heartbeat / cold-start-crossing test --------------------------
+    if long:
+        dwell_ticks = int(dwell_ms / 1e3 * TICKS_PER_SEC)
+        prog, dwell_ticks = build_long_program(n_lines, dwell_ticks)
+        print(f"\n--- Phase 6c DDR3 sequencer bring-up: LONG "
+              f"({n_lines} lines, {dwell_ticks / TICKS_PER_SEC * 1e3:.3f} ms/line) ---")
+        # verify only the first 256 words (low 32 KiB is cold-start immune for
+        # the read path too); the write path itself is memtest-proven at scale.
+        write_and_verify(xem, prog, min(256, len(prog)))
+        start_sequencer(xem, infinite=False)
+        run_long(xem, n_lines, dwell_ticks)
+        return
+
+    # ---- Short waveform-verification test -----------------------------------
     prog, expected = build_program(fast)
     mode = ("fast (scope/LA)" if fast
             else f"slow (host-observable, {len(expected)} states, varied dwells)")
     print(f"\n--- Phase 6c DDR3 sequencer bring-up: {mode} ---")
 
-    # 1) Write the program into DDR3 at address 0 (write mode, pointers reset).
-    reset_ddr3(xem)
-    write_words(xem, prog)
-    print(f"  wrote {len(prog)} lines to DDR3 @ address 0")
-
-    # 2) Read it back through the (proven) read path to confirm the write
-    #    landed before we trust the streamer. Address 0 is cold-start immune,
-    #    so no sacrifice is needed.
-    reset_ddr3(xem)
-    got = read_words(xem, len(prog))
-    if got == prog:
-        print("  readback verify: DDR3 contents match the program  [OK]")
-    else:
-        print("  readback verify: MISMATCH -- the WRITE path is wrong, not the")
-        print("  streamer. First differences (index: wrote -> read):")
-        shown = 0
-        for i, (w, r) in enumerate(zip(prog, got)):
-            if w != r:
-                print(f"    [{i}] {w:#018x} -> {r:#018x}")
-                shown += 1
-                if shown >= 6:
-                    break
-        sys.exit("aborting: fix the write path before bringing up the stream")
-
-    # 3) Enter DDR3 sequencer mode and run.
-    #    Leave write mode (bit4=0): while streaming, the mux hands MIG's command
-    #    channel to the streamer, and the write path sits idle (write FIFO empty).
-    set_ep00(xem, SEQMODE_BIT)                 # seq mode on, start still off
-    pulse_reset(xem)                           # reset the sequencer FSM
-    set_ep00(xem, SEQMODE_BIT | START_BIT)     # start -> streamer primes, seq runs
-    print("  DDR3 sequencer started (ep00 bit5=seq mode, bit2=start)")
+    write_and_verify(xem, prog, len(prog))     # full readback: program fits in 32 KiB
+    start_sequencer(xem, infinite=False)
     print("  watch led_ext[0..3] walk; polling master_logic (0x2B) / seq_done (0x2C)\n")
 
-    # 4) Poll master_logic + seq_done and log every change.
+    # Poll master_logic + seq_done and log every change.
     observed = []          # nonzero master_logic values, in order of appearance
     prev = None
     done = False
