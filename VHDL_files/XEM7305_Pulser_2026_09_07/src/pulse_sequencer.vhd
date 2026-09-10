@@ -58,6 +58,7 @@ architecture rtl of pulse_sequencer is
   signal pf_line   : std_logic_vector(63 downto 0) := (others => '0');
   signal pf_valid  : std_logic := '0';
   signal pop_phase : integer range 0 to 1 := 0;
+  signal reprime_seen_low : std_logic := '0';  -- saw prog_ready drop after a loop restart
 
   signal count1    : integer range 0 to 3 := 0;
   signal time_count: integer := 0;
@@ -97,6 +98,7 @@ begin
       time_stamp   <= 0;
       seq_count    <= 0;
       line_cnt     <= (others => '0');
+      reprime_seen_low <= '0';
     elsif rising_edge(clk) then
       restart <= '0';   -- default single-cycle strobe
 
@@ -166,6 +168,7 @@ begin
                     seq_count    <= seq_count + 1;
                     restart      <= '1';                    -- rewind the streamer
                     master_logic <= d2(31 downto 0);        -- hold last real state
+                    reprime_seen_low <= '0';                -- must see the flush before reloading
                     st           <= S_WAITPRIME;
                   else
                     -- one-shot, or infinite loop reached its iteration limit
@@ -187,10 +190,15 @@ begin
           end if;
 
         when S_WAITPRIME =>
-          -- after a loop restart, wait for the streamer to re-prime, then
-          -- re-arm the line trigger before reloading (matches the original FSM,
-          -- which re-waits the trigger on every loop iteration).
-          if prog_ready = '1' then
+          -- after a loop restart, wait for the streamer to FLUSH then re-prime.
+          -- Must see prog_ready go LOW first (the flush, crossing seq_clk->
+          -- clk_100) before waiting for it HIGH -- otherwise the CDC latency
+          -- lets us reload from the stale, un-flushed FIFO (hardware loop hang:
+          -- re-primed from leftover data past the terminator). Then re-arm the
+          -- line trigger before reloading (matches the original per-loop FSM).
+          if prog_ready = '0' then
+            reprime_seen_low <= '1';
+          elsif reprime_seen_low = '1' then    -- dropped, now high again = fresh prime
             st <= S_TRIGWAIT;
           end if;
 

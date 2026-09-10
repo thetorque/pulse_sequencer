@@ -333,11 +333,11 @@ def dump_stuck(xem, t0, n_lines):
 def run_loops(xem, n_lines, dwell_ticks, loops):
     """Finite-loop mode: run the program `loops` times (loop_limit) then stop.
     Verifies seq_count == loops, seq_done, drop flag 0, and line_count ==
-    loops*(n_lines+1) + (loops-1) -- each loop pops n_lines+1 lines, plus one
-    extra per loop boundary (the restart re-prime); sim-derived formula."""
+    loops*(n_lines+1) -- each loop pops exactly lines 0..terminator (n_lines+1);
+    sim-confirmed by tb_sequencer_nloop."""
     dwell_s = dwell_ticks / TICKS_PER_SEC
     loop_s = n_lines * dwell_s
-    expect_lc = loops * (n_lines + 1) + (loops - 1)
+    expect_lc = loops * (n_lines + 1)
     timeout = loop_s * loops * 1.5 + 8.0
     print(f"  {loops} loops of {n_lines} lines @ {dwell_s * 1e3:.3f} ms/line "
           f"(~{loop_s:.1f} s/loop, ~{loop_s * loops:.1f} s total)\n")
@@ -359,8 +359,8 @@ def run_loops(xem, n_lines, dwell_ticks, loops):
             print("\n--- N-loop result ---")
             if seq_count == loops and not overflow and lc == expect_lc:
                 print(f"  RESULT: PASS -- ran exactly {loops} loops, seq_done, drop flag 0, "
-                      f"and line_count {lc} == {loops}*(n+1)+(n-1). Every line of every "
-                      f"loop accounted for; restart/rewind/re-prime verified.")
+                      f"and line_count {lc} == {loops}*(n+1). Every line of every loop "
+                      f"accounted for; restart/rewind/re-prime verified.")
                 return
             print(f"  RESULT: FAIL -- seq_count {seq_count} (expect {loops}), drop flag "
                   f"{int(overflow)}, line_count {lc} (expect {expect_lc}).")

@@ -20,9 +20,10 @@ architecture tb of tb_sequencer_nloop is
   constant DWELL : natural := 10;
   constant NPROG : natural := 20;
   constant LOOPS : natural := 3;
-  -- lines popped over N finite loops: N*(NPROG+1) plus one extra pop per loop
-  -- boundary (the restart re-prime), i.e. + (N-1). Hardware-derived (sim).
-  constant EXPECT_LC : natural := LOOPS*(NPROG+1) + (LOOPS-1);
+  -- lines popped over N finite loops: exactly N*(NPROG+1) -- each loop pops
+  -- lines 0..terminator cleanly (the wait-for-flush in S_WAITPRIME removed the
+  -- stale extra pop per restart that used to appear).
+  constant EXPECT_LC : natural := LOOPS*(NPROG+1);
 
   signal ui_clk, seq_clk : std_logic := '0';
   signal ui_rst  : std_logic := '1';
@@ -112,7 +113,7 @@ begin
       report "seq_count " & integer'image(sc) & " /= " & integer'image(LOOPS)
       severity failure;
     assert lc = EXPECT_LC
-      report "line_count " & integer'image(lc) & " /= N*(NPROG+1)+(N-1) = " &
+      report "line_count " & integer'image(lc) & " /= N*(NPROG+1) = " &
              integer'image(EXPECT_LC) severity failure;
     report "ALL TESTS PASSED: finite loop ran LOOPS times, every line of every loop popped";
     sim_done <= true;
