@@ -722,7 +722,7 @@ def run_memtest(xem, mib, chunk_words, seed, sacrifice_beats=0):
     xem.UpdateWireOuts()
     retry8 = (xem.GetWireOutValue(CMD_COUNT_WIRE) >> 8) & 0xFF
     print(f"  lost-command retry counter (0x31 bits15:8) = {retry8} "
-          f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow-response timeout HIT -- duplicate-beat mechanism'})")
+          f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow responses re-issued -- BENIGN when duplicate count below is 0 and memtest passes (the retry recovered)'})")
     # Duplicate-response detector (WireOut 0x34, restored diagnostic). A nonzero
     # count means MIG returned back-to-back responses with identical 128-bit data
     # -- the extra/duplicate beat that shifts the readback stream. addr_match=1
