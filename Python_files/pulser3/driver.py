@@ -1,0 +1,149 @@
+"""
+driver.py -- headless Python-3 low-level driver for the XEM7305 pulser.
+
+This is the port of the FPGA-facing half of the legacy XEM6010 driver
+(../servers/pulser/api.py) onto the 2026 bitstream's endpoint map (wiremap.py).
+It has NO LabRAD / Twisted / Qt dependency -- just `ok` (the FrontPanel module)
+and the proven DDR3 pipe primitives (via _ddr3.py).
+
+Legacy -> 2026 highlights (see wiremap.py for the full table):
+  * program store is DDR3, not on-chip pulser_ram (upload still via BTPipeIn 0x80)
+  * control moved to absolute ep00 bits (START=bit2, INFINITE=bit1, SEQMODE=bit5)
+  * reset is TriggerIn 0x40 bit0 (was bit1 "resetRam")
+  * status: seq_done = WireOut 0x2C bit16, seq_count = bits[15:0], line_count = 0x35
+
+DDS and PMT/photon-counting are intentionally NOT ported here yet -- the 2026
+hardware for them isn't ready. See README.md "Deferred (M4)".
+"""
+import time
+
+from . import wiremap as W
+from . import _ddr3
+
+
+class PulserError(Exception):
+    pass
+
+
+class Driver:
+    """Low-level control of one XEM7305 running the 2026 pulser bitstream."""
+
+    def __init__(self):
+        self.xem = None
+
+    # ---- connection --------------------------------------------------------
+    def connect(self, bit_path):
+        """Open the device, ConfigureFPGA(bit_path), wait for DDR3 calibration."""
+        self.xem = _ddr3.connect(bit_path)
+        return self.xem
+
+    def _check(self):
+        if self.xem is None:
+            raise PulserError("FPGA not connected -- call connect(bit_path) first")
+
+    # ---- raw wire helpers --------------------------------------------------
+    def _set_ep00(self, value):
+        """Drive ep00wire to an absolute value (all bits) and commit."""
+        self.xem.SetWireInValue(W.EP_CONTROL, value, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def _read(self, wire):
+        self.xem.UpdateWireOuts()
+        return self.xem.GetWireOutValue(wire)
+
+    def reset(self):
+        """Pulse the sequencer/counter reset (TriggerIn 0x40 bit0)."""
+        self._check()
+        self.xem.ActivateTriggerIn(W.TRIG_RESET, W.TRIG_RESET_BIT)
+
+    # ---- program upload ----------------------------------------------------
+    @staticmethod
+    def pad_program(lines):
+        """Return `lines` guaranteed terminated and padded for the streamer:
+        a trailing all-zero terminator, then zero-padding up to PRIME_LINES and
+        to an even count (extra terminators are inert -- see the RAM-format memo).
+        """
+        prog = list(lines)
+        if not prog or prog[-1] != 0:
+            prog.append(0)                      # terminator -> seq_done
+        while len(prog) < W.PRIME_LINES or len(prog) % 2 != 0:
+            prog.append(0)
+        return prog
+
+    def load_program(self, lines, verify=True):
+        """Pad, then write the program to DDR3 @ address 0. If verify, read the
+        low (cold-start-immune) words back and confirm they match before trusting
+        the streamer. Returns the padded program actually written."""
+        self._check()
+        prog = self.pad_program(lines)
+        _ddr3.reset_ddr3(self.xem)
+        _ddr3.write_words(self.xem, prog)
+        if verify:
+            n = min(len(prog), 4096)            # stay within the immune low 32 KiB
+            got = _ddr3.read_words(self.xem, n)
+            if got != prog[:n]:
+                bad = next(i for i, (w, r) in enumerate(zip(prog, got)) if w != r)
+                raise PulserError(
+                    f"DDR3 write-verify mismatch at line {bad}: "
+                    f"wrote {prog[bad]:#018x}, read {got[bad]:#018x}")
+        return prog
+
+    # ---- run control -------------------------------------------------------
+    def _start(self, infinite, loop_limit):
+        self._check()
+        self.xem.SetWireInValue(W.EP_LOOP_LIMIT, loop_limit & 0xFFFF, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+        base = W.SEQMODE_BIT | (W.INFINITE_BIT if infinite else 0)
+        self._set_ep00(base)                    # enter DDR3-seq mode, start off
+        self.reset()                            # reset the sequencer FSM
+        self._set_ep00(base | W.START_BIT)      # rising START -> prime + run
+
+    def start_single(self):
+        """Run the loaded program once."""
+        self._start(infinite=False, loop_limit=0)
+
+    def start_infinite(self):
+        """Run the loaded program, looping forever (until stop())."""
+        self._start(infinite=True, loop_limit=0)
+
+    def start_number(self, repetitions):
+        """Run the loaded program a finite number of times."""
+        if not 1 <= repetitions <= 0xFFFF:
+            raise PulserError("repetitions must be in 1..65535")
+        self._start(infinite=True, loop_limit=repetitions)
+
+    def stop(self):
+        """Stop any running sequence and clear all control bits."""
+        self._check()
+        self._set_ep00(0)
+        self.reset()
+
+    # ---- status ------------------------------------------------------------
+    def is_done(self):
+        return bool(self._read(W.WO_SEQ) & W.SEQ_DONE_BIT)
+
+    def seq_count(self):
+        """Completed iterations (infinite/number modes)."""
+        return self._read(W.WO_SEQ) & W.SEQ_COUNT_MASK
+
+    def overflow(self):
+        """True if the streamer dropped a beat this run (FIFO overflow)."""
+        return bool(self._read(W.WO_SEQ) & W.SEQ_OVERFLOW_BIT)
+
+    def line_count(self):
+        """Lines the sequencer popped this run (integrity check)."""
+        return self._read(W.WO_LINE_COUNT)
+
+    def logic_out(self):
+        """Current TTL output word (master_logic, WireOut 0x2B)."""
+        return self._read(W.WO_LOGIC)
+
+    def wait_done(self, timeout=90.0, poll=0.05):
+        """Block until seq_done or timeout. Returns True if done in time."""
+        self._check()
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if self.is_done():
+                return True
+            time.sleep(poll)
+        return False
