@@ -44,6 +44,11 @@ def main(argv=None):
 
     lines, expected = build_lines()
     n_real = len(lines)   # states incl. the final all-off, before padding
+    # The sequencer halts at the FIRST terminator, so it pops the real states
+    # plus that one terminator and never touches the padding terminators after
+    # it -- line_count per pass is n_real + 1 (matches bringup's n_lines + 1),
+    # NOT the padded program length.
+    lines_per_pass = n_real + 1
 
     d = Driver()
     print(f"Connecting and configuring {args.bit} ...")
@@ -74,9 +79,9 @@ def main(argv=None):
         d.start_number(args.loops)
         ok = d.wait_done(timeout=90.0)
         cnt, lc, ovf = d.seq_count(), d.line_count(), d.overflow()
-        # line_count integrity: each pass pops (states + terminator) padded lines
-        expect_lc = args.loops * len(prog)
-        good = ok and cnt == args.loops and not ovf
+        # line_count integrity: each pass pops n_real states + 1 terminator
+        expect_lc = args.loops * lines_per_pass
+        good = ok and cnt == args.loops and not ovf and lc == expect_lc
         print(f"  done={ok}  seq_count={cnt}/{args.loops}  "
               f"line_count={lc} (expect {expect_lc})  drop={ovf}")
         print("  RESULT:", "PASS" if good else "FAIL")
@@ -87,9 +92,9 @@ def main(argv=None):
     d.start_single()
     ok = d.wait_done(timeout=30.0)
     lc, ovf, logic = d.line_count(), d.overflow(), d.logic_out()
-    # one pass pops every padded line exactly once
-    good = ok and not ovf and lc == len(prog) and logic == 0x000
-    print(f"  done={ok}  line_count={lc} (expect {len(prog)})  "
+    # one pass pops n_real states + 1 terminator (padding terminators untouched)
+    good = ok and not ovf and lc == lines_per_pass and logic == 0x000
+    print(f"  done={ok}  line_count={lc} (expect {lines_per_pass})  "
           f"drop={ovf}  final_logic=0x{logic:03X} (expect 0x000)")
     print(f"  program channel order was: {[f'0x{c:03X}' for c in expected]}")
     print("  RESULT:", "PASS" if good else "FAIL")
