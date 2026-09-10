@@ -17,6 +17,8 @@ Off the bench (no `ok` module), wiremap/sequence still import for unit tests;
 only Driver.connect() and the run methods touch hardware.
 """
 from .driver import Driver, PulserError
+from .sequence import Sequence, SequenceError
 from .wiremap import line, TICKS_PER_SEC, TIME_RESOLUTION_S
 
-__all__ = ["Driver", "PulserError", "line", "TICKS_PER_SEC", "TIME_RESOLUTION_S"]
+__all__ = ["Driver", "PulserError", "Sequence", "SequenceError",
+           "line", "TICKS_PER_SEC", "TIME_RESOLUTION_S"]
