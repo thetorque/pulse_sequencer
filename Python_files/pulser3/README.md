@@ -20,8 +20,10 @@ which the test scripts under `VHDL_files/.../test/` already validated.
 | `wiremap.py` | 2026 endpoint constants (single source of truth for the host<->FPGA contract). Pure, hardware-free. |
 | `_ddr3.py` | Bridge to the proven DDR3 pipe primitives in `ddr3_roundtrip_demo.py` (lazy `ok` import). |
 | `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status. |
-| `sequence.py` | `Sequence`: build TTL pulses in seconds -> compile to the 64-bit line list. |
+| `sequence.py` | `Sequence`: build TTL pulses in seconds (int or named channels) -> compile to the 64-bit line list. |
+| `hwconfig.py` | Experiment config: channel name->number map + timing; `new_sequence()` factory. |
 | `run_demo.py` | M1 end-to-end proof: 12-state waveform via the driver (`python -m pulser3.run_demo <bit>`). |
+| `run_sequence.py` | M3 named-channel runner: hwconfig -> Sequence -> Driver (`python -m pulser3.run_sequence <bit>`). |
 | `test_sequence.py` | `Sequence` unit tests, no hardware (`python -m pulser3.test_sequence`). |
 
 ## Status
@@ -35,9 +37,12 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   pass off the bench. Preserves the legacy absolute-tick timing model; refuses
   empty sequences (which would hang the FSM). Not yet exercised on hardware
   through the driver -- that lands with M3's runner.
-- **M3 (next):** `hwconfig.py` (channel name->number, 40 ns res, 31-bit time) +
-  an ergonomic `run_sequence.py` CLI (named channels in seconds -> hardware),
-  which also gives the first hardware run of the M2 compiler->driver path.
+- **M3 (done, pending bench run):** `hwconfig.py` (channel name->number map +
+  timing, ported from the legacy TTL channelDict) + `run_sequence.py`, an
+  ergonomic named-channel CLI (`hwconfig -> Sequence -> Driver`). Hardware-free
+  paths (`--list-channels`, `--human`) verified; the on-hardware `single`/
+  `--loops`/`--infinite` run is the first end-to-end exercise of the compiler
+  through the driver -- run it on the bench to close M3.
 
 ## Deferred (M4) -- DDS + PMT
 

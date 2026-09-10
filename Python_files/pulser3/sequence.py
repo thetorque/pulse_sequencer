@@ -34,14 +34,25 @@ class Sequence:
 
     def __init__(self, channel_total=32,
                  time_resolution_s=TIME_RESOLUTION_S,
-                 max_switches=1022):
+                 max_switches=1022,
+                 channel_map=None):
         self.channel_total = channel_total
         self.time_resolution = Decimal(str(time_resolution_s))
         self.max_switches = max_switches
         self.max_step = TIME_MASK   # 31-bit absolute-time field
+        # optional {name: number} so add_pulse accepts channel names; None = ints only
+        self.channel_map = channel_map
         # timestep -> list of per-channel deltas in {-1, 0, +1}
         self.switching_times = {0: [0] * channel_total}
         self.switches = 1          # number of distinct switching times used
+
+    def _resolve(self, channel):
+        """Map a channel name (if a channel_map was given) to its int index."""
+        if isinstance(channel, str):
+            if not self.channel_map or channel not in self.channel_map:
+                raise SequenceError(f"unknown channel name {channel!r}")
+            return self.channel_map[channel]
+        return channel
 
     # ---- building ----------------------------------------------------------
     def sec_to_step(self, sec):
@@ -55,8 +66,9 @@ class Sequence:
         return step
 
     def add_pulse(self, channel, start_s, duration_s):
-        """Add a TTL pulse on `channel` (int index): ON at start, OFF after
-        duration. Times in seconds."""
+        """Add a TTL pulse on `channel` (int index, or a name if a channel_map
+        was provided): ON at start, OFF after duration. Times in seconds."""
+        channel = self._resolve(channel)
         if not 0 <= channel < self.channel_total:
             raise SequenceError(f"channel {channel} out of range "
                                 f"0..{self.channel_total - 1}")

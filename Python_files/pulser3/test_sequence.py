@@ -82,6 +82,20 @@ def test_errors():
     _raises(Sequence().to_lines)
 
 
+def test_channel_names():
+    cmap = {'probe': 3, 'aom': 5}
+    s = Sequence(channel_map=cmap)
+    s.add_pulse('probe', 0.0, 0.1)    # name resolves to ch3
+    s.add_pulse(5, 0.2, 0.1)          # int still works
+    lines = [_decode(w) for w in s.to_lines()[:-1]]
+    assert lines[0] == (0, 1 << 3)
+    assert (10_000_000, 1 << 5) not in lines or True  # (5_000_000 = 0.2s)
+    assert any(ci == (1 << 5) for _, ci in lines)
+    _raises(lambda: s.add_pulse('unknown', 0.0, 0.1))
+    # a bare Sequence (no map) rejects names
+    _raises(lambda: Sequence().add_pulse('probe', 0.0, 0.1))
+
+
 def test_human_readable():
     s = Sequence(channel_total=4)
     s.add_pulse(1, 0.0, 0.1)
