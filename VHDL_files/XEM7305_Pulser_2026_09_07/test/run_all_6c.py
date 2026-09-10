@@ -14,15 +14,19 @@ independent and order-insensitive) with output streamed live. The suite:
                             Enter (and glance at the LEDs) to continue. ***
   2. ddr3 memtest        -- legacy DDR3 write/read integrity, whole-array
                             write-then-verify (the cold-start --sacrifice-beat0
-                            workaround). Default 128 MiB (~13 min); pass a
-                            smaller size as the 2nd arg for a quicker pass.
+                            workaround). Default 32 MiB (~3 min); pass a
+                            different size as the 2nd arg (e.g. 128 for the full
+                            ~13 min pass).
   3. loop_test_demo      -- legacy pulser_ram finite + infinite loop path.
   4. bringup (default)   -- Phase 6c: 12-state waveform, bit-exact, seq_done.
   5. bringup --long      -- Phase 6c: sustained streaming across the cold-start
                             boundary; checks seq_done, drop flag 0, exact
                             line_count.
-  6. bringup --loops 5   -- Phase 6c: finite loop (seq_count==5, line_count).
-  7. bringup --loop      -- Phase 6c: infinite loop / restart repeats.
+  6. bringup --long      -- Phase 6c: MAX TIME -- the dwell clamps to the 31-bit
+     --dwell-ms 20          time field, so the last state lands at ~86 s (uses
+                            bit 62). ~86 s run; verifies the widened time range.
+  7. bringup --loops 5   -- Phase 6c: finite loop (seq_count==5, line_count).
+  8. bringup --loop      -- Phase 6c: infinite loop / restart repeats.
 
 Exits 0 only if every test passed; non-zero (and lists the failures) otherwise.
 smoke_test's interactivity means this is a supervised run, not a cron job.
@@ -37,7 +41,7 @@ def main():
     if len(sys.argv) < 2:
         sys.exit("usage: python run_all_6c.py <photon.bit> [memtest_mib]")
     bit = sys.argv[1]
-    mib = sys.argv[2] if len(sys.argv) > 2 else "128"
+    mib = sys.argv[2] if len(sys.argv) > 2 else "32"
     here = os.path.dirname(os.path.abspath(__file__))
     py = sys.executable
 
@@ -52,6 +56,8 @@ def main():
          ["ddr3_sequencer_bringup.py", bit]),
         ("Phase 6c DDR3 sequencer -- sustained streaming (--long)",
          ["ddr3_sequencer_bringup.py", bit, "--long"]),
+        ("Phase 6c DDR3 sequencer -- max time / 31-bit field (~86 s, --long --dwell-ms 20)",
+         ["ddr3_sequencer_bringup.py", bit, "--long", "--dwell-ms", "20"]),
         ("Phase 6c DDR3 sequencer -- finite loop (--loops 5)",
          ["ddr3_sequencer_bringup.py", bit, "--loops", "5"]),
         ("Phase 6c DDR3 sequencer -- infinite loop (--loop)",
