@@ -710,6 +710,15 @@ def run_memtest(xem, mib, chunk_words, seed, sacrifice_beats=0):
             first_fail = ff2
 
     print("\n--- Memtest summary ---")
+    # Lost-command retry counter (WireOut 0x31 bits 15:8). It is an 8-bit
+    # free-running counter (wraps at 256), so treat it as liveness, not an
+    # exact tally: NONZERO means the read-prefetch hit MIG's slow-response
+    # timeout and re-issued -- the mechanism that can produce a duplicate
+    # (extra) beat and the one-beat stream shift seen on transient failures.
+    xem.UpdateWireOuts()
+    retry8 = (xem.GetWireOutValue(CMD_COUNT_WIRE) >> 8) & 0xFF
+    print(f"  lost-command retry counter (0x31 bits15:8) = {retry8} "
+          f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow-response timeout HIT -- duplicate-beat mechanism'})")
     if not fails1 and not fails2:
         extra = (f" (sacrificed first {sacrifice_beats} beat(s)/chunk as "
                  f"cold-read dummies)" if sacrifice_beats else "")
