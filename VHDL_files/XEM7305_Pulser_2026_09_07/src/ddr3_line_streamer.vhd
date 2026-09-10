@@ -111,6 +111,20 @@ architecture rtl of ddr3_line_streamer is
   constant SCRATCH_XOR : unsigned(ADDR_WIDTH-1 downto 0) :=
     to_unsigned(2**SCRATCH_XOR_BIT, ADDR_WIDTH);
 
+  -- Read-issue headroom. The fifo_128x4 IP is 256 beats deep, but gating a new
+  -- read on the bare `full` flag leaves NO margin: `full` only asserts at the
+  -- last beat, and by the time the read's response actually lands (read latency
+  -- + the IP's own full/wr_data_count update latency) the FIFO can fill that
+  -- last slot, so the 128-bit write overflows and the beat is DROPPED -- two
+  -- program lines silently vanish. (Hardware-confirmed in the --long test /
+  -- tb_sequencer_long: correct until the FIFO runs sustained-full, then periodic
+  -- 2-line skips.) Gate instead on wr_data_count with FILL_MARGIN beats of slack
+  -- (> one in-flight beat + count latency); costs a few beats of buffering.
+  constant FIFO_BEATS  : natural := 256;                         -- IP depth (128-bit beats)
+  constant FILL_MARGIN : natural := 8;                           -- headroom before issuing
+  constant FILL_LIMIT  : unsigned(7 downto 0) :=
+    to_unsigned(FIFO_BEATS - FILL_MARGIN, 8);                    -- issue a read only below this occupancy
+
 begin
 
   fifo : fifo_128x4
@@ -172,8 +186,8 @@ begin
         case state is
 
           when S_IDLE =>
-            if fifo_full = '0' then
-              -- room in the FIFO: issue a real sequential read
+            if unsigned(fifo_wrcnt) < FILL_LIMIT then
+              -- enough headroom in the FIFO: issue a real sequential read
               app_addr <= std_logic_vector(rd_addr);
               app_cmd  <= "001";
               app_en   <= '1';

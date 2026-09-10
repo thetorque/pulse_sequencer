@@ -70,6 +70,8 @@ begin
         mem(wr_ptr mod DEPTH)       <= din(127 downto 64);
         mem((wr_ptr+1) mod DEPTH)   <= din(63 downto 0);
         wr_ptr <= (wr_ptr + 2) mod PWRAP;
+      elsif wr_en = '1' then
+        report "FIFO WRITE DROPPED (overflow) at occ=" & integer'image(occ) severity warning;
       end if;
     end if;
   end process;
