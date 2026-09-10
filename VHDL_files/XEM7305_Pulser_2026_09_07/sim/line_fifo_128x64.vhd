@@ -19,7 +19,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity line_fifo_128x64 is
+entity fifo_128x4 is
   port (
     rst           : in  std_logic;                      -- active high (async in this model)
     wr_clk        : in  std_logic;
@@ -30,12 +30,12 @@ entity line_fifo_128x64 is
     dout          : out std_logic_vector(63 downto 0);
     full          : out std_logic;                      -- cannot accept a 128-bit beat (< 2 words free)
     empty         : out std_logic;
-    wr_data_count : out std_logic_vector(8 downto 0);   -- occupancy in 128-bit beats (0..256)
-    rd_data_count : out std_logic_vector(9 downto 0)    -- occupancy in 64-bit words  (0..512)
+    wr_data_count : out std_logic_vector(7 downto 0);   -- occupancy in 128-bit beats (0..255; full via 'full')
+    rd_data_count : out std_logic_vector(8 downto 0)    -- occupancy in 64-bit words  (0..511)
   );
 end entity;
 
-architecture behav of line_fifo_128x64 is
+architecture behav of fifo_128x4 is
   constant DEPTH  : integer := 512;          -- 64-bit words
   constant PWRAP  : integer := 2*DEPTH;      -- pointer range, extra bit disambiguates full/empty
   type mem_t is array(0 to DEPTH-1) of std_logic_vector(63 downto 0);
@@ -49,8 +49,12 @@ begin
   occ           <= (wr_ptr - rd_ptr + PWRAP) mod PWRAP;
   empty         <= '1' when occ = 0 else '0';
   full          <= '1' when occ > DEPTH-2 else '0';   -- need room for 2 words (one beat)
-  rd_data_count <= std_logic_vector(to_unsigned(occ, 10));
-  wr_data_count <= std_logic_vector(to_unsigned(occ/2, 9));
+  -- Data-count widths match the real IP: 9-bit read count (0..511), 8-bit write
+  -- count (0..255). Neither can represent the completely-full depth (512 words /
+  -- 256 beats) -- exactly as in the Xilinx IP, where 'full' signals full, not the
+  -- count -- so saturate the top value instead of overflowing the vector.
+  rd_data_count <= std_logic_vector(to_unsigned(occ, 9))   when occ   < 512 else std_logic_vector(to_unsigned(511, 9));
+  wr_data_count <= std_logic_vector(to_unsigned(occ/2, 8)) when occ/2 < 256 else std_logic_vector(to_unsigned(255, 8));
 
   -- write side (one 128-bit beat -> two 64-bit words, low half first)
   wr_proc : process (wr_clk, rst)

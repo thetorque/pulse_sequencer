@@ -84,8 +84,8 @@ architecture rtl of ddr3_line_streamer is
       dout          : out std_logic_vector(63 downto 0);
       full          : out std_logic;
       empty         : out std_logic;
-      wr_data_count : out std_logic_vector(8 downto 0);  -- write side, in 128-bit beats (0..256)
-      rd_data_count : out std_logic_vector(9 downto 0)   -- read side, in 64-bit lines
+      wr_data_count : out std_logic_vector(7 downto 0);  -- write side, in 128-bit beats (0..255; full via 'full' flag)
+      rd_data_count : out std_logic_vector(8 downto 0)   -- read side, in 64-bit lines (0..511)
     );
   end component;
 
@@ -106,7 +106,7 @@ architecture rtl of ddr3_line_streamer is
   signal fifo_din   : std_logic_vector(127 downto 0) := (others => '0');
   signal fifo_wr_en : std_logic := '0';
   signal fifo_full  : std_logic;
-  signal fifo_wrcnt : std_logic_vector(8 downto 0);
+  signal fifo_wrcnt : std_logic_vector(7 downto 0);
 
   constant SCRATCH_XOR : unsigned(ADDR_WIDTH-1 downto 0) :=
     to_unsigned(2**SCRATCH_XOR_BIT, ADDR_WIDTH);
