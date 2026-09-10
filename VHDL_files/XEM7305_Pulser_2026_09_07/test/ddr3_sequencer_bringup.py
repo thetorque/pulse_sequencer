@@ -143,7 +143,10 @@ def build_long_program(n_lines, dwell_ticks):
     max_dwell = (2 ** 30 - 1) // (n_lines + 1)
     if dwell_ticks > max_dwell:
         dwell_ticks = max_dwell
-    lines = [line((i + 1) * dwell_ticks, (i + 1) & 0xFFF) for i in range(n_lines)]
+    # channel = 1..4095 (NEVER 0) so master_logic==0 means ONLY done/terminator,
+    # and a stall (which holds the last applied channel) freezes at a nonzero
+    # value that names the exact line: i == (channel-1) mod 4095.
+    lines = [line((i + 1) * dwell_ticks, (i % 0xFFF) + 1) for i in range(n_lines)]
     lines.append(0x0)                          # terminator -> seq_done
     while len(lines) < PRIME_LINES or len(lines) % 2 != 0:
         lines.append(0x0)
@@ -242,18 +245,40 @@ def run_long(xem, n_lines, dwell_ticks):
                   f"{'  (PAST immune boundary)' if approx_line > IMMUNE_LINES else ''}")
             next_report = now + 1.0
         if now - last_change > hang_win:
-            approx_line = int((now - t0) / dwell_s) if dwell_s > 0 else 0
             set_ep00(xem, 0)
+            elapsed = now - t0
+            approx = int(elapsed / dwell_s) if dwell_s > 0 else 0
+            ch = last_logic & 0xFFF
             print("\n--- Long-stream result ---")
-            print(f"  RESULT: FAIL -- froze at master_logic=0x{last_logic:08x} for "
-                  f">{hang_win:.1f} s, ~line {approx_line} (app_addr ~0x{approx_line * 4:x}).")
-            print(f"   * frozen PAST line {IMMUNE_LINES} => almost certainly a "
-                  f"cold-start mis-read (line from ~{IMMUNE_LINES} earlier drove "
-                  f"time_stamp backward); the heartbeat did not keep the "
-                  f"controller warm through the dwell."
-                  if approx_line > IMMUNE_LINES else
-                  "   * frozen BEFORE the immune boundary => not cold-start; "
-                  "suspect underrun/streamer stall or a program error.")
+            if ch == 0:
+                # real lines are never 0, so master=0 is the terminator/done
+                # state -- but seq_done never latched.
+                print(f"  RESULT: FAIL -- froze at master_logic=0 for >{hang_win:.1f}s "
+                      f"near the end (~line {approx} of {n_lines}).")
+                print("   * no real line is 0, so master=0 = the terminator/done "
+                      "state was entered but seq_done never asserted: a stall AT the "
+                      "terminator transition (the streamer did not deliver the "
+                      "terminator line in time), NOT a cold-start mis-read.")
+            else:
+                # decode the frozen line from its channel: i == (ch-1) mod 4095,
+                # picking the lap nearest the elapsed-time estimate.
+                base = ch - 1
+                k = round((approx - base) / 0xFFF) if dwell_s > 0 else 0
+                stuck = max(base, base + k * 0xFFF)
+                app = (stuck // 2) * 8
+                vuln = (app >> 14) & 1
+                print(f"  RESULT: FAIL -- froze at master_logic=0x{last_logic:08x} "
+                      f"(channel 0x{ch:x}) for >{hang_win:.1f}s => stuck at line "
+                      f"{stuck} of {n_lines}, app_addr 0x{app:x} "
+                      f"(bit14={'SET/vulnerable' if vuln else 'clear/immune'}).")
+                if vuln:
+                    print(f"   * stall at a real line in the vulnerable region => a "
+                          f"cold-start mis-read of the NEXT line (from ~{IMMUNE_LINES} "
+                          f"earlier) drove time_stamp backward; the heartbeat did not "
+                          f"keep the controller warm through this dwell.")
+                else:
+                    print("   * immune-region stall => not cold-start; suspect a "
+                          "streamer underrun or program error.")
             sys.exit(1)
         if now - t0 > timeout:
             set_ep00(xem, 0)
