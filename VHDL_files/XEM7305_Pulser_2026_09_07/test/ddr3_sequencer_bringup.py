@@ -315,6 +315,21 @@ def run_long(xem, n_lines, dwell_ticks):
         time.sleep(0.01)
 
 
+def dump_stuck(xem, t0, n_lines):
+    """Read the full sequencer state for a hung loop, to localize the stall."""
+    xem.UpdateWireOuts()
+    logic = xem.GetWireOutValue(LOGIC_WIRE)
+    seq = xem.GetWireOutValue(SEQ_WIRE)
+    lc = xem.GetWireOutValue(LINE_COUNT_WIRE)
+    per_loop = n_lines + 1
+    # which loop + line the pop count corresponds to (each loop pops n+1, +1/restart)
+    print(f"  STUCK STATE @ t={time.time() - t0:.1f}s:")
+    print(f"    master_logic (0x2B) = 0x{logic:08x}  (led_ext[5:0]={logic & 0x3f:06b})")
+    print(f"    seq_count = {seq & 0xFFFF}, seq_done = {int(bool(seq & SEQ_DONE_BIT))}, "
+          f"drop flag = {int(bool(seq & OVERFLOW_BIT))}")
+    print(f"    line_count (0x35) = {lc}  (~{lc / per_loop:.2f} loops of {per_loop} pops)")
+
+
 def run_loops(xem, n_lines, dwell_ticks, loops):
     """Finite-loop mode: run the program `loops` times (loop_limit) then stop.
     Verifies seq_count == loops, seq_done, drop flag 0, and line_count ==
@@ -351,6 +366,8 @@ def run_loops(xem, n_lines, dwell_ticks, loops):
                   f"{int(overflow)}, line_count {lc} (expect {expect_lc}).")
             sys.exit(1)
         time.sleep(0.02)
+    print("\n--- N-loop result ---")
+    dump_stuck(xem, t0, n_lines)
     set_ep00(xem, 0)
     sys.exit(f"  RESULT: FAIL -- {loops} loops did not finish within {timeout:.0f}s "
              f"(last seq_count={last_seq}).")
@@ -384,8 +401,10 @@ def run_loop(xem, n_lines, dwell_ticks, watch=8):
                 break
         time.sleep(0.02)
     overflow = bool(xem.GetWireOutValue(SEQ_WIRE) & OVERFLOW_BIT)
-    set_ep00(xem, 0)   # stop
     print("\n--- Infinite-loop result ---")
+    if last_seq < watch:
+        dump_stuck(xem, t0, n_lines)
+    set_ep00(xem, 0)   # stop
     if last_seq >= watch and not done_seen and not overflow:
         print(f"  RESULT: PASS -- looped {last_seq}+ times without stopping (seq_done "
               f"never asserted), drop flag 0. Restart/rewind/re-prime repeats "
