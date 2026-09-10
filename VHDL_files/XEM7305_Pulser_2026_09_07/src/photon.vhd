@@ -485,16 +485,69 @@ architecture arch of photon is
 	-- 81 MHz) vs. a normal read latency well under 1 us.
 	signal rd_pf_wait_ctr   : INTEGER range 0 to 2047 := 0;
 
-	-- DIAGNOSTIC (WireOut 0x31 bits 7:0): counts how many read commands
-	-- read-prefetch has issued and completed (a liveness/progress
-	-- counter, exposed alongside dbg_retry_count on the same WireOut).
+	-- DIAGNOSTIC (temporary, WireOut 0x30): counts rising edges of
+	-- mig_app_rd_data_valid (not every cycle it's held high -- a first
+	-- version of this counter did that and got confusingly large
+	-- numbers, which turned out to be ambiguous between "many separate
+	-- pulses" and "few pulses each held for many cycles") regardless
+	-- of rd_pf_state, to test whether each MIG read command asserts it
+	-- once (as assumed) or more than once.
+	signal dbg_valid_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+	signal dbg_valid_prev  : STD_LOGIC := '0';
+
+	-- DIAGNOSTIC (temporary, WireOut 0x31): counts how many read
+	-- commands read-prefetch itself actually issues (accepted by MIG,
+	-- i.e. rd_pf_addr incrementing), to cross-check against
+	-- dbg_valid_count -- if they don't match, the mismatch is between
+	-- issuing and MIG's response, not in how we process a response.
 	signal dbg_cmd_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
-	-- DIAGNOSTIC (WireOut 0x31 bits 15:8): how many times the lost-command
-	-- retry fired (state-2 timeout re-issuing a read). Nonzero confirms the
-	-- MIG app_rdy edge-timing issue was hit and recovered -- normally 1-6
-	-- per run. This is the one bring-up counter kept long-term.
+	-- DIAGNOSTIC (temporary, WireOut 0x31 bits 15:8): how many times the
+	-- lost-command retry fired (state-2 timeout re-issuing a read). Nonzero
+	-- confirms the MIG app_rdy edge-timing issue was hit and recovered.
 	signal dbg_retry_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+
+	-- DIAGNOSTIC (temporary, WireOut 0x32/0x33): the raw high-32 bits
+	-- mig_app_rd_data actually returns for the first two commands'
+	-- responses, latched directly in state 2 (see dbg_resp_count usage
+	-- there) -- ground truth to compare against what the readback
+	-- pipeline eventually presents, instead of inferring it indirectly.
+	signal dbg_resp_count : INTEGER range 0 to 7 := 0;
+	signal dbg_high0 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+	signal dbg_high1 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
+
+	-- DIAGNOSTIC (temporary, WireOut 0x34): a soak-test run intermittently
+	-- (not every run, same deterministic input data both times) showed
+	-- one MIG read command's response duplicating the *previous*
+	-- command's response -- ground truth to tell apart the two possible
+	-- causes: rd_pf_addr failing to advance (same address legitimately
+	-- re-read) vs. stale response data being pushed for a genuinely new
+	-- address (a real data-path race). dbg_cmd_addr/dbg_prev_addr latch
+	-- each command's own address (state 1) for comparison; dbg_prev_rd_data
+	-- latches each command's raw 128-bit response (state 2, internal
+	-- only, too wide to expose) for comparison against the *next*
+	-- command's response. dbg_dup_count counts how many times two
+	-- consecutive responses were bit-identical; dbg_dup_at_cmd latches
+	-- dbg_cmd_count at the most recent occurrence; dbg_dup_addr_match
+	-- records whether that pair's addresses also matched (an address
+	-- bug) or differed (a data-path bug).
+	signal dbg_cmd_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal dbg_prev_addr      : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
+	signal dbg_prev_rd_data   : STD_LOGIC_VECTOR(127 downto 0) := (others => '0');
+	signal dbg_dup_count      : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+	signal dbg_dup_at_cmd     : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+	signal dbg_dup_addr_match : STD_LOGIC := '0';
+
+	-- DIAGNOSTIC (temporary): after the read command double-issue fix,
+	-- an occasional stall appeared where read-prefetch issued a command
+	-- (dbg_cmd_count) that got one fewer valid response (dbg_valid_count
+	-- = cmd-1), leaving it stuck in the valid-wait state. dbg_valid_outside_s2
+	-- is a sticky flag set if mig_app_rd_data_valid was ever seen while
+	-- rd_pf_state /= 2 (the capture state) -- if set, read-prefetch
+	-- MISSED a valid (bug (b)); if clear at a stall, MIG never returned
+	-- a valid for a counted command (phantom accept, bug (a)). Exposed
+	-- alongside rd_pf_state itself on WireOut 0x2F.
+	signal dbg_valid_outside_s2 : STD_LOGIC := '0';
 
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
@@ -522,9 +575,15 @@ architecture arch of photon is
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
 
-	-- WireOut endpoint (0x31) -- DIAGNOSTIC: dbg_retry_count (bits 15:8) /
-	-- dbg_cmd_count (bits 7:0).
+	-- WireOut endpoints (0x30/0x31/0x32/0x33) -- DIAGNOSTIC (temporary),
+	-- see dbg_valid_count/dbg_cmd_count/dbg_high0/dbg_high1 comments.
+	signal ep30wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep31wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep32wire : STD_LOGIC_VECTOR(31 downto 0);
+	signal ep33wire : STD_LOGIC_VECTOR(31 downto 0);
+	-- WireOut endpoint (0x34) -- DIAGNOSTIC (temporary), see
+	-- dbg_dup_count/dbg_dup_at_cmd/dbg_dup_addr_match comments.
+	signal ep34wire : STD_LOGIC_VECTOR(31 downto 0);
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
 	-- normal_pmt_fifo, readout_count_fifo). Depths/widths sized from the
@@ -731,7 +790,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*22-1 downto 0); -- 22 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*26-1 downto 0); -- 26 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -962,22 +1021,42 @@ begin
 	ep2Ewire <= (31 downto 6 => '0') & wr_asm_idle & ddr3_write_rd_data_count;
 	-- WireOut 0x2F layout: bits 9:0 = ddr3_read_rd_data_count (read-side,
 	-- okClk-synchronized); bits 12:10 = rd_pf_state (0-2); bit 13 =
-	-- ddr3_read_empty; bit 14 = reserved (0); bit 16 = rd_pf_idle (host
-	-- MUST check this before switching ep00wire(4) back to write mode, see
-	-- rd_pf_idle comment); bits 25:18 = rd_pf_issued (how many read commands
-	-- this batch has issued -- the host waits for issued>=target AND idle,
-	-- both pure ui_clk-domain state, to know the batch is done).
-	-- ddr3_read_empty is a single-bit flag, safe to gate ReadFromBlockPipeOut
-	-- on (that call has no software timeout, so reading before data has
-	-- crossed into okClk would hang).
+	-- ddr3_read_empty; bit 14 = dbg_valid_outside_s2 (diagnostic);
+	-- bit 16 = rd_pf_idle (host MUST check this before switching
+	-- ep00wire(4) back to write mode, see rd_pf_idle comment); bits
+	-- 25:18 = rd_pf_issued (how many read commands this batch has
+	-- issued -- the host waits for issued>=target AND idle, both pure
+	-- ui_clk-domain state, to know the batch is done). ddr3_read_empty
+	-- is a single-bit flag, safe to gate ReadFromBlockPipeOut on (that
+	-- call has no software timeout, so reading before data has crossed
+	-- into okClk would hang).
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
-	            '0' & rd_pf_idle & '0' & '0' & ddr3_read_empty &
+	            '0' & rd_pf_idle & '0' & dbg_valid_outside_s2 & ddr3_read_empty &
 	            CONV_STD_LOGIC_VECTOR(rd_pf_state, 3) & ddr3_read_rd_data_count;
 
-	-- DIAGNOSTIC (WireOut 0x31): dbg_retry_count (bits 15:8) confirms the
-	-- lost-command retry fired and recovered; dbg_cmd_count (bits 7:0) is a
-	-- liveness counter of completed read commands.
+	------------------------------------------------------------------
+	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count
+	-- declaration comment.
+	------------------------------------------------------------------
+	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
 	ep31wire <= (31 downto 16 => '0') & dbg_retry_count & dbg_cmd_count;
+	ep32wire <= dbg_high0;
+	ep33wire <= dbg_high1;
+	-- bits 31:16: dbg_dup_at_cmd. bits 15:1: dbg_dup_count. bit 0:
+	-- dbg_dup_addr_match. See dbg_dup_count declaration comment.
+	ep34wire <= dbg_dup_at_cmd & dbg_dup_count(14 downto 0) & dbg_dup_addr_match;
+
+	process (ui_clk)
+	begin
+		if rising_edge(ui_clk) then
+			dbg_valid_prev <= mig_app_rd_data_valid;
+			if ep40wire(5) = '1' then
+				dbg_valid_count <= (others => '0');
+			elsif mig_app_rd_data_valid = '1' and dbg_valid_prev = '0' then
+				dbg_valid_count <= dbg_valid_count + 1;
+			end if;
+		end if;
+	end process;
 
 	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
 	-- above which are active-low. led_ext is presumed a separate add-on LED
@@ -1250,7 +1329,8 @@ begin
 	-- (Sampling both halves on the same cycle as valid, and pushing
 	-- them a cycle apart, is confirmed correct -- both a one-cycle-
 	-- later sampling attempt and a settling-cycle-before-push attempt
-	-- were tested and ruled out.)
+	-- were tested and ruled out; see dbg_high0/dbg_high1 for the
+	-- current, still-open diagnostic.)
 	------------------------------------------------------------------
 	process (ui_clk)
 	begin
@@ -1272,16 +1352,30 @@ begin
 				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
 			end if;
 
+			-- DIAGNOSTIC: sticky flag if a valid response ever arrives
+			-- while read-prefetch is NOT in its capture state (2). Runs
+			-- every cycle. See dbg_valid_outside_s2 declaration comment.
+			if mig_app_rd_data_valid = '1' and rd_pf_state /= 2 then
+				dbg_valid_outside_s2 <= '1';
+			end if;
+
 			if ep40wire(5) = '1' then
 				wr_asm_state  <= 0;
 				wr_asm_addr   <= (others => '0');
 				rd_pf_state   <= 0;
 				rd_pf_addr    <= (others => '0');
 				dbg_cmd_count  <= (others => '0');
+				dbg_resp_count <= 0;
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
 				rd_pf_wait_ctr <= 0;
 				dbg_retry_count    <= (others => '0');
+				dbg_dup_count      <= (others => '0');
+				dbg_dup_at_cmd     <= (others => '0');
+				dbg_dup_addr_match <= '0';
+				dbg_prev_rd_data   <= (others => '0');
+				dbg_prev_addr      <= (others => '0');
+				dbg_valid_outside_s2 <= '0';
 			elsif ddr3_read_fifo_rst = '1' then
 				-- per-batch read-FIFO reset (see ddr3_read_fifo_rst
 				-- declaration comment): clean read-side state so each
@@ -1396,7 +1490,28 @@ begin
 							rd_pf_addr      <= rd_pf_addr + 8;
 							rd_pf_issued    <= rd_pf_issued + 1;
 							dbg_cmd_count   <= dbg_cmd_count + 1;
+							dbg_cmd_addr    <= rd_pf_addr;
 							rd_pf_state     <= 0;
+							-- DIAGNOSTIC: raw high-32 of the first two
+							-- responses (WireOut 0x32/0x33).
+							if dbg_resp_count = 0 then
+								dbg_high0 <= mig_app_rd_data(127 downto 96);
+							elsif dbg_resp_count = 1 then
+								dbg_high1 <= mig_app_rd_data(127 downto 96);
+							end if;
+							dbg_resp_count <= dbg_resp_count + 1;
+							-- DIAGNOSTIC: duplicate-response detector.
+							if mig_app_rd_data = dbg_prev_rd_data then
+								dbg_dup_count  <= dbg_dup_count + 1;
+								dbg_dup_at_cmd <= "00000000" & dbg_cmd_count;
+								if dbg_cmd_addr = dbg_prev_addr then
+									dbg_dup_addr_match <= '1';
+								else
+									dbg_dup_addr_match <= '0';
+								end if;
+							end if;
+							dbg_prev_rd_data <= mig_app_rd_data;
+							dbg_prev_addr    <= dbg_cmd_addr;
 						elsif rd_pf_wait_ctr = 2047 then
 							-- lost command: MIG counted app_rdy but never
 							-- returned a valid. Re-issue the SAME address
@@ -1525,7 +1640,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 22) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 26) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1603,8 +1718,13 @@ begin
 		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => ddr3_read_pipe_ready
 	);
 
-	-- WireOut endpoint (0x31) -- DIAGNOSTIC: dbg_retry_count / dbg_cmd_count.
-	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"31", ep_datain => ep31wire);
+	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
+	-- dbg_valid_count declaration comment.
+	wo30 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"30", ep_datain => ep30wire);
+	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"31", ep_datain => ep31wire);
+	wo32 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"32", ep_datain => ep32wire);
+	wo33 : okWireOut port map (okHE => okHE, okEH => okEHx(25*65-1 downto 24*65), ep_addr => x"33", ep_datain => ep33wire);
+	wo34 : okWireOut port map (okHE => okHE, okEH => okEHx(26*65-1 downto 25*65), ep_addr => x"34", ep_datain => ep34wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (

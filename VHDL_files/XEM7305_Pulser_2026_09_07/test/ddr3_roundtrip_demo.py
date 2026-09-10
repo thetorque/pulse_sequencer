@@ -144,6 +144,10 @@ NOT_EMPTY_POLL_ATTEMPTS = 200
 NOT_EMPTY_POLL_INTERVAL = 0.01
 
 CMD_COUNT_WIRE = 0x31    # DIAGNOSTIC: dbg_cmd_count (bits 7:0) + dbg_retry_count (bits 15:8)
+DUP_WIRE = 0x34          # DIAGNOSTIC (restored): dbg_dup_addr_match (bit 0),
+                         # dbg_dup_count(14:0) (bits 15:1), dbg_dup_at_cmd (bits 31:16).
+                         # Counts MIG read responses whose 128-bit data equals the
+                         # immediately-preceding response -- a duplicate/extra beat.
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200
@@ -719,6 +723,18 @@ def run_memtest(xem, mib, chunk_words, seed, sacrifice_beats=0):
     retry8 = (xem.GetWireOutValue(CMD_COUNT_WIRE) >> 8) & 0xFF
     print(f"  lost-command retry counter (0x31 bits15:8) = {retry8} "
           f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow-response timeout HIT -- duplicate-beat mechanism'})")
+    # Duplicate-response detector (WireOut 0x34, restored diagnostic). A nonzero
+    # count means MIG returned back-to-back responses with identical 128-bit data
+    # -- the extra/duplicate beat that shifts the readback stream. addr_match=1
+    # means the two carried the SAME command address (a genuine duplicate of one
+    # read); addr_match=0 means different addresses happened to hold equal data.
+    dup34 = xem.GetWireOutValue(DUP_WIRE)
+    dup_count = (dup34 >> 1) & 0x7FFF
+    dup_addr_match = dup34 & 0x1
+    dup_at_cmd = (dup34 >> 16) & 0xFFFF
+    print(f"  duplicate-response detector (0x34) = count {dup_count}, "
+          f"addr_match {dup_addr_match}, last_at_cmd {dup_at_cmd} "
+          f"({'NO duplicates' if dup_count == 0 else 'MIG DUPLICATE RESPONSES seen -- this is the extra beat'})")
     if not fails1 and not fails2:
         extra = (f" (sacrificed first {sacrifice_beats} beat(s)/chunk as "
                  f"cold-read dummies)" if sacrifice_beats else "")
