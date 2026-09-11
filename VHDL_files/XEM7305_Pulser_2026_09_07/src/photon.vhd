@@ -757,6 +757,13 @@ architecture arch of photon is
 	signal pmt_sim_pulse : STD_LOGIC;
 	signal pmt_in_muxed  : STD_LOGIC;
 
+	-- Phase 5 m4d: normal vs differential counter outputs, muxed by ep08wire(3)
+	-- onto normal_pmt_fifo's write side.
+	signal pmt_count_wr_en : STD_LOGIC;
+	signal pmt_count_din   : STD_LOGIC_VECTOR(31 downto 0);
+	signal pmt_diff_wr_en  : STD_LOGIC;
+	signal pmt_diff_din    : STD_LOGIC_VECTOR(31 downto 0);
+
 	-- Phase 5a: pulse-sequence FSM. master_logic holds the RAM word
 	-- currently in effect; logic_out is master_logic run through the
 	-- per-channel force/invert override mux (ep02wire/ep03wire), same
@@ -945,11 +952,13 @@ begin
 	--   ep08wire(0) = normal counter enable (run periodic collection)
 	--   ep08wire(1) = 1: synthetic source; 0: real pin
 	--   ep08wire(2) = timetagger record enable (detection window, m4b)
+	--   ep08wire(3) = 1: differential mode (m4d) -- normal_pmt_fifo fed by the
+	--                 sequence-gated diff counter; 0: normal (free-running) counter
 	--   ep09wire    = synthetic-source period (clk_100 cycles/pulse)
 	--   ep0Awire    = collection gate length (clk_100 cycles/window)
-	-- The normal counter runs on clk_100 (= normal_pmt_fifo wr_clk); the
-	-- timetagger on clk_200 (= fifo_photon wr_clk, 5 ns/tick). Both share the
-	-- muxed input and the sequencer's async reset (pulser_counter_reset).
+	-- The counters run on clk_100 (= normal_pmt_fifo wr_clk); the timetagger on
+	-- clk_200 (= fifo_photon wr_clk, 5 ns/tick). All share the muxed input and
+	-- the sequencer's async reset (pulser_counter_reset).
 	------------------------------------------------------------------
 	pmt_in_muxed <= pmt_sim_pulse when ep08wire(1) = '1' else '0';  -- else: real pin later
 
@@ -964,8 +973,22 @@ begin
 		port map (clk => clk_100, reset => pulser_counter_reset,
 		          enable => ep08wire(0), pmt_in => pmt_in_muxed,
 		          gate_len => ep0Awire, fifo_full => normal_pmt_fifo_full,
-		          fifo_wr_en => normal_pmt_fifo_wr_en,
-		          fifo_din => normal_pmt_fifo_din, sample => open);
+		          fifo_wr_en => pmt_count_wr_en,
+		          fifo_din => pmt_count_din, sample => open);
+
+	-- Phase 5 m4d: differential (sequence-gated) counter. Same photon input, but
+	-- each rising edge of the sequence's DiffCountTrigger (master_logic(16))
+	-- closes a window, and the pushed word carries the 866 state (master_logic(0))
+	-- in bit31. ep08wire(3) selects which counter feeds normal_pmt_fifo.
+	pmt_differential_counter : entity work.pmt_diff_counter
+		port map (clk => clk_100, reset => pulser_counter_reset,
+		          trigger => master_logic(16), status_in => master_logic(0),
+		          pmt_in => pmt_in_muxed, fifo_full => normal_pmt_fifo_full,
+		          fifo_wr_en => pmt_diff_wr_en, fifo_din => pmt_diff_din);
+
+	-- mode mux: differential when ep08wire(3)='1', else the normal counter
+	normal_pmt_fifo_wr_en <= pmt_diff_wr_en when ep08wire(3) = '1' else pmt_count_wr_en;
+	normal_pmt_fifo_din   <= pmt_diff_din   when ep08wire(3) = '1' else pmt_count_din;
 
 	-- Phase 5 m4b: time-resolved timetagger drives fifo_photon (BTPipeOut 0xA0,
 	-- fill on WireOut 0x28, reset ep40wire(3)). Runs on clk_200 (= fifo_photon
