@@ -106,13 +106,17 @@ class Pulser(LabradServer):
         lines = seq.to_lines()
         yield self.inCommunication.acquire()
         try:
-            # verify=False: this server keeps ONE FPGA session across many runs,
-            # so the MIG idles between them. The write-verify readback is the
-            # roundtrip read path, which hits the Phase-6b cold-start
-            # mis-address after an idle (the WRITE is fine; only that read
-            # mis-addresses). The standalone scripts avoid it by reconfiguring
-            # (fresh calibration) each run. The running sequence validates
-            # itself via line_count / drop flags, so the verify is redundant here.
+            # Persistent-session cleanup: a prior start_single leaves the
+            # streamer holding the shared MIG command channel (SEQMODE/START
+            # still set), so a re-program must first clear ep00 + reset,
+            # returning the channel to the write path. Without this the write
+            # path never reaches idle (or the verify read mis-addresses) after
+            # a few runs. Standalone scripts avoid it by reconfiguring per run.
+            yield deferToThread(self.driver.stop)
+            # verify=False: the readback is the roundtrip read path, which hits
+            # the Phase-6b cold-start mis-address once the MIG has idled; the
+            # WRITE is fine and the running sequence validates itself via
+            # line_count / drop flags, so the verify is redundant in the server.
             yield deferToThread(self.driver.load_program, lines, verify=False)
         finally:
             self.inCommunication.release()
