@@ -751,6 +751,12 @@ architecture arch of photon is
 	signal readout_count_fifo_rd_data_count : STD_LOGIC_VECTOR(9 downto 0);
 	signal readout_count_fifo_reset : STD_LOGIC;
 
+	-- Phase 5 (PMT) m2: normal-mode counting datapath (write side of
+	-- normal_pmt_fifo). pmt_sim_pulse is the synthetic source; pmt_in_muxed
+	-- selects synthetic vs real detector (real pin tied '0' until added).
+	signal pmt_sim_pulse : STD_LOGIC;
+	signal pmt_in_muxed  : STD_LOGIC;
+
 	-- Phase 5a: pulse-sequence FSM. master_logic holds the RAM word
 	-- currently in effect; logic_out is master_logic run through the
 	-- per-channel force/invert override mux (ep02wire/ep03wire), same
@@ -803,6 +809,11 @@ architecture arch of photon is
 	signal ep04wire   : STD_LOGIC_VECTOR(31 downto 0); -- DDS channel select
 	signal ep05wire   : STD_LOGIC_VECTOR(31 downto 0); -- infinite-loop repeat count
 	signal ep06wire   : STD_LOGIC_VECTOR(31 downto 0); -- line-trigger delay (us)
+
+	-- Phase 5 (PMT) m2: normal-mode photon counting control.
+	signal ep08wire   : STD_LOGIC_VECTOR(31 downto 0); -- PMT ctrl: b0 count_en, b1 sim_en
+	signal ep09wire   : STD_LOGIC_VECTOR(31 downto 0); -- PMT synthetic-source period (clk_100 cycles)
+	signal ep0Awire   : STD_LOGIC_VECTOR(31 downto 0); -- PMT collection gate length (clk_100 cycles)
 
 	-- TriggerIn endpoint (0x40)
 	signal ep40wire   : STD_LOGIC_VECTOR(31 downto 0);
@@ -923,6 +934,38 @@ begin
 	-- now (unchanged from Phase 3) rather than wired to master_logic(17)
 	-- with nothing valid to write, which would silently stuff zeros into
 	-- fifo_photon whenever a real pulse program sets that bit.
+
+	------------------------------------------------------------------
+	-- Phase 5 (PMT) m2: normal-mode photon-counting datapath.
+	-- Drives the previously-unconnected normal_pmt_fifo write side
+	-- (host reads counts over BTPipeOut 0xA1, fill level over WireOut
+	-- 0x29, resets the FIFO with ep40wire(2)). The PMT input is muxed
+	-- between an on-FPGA synthetic source (pmt_sim) and the real detector
+	-- pin -- tied '0' until that pin is added -- the same dual-path trick
+	-- as the DDR3 sequencer's ep00wire(5), so the detector wires in later
+	-- without disturbing the datapath. Control:
+	--   ep08wire(0) = counter enable (run periodic collection)
+	--   ep08wire(1) = 1: synthetic source; 0: real pin
+	--   ep09wire    = synthetic-source period (clk_100 cycles/pulse)
+	--   ep0Awire    = collection gate length (clk_100 cycles/window)
+	-- clk_100 domain (= normal_pmt_fifo wr_clk); async reset shared with
+	-- the sequencer (pulser_counter_reset).
+	------------------------------------------------------------------
+	pmt_in_muxed <= pmt_sim_pulse when ep08wire(1) = '1' else '0';  -- else: real pin later
+
+	pmt_source : entity work.pmt_sim
+		generic map (PERIOD_W => 32)
+		port map (clk => clk_100, reset => pulser_counter_reset,
+		          enable => ep08wire(1), period => ep09wire,
+		          pulse => pmt_sim_pulse);
+
+	pmt_normal_counter : entity work.pmt_counter
+		generic map (CNT_W => 32, GATE_W => 32)
+		port map (clk => clk_100, reset => pulser_counter_reset,
+		          enable => ep08wire(0), pmt_in => pmt_in_muxed,
+		          gate_len => ep0Awire, fifo_full => normal_pmt_fifo_full,
+		          fifo_wr_en => normal_pmt_fifo_wr_en,
+		          fifo_din => normal_pmt_fifo_din, sample => open);
 
 	------------------------------------------------------------------
 	-- Phase 5a: sequencer control, same WireIn/TriggerIn bits as the
@@ -1664,6 +1707,11 @@ begin
 	-- Phase 6b: per-batch read-command budget, see rd_pf_issued/
 	-- rd_pf_target declaration comment.
 	wi07 : okWireIn port map (okHE => okHE, ep_addr => x"07", ep_dataout => ep07wire);
+
+	-- Phase 5 (PMT) m2: normal-mode counting control/config.
+	wi08 : okWireIn port map (okHE => okHE, ep_addr => x"08", ep_dataout => ep08wire);
+	wi09 : okWireIn port map (okHE => okHE, ep_addr => x"09", ep_dataout => ep09wire);
+	wi0A : okWireIn port map (okHE => okHE, ep_addr => x"0A", ep_dataout => ep0Awire);
 
 	-- TriggerIn endpoint
 	-- Phase 6a: ep_clk moved from sys_clk to ui_clk, see file header comment.
