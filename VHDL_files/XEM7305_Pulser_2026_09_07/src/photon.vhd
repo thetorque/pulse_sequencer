@@ -927,13 +927,11 @@ begin
 	-- declaration comment.
 	ddr3_read_fifo_rst <= ep00wire(6);
 
-	-- Note: master_logic(17) is the legacy "TimeResolvedCount" bit --
-	-- fifo_photon_wr_en would be wired to it directly in the legacy
-	-- design, but fifo_photon_din (photon_time_tag) doesn't exist until
-	-- Phase 5c's PMT-oversampling logic is built. Left tied to '0' for
-	-- now (unchanged from Phase 3) rather than wired to master_logic(17)
-	-- with nothing valid to write, which would silently stuff zeros into
-	-- fifo_photon whenever a real pulse program sets that bit.
+	-- Phase 5 m4b: fifo_photon's write side is now driven by pmt_timetagger
+	-- (below) -- the photon_time_tag that used to be missing. Recording is
+	-- gated by ep08wire(2) for bring-up; the legacy master_logic(17)
+	-- "TimeResolvedCount" sequence-gate can be OR'd into record_en later
+	-- (m4d) so a pulse program opens the detection window.
 
 	------------------------------------------------------------------
 	-- Phase 5 (PMT) m2: normal-mode photon-counting datapath.
@@ -944,12 +942,14 @@ begin
 	-- pin -- tied '0' until that pin is added -- the same dual-path trick
 	-- as the DDR3 sequencer's ep00wire(5), so the detector wires in later
 	-- without disturbing the datapath. Control:
-	--   ep08wire(0) = counter enable (run periodic collection)
+	--   ep08wire(0) = normal counter enable (run periodic collection)
 	--   ep08wire(1) = 1: synthetic source; 0: real pin
+	--   ep08wire(2) = timetagger record enable (detection window, m4b)
 	--   ep09wire    = synthetic-source period (clk_100 cycles/pulse)
 	--   ep0Awire    = collection gate length (clk_100 cycles/window)
-	-- clk_100 domain (= normal_pmt_fifo wr_clk); async reset shared with
-	-- the sequencer (pulser_counter_reset).
+	-- The normal counter runs on clk_100 (= normal_pmt_fifo wr_clk); the
+	-- timetagger on clk_200 (= fifo_photon wr_clk, 5 ns/tick). Both share the
+	-- muxed input and the sequencer's async reset (pulser_counter_reset).
 	------------------------------------------------------------------
 	pmt_in_muxed <= pmt_sim_pulse when ep08wire(1) = '1' else '0';  -- else: real pin later
 
@@ -966,6 +966,16 @@ begin
 		          gate_len => ep0Awire, fifo_full => normal_pmt_fifo_full,
 		          fifo_wr_en => normal_pmt_fifo_wr_en,
 		          fifo_din => normal_pmt_fifo_din, sample => open);
+
+	-- Phase 5 m4b: time-resolved timetagger drives fifo_photon (BTPipeOut 0xA0,
+	-- fill on WireOut 0x28, reset ep40wire(3)). Runs on clk_200 (= fifo_photon
+	-- wr_clk) so timestamps are 5 ns ticks; records while ep08wire(2) is high.
+	pmt_time_tagger : entity work.pmt_timetagger
+		generic map (TS_W => 32)
+		port map (clk => clk_200, reset => pulser_counter_reset,
+		          record_en => ep08wire(2), pmt_in => pmt_in_muxed,
+		          fifo_full => fifo_photon_full,
+		          fifo_wr_en => fifo_photon_wr_en, fifo_din => fifo_photon_din);
 
 	------------------------------------------------------------------
 	-- Phase 5a: sequencer control, same WireIn/TriggerIn bits as the
