@@ -255,8 +255,26 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
     <tr><td>17</td><td><code>repeatitions_completed</code></td><td>→ <code>w</code></td><td>Loops completed.</td></tr>
     <tr><td>12</td><td><code>get_channels</code></td><td>→ <code>*(s w)</code></td><td>All channel names and numbers.</td></tr>
   </table>
+
+  <h3>PMT photon counting</h3>
+  <p>Legacy IDs/names, now delegating to the <code>pulser3</code> PMT datapath. See <a href="#pmt">PMT counting</a> for the modes.</p>
+  <table>
+    <tr><th>ID</th><th>Method</th><th>Arguments</th><th>What it does</th></tr>
+    <tr><td>21</td><td><code>set_mode</code></td><td>mode <code>s</code> ('Normal'/'Differential')</td><td>Select which counter feeds the FIFO.</td></tr>
+    <tr><td>22</td><td><code>set_collection_time</code></td><td>new_time <code>v</code>, mode <code>s</code></td><td>Counting gate length (seconds) for a mode.</td></tr>
+    <tr><td>23</td><td><code>get_collection_time</code></td><td>→ <code>(v v)</code></td><td>Allowed (min, max) collection time.</td></tr>
+    <tr><td>24</td><td><code>reset_fifo_normal</code></td><td>—</td><td>Clear the count FIFO.</td></tr>
+    <tr><td>25</td><td><code>get_pmt_counts</code></td><td>→ <code>*(v s v)</code></td><td>Queued counts: (rate KC/s, 'ON'/'OFF', time).</td></tr>
+    <tr><td>28</td><td><code>get_collection_mode</code></td><td>→ <code>s</code></td><td>Active counting mode.</td></tr>
+    <tr><td>31</td><td><code>reset_timetags</code></td><td>—</td><td>Clear the photon-timestamp FIFO.</td></tr>
+    <tr><td>30</td><td><code>record_timetags</code></td><td>record <code>b</code></td><td>Open/close the timetag detection window.</td></tr>
+    <tr><td>32</td><td><code>get_timetags</code></td><td>→ <code>*v</code></td><td>Photon arrival times (seconds).</td></tr>
+    <tr><td>33</td><td><code>get_timetag_resolution</code></td><td>→ <code>v</code></td><td>Tick resolution (5 ns).</td></tr>
+    <tr><td>19</td><td><code>set_pmt_synthetic</code></td><td>synthetic <code>b</code></td><td>On-FPGA synthetic source (bring-up) vs real detector.</td></tr>
+    <tr><td>20</td><td><code>set_pmt_sim_rate</code></td><td>rate <code>v</code> (Hz)</td><td>Synthetic-source photon rate.</td></tr>
+  </table>
   <div class="box tip"><b class="tag">Coming next</b>
-    <p>The PMT counting settings (normal / time-resolved / differential) and switch manual/auto are being added to the server — the underlying capability already exists in <code>pulser3</code> (see <a href="#pmt">PMT counting</a>).</p>
+    <p>DDS settings (90–92) and switch manual/auto are still to come — DDS is hardware-blocked. See <code>pmt_client.py</code> for a runnable PMT example.</p>
   </div>
 </section>
 
@@ -328,7 +346,7 @@ d.start_single()
     <tr><td><b>Time-resolved</b></td><td>Each photon's arrival time (5 ns ticks).</td><td><code>pmt_record_start/stop</code>, <code>pmt_read_timetags</code></td></tr>
     <tr><td><b>Differential</b></td><td>Sequence-gated counts tagged with the 866 state.</td><td><code>pmt_diff_start</code>, <code>pmt_read_diff_counts</code></td></tr>
   </table>
-  <p>See the demo scripts above for complete, self-checking examples. LabRAD server settings for these (matching the legacy <em>Get PMT Counts</em> / <em>Get Timetags</em> / <em>Set Mode</em>) are the next thing being added to <code>pulser_server.py</code>.</p>
+  <p>See the demo scripts above for complete, self-checking examples. These are also exposed over LabRAD (matching the legacy <em>Set Mode</em> / <em>Get PMT Counts</em> / <em>Get Timetags</em> settings — see the <a href="#settings">settings reference</a>); <code>pmt_client.py</code> drives them against the synthetic source with no detector attached.</p>
 </section>
 
 <!-- ============================ TROUBLESHOOTING ============================ -->

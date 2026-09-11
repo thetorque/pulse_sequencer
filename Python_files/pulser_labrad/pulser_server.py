@@ -32,6 +32,7 @@ timeout = 20
 # Config: set PULSER_BIT_PATH to the photon .bit before starting the server.
 import os
 import sys
+import time
 
 # make the sibling pulser3 package importable when run as a standalone script
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -42,6 +43,13 @@ from twisted.internet.threads import deferToThread        # noqa: E402
 
 from pulser3 import Driver                                 # noqa: E402
 from pulser3 import hwconfig                               # noqa: E402
+
+# PMT collection-mode state (LabRAD/server-layer, not hwconfig -- see hwconfig.py
+# header). Collection time is the counting-gate length in seconds; the range is
+# a sane bring-up window (the synthetic source and real detector both work here).
+PMT_COLLECTION_TIME_RANGE_S = (0.001, 5.0)
+PMT_DEFAULT_COLLECTION_S = 0.100
+PMT_MODES = ('Normal', 'Differential')
 
 
 class Pulser(LabradServer):
@@ -58,6 +66,19 @@ class Pulser(LabradServer):
         self.inCommunication = DeferredLock()
         self.channels = hwconfig.CHANNELS
         self.sequence_range = hwconfig.SEQUENCE_TIME_RANGE_S
+        # PMT counting state (mirrors legacy pulser_ok.py). collectionTime is the
+        # gate length per mode; collectionMode selects which counter feeds the
+        # FIFO; clear_next_pmt_counts drops the first N windows after a config
+        # change (the startup transient -- e.g. differential window 0 = host-gap
+        # photons before the first ch16 edge). synthetic/sim_rate drive the
+        # on-FPGA bring-up source until the real detector is wired in.
+        self.collectionMode = 'Normal'
+        self.collectionTime = {'Normal': PMT_DEFAULT_COLLECTION_S,
+                               'Differential': PMT_DEFAULT_COLLECTION_S}
+        self.collectionTimeRange = PMT_COLLECTION_TIME_RANGE_S
+        self.clear_next_pmt_counts = 0
+        self.pmt_synthetic = True
+        self.pmt_sim_rate = 1.0e5          # Hz, synthetic-source photon rate
         print("Pulser: connecting to XEM7305 and configuring %s ..." % bit_path)
         yield deferToThread(self.driver.connect, bit_path)   # ConfigureFPGA + MIG calib
         print("Pulser: FPGA ready.")
@@ -171,6 +192,188 @@ class Pulser(LabradServer):
         """Completed iterations in infinite/number mode."""
         n = yield deferToThread(self.driver.seq_count)
         returnValue(int(n))
+
+    # ---- PMT photon counting (delegates to pulser3 PMT datapath) -----------
+    # Same legacy setting IDs/names as servers/pulser/pulser_ok.py so existing
+    # PMT clients work unchanged. Normal mode: the counter windows the input
+    # over a fixed gate and pushes one count per window. Differential mode: the
+    # running pulse sequence gates the windows (channel 16) and each count word
+    # carries the 866 state (channel 0). Bring-up uses the on-FPGA synthetic
+    # source; "Set PMT Synthetic" False selects the real detector pin.
+
+    def _apply_pmt_mode(self):
+        """Drive ep08 to the current mode + gate + synthetic state (blocking)."""
+        gate = self.driver.seconds_to_cycles(self.collectionTime[self.collectionMode])
+        period = self.driver.rate_to_period(self.pmt_sim_rate)
+        if self.collectionMode == 'Differential':
+            # windows come from the running sequence's ch16; count_en not used
+            self.driver.pmt_diff_start(synthetic=self.pmt_synthetic,
+                                       period_cycles=period)
+        else:
+            self.driver.pmt_set_mode(False)
+            self.driver.pmt_configure(gate_cycles=gate, period_cycles=period)
+            self.driver.pmt_start(synthetic=self.pmt_synthetic)
+
+    @setting(21, 'Set Mode', mode='s', returns='')
+    def setMode(self, c, mode):
+        """Set the counting mode, 'Normal' or 'Differential'.
+
+        Normal: the FPGA windows counts at the collection-time rate. Differential:
+        the running pulse sequence gates the windows and reports the 866 state.
+        """
+        if mode not in PMT_MODES:
+            raise Exception("Incorrect mode (use 'Normal' or 'Differential')")
+        self.collectionMode = mode
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self._apply_pmt_mode)
+            self.clear_next_pmt_counts = 3   # drop the config-change transient
+        finally:
+            self.inCommunication.release()
+
+    @setting(22, 'Set Collection Time', new_time='v', mode='s', returns='')
+    def setCollectTime(self, c, new_time, mode):
+        """Set the photon collection (gate) time in seconds for the given mode."""
+        new_time = float(new_time)
+        lo, hi = self.collectionTimeRange
+        if not lo <= new_time <= hi:
+            raise Exception("collection time out of range")
+        if mode not in PMT_MODES:
+            raise Exception("Incorrect mode")
+        self.collectionTime[mode] = new_time
+        yield self.inCommunication.acquire()
+        try:
+            # Only Normal's gate is a device setting; Differential is gated by
+            # the sequence, so its collection time is only used for the KC/sec
+            # conversion below. Re-apply if we changed the active Normal gate.
+            if mode == 'Normal' and self.collectionMode == 'Normal':
+                yield deferToThread(self._apply_pmt_mode)
+            self.clear_next_pmt_counts = 3
+        finally:
+            self.inCommunication.release()
+
+    @setting(23, 'Get Collection Time', returns='(vv)')
+    def getCollectTime(self, c):
+        """The allowed (min, max) collection time in seconds."""
+        return self.collectionTimeRange
+
+    @setting(24, 'Reset FIFO Normal', returns='')
+    def resetFIFONormal(self, c):
+        """Clear the on-board normal/differential count FIFO."""
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self.driver.pmt_reset_fifo)
+        finally:
+            self.inCommunication.release()
+
+    @setting(25, 'Get PMT Counts', returns='*(vsv)')
+    def getALLCounts(self, c):
+        """Queued counts as (rate_kc_per_s, status, time) tuples.
+
+        status is 'ON' in Normal mode; in Differential mode it is 'ON'/'OFF' for
+        the 866 state of that window. time is the approximate acquisition time.
+        """
+        yield self.inCommunication.acquire()
+        try:
+            countlist = yield deferToThread(self._do_get_all_counts)
+        finally:
+            self.inCommunication.release()
+        returnValue(countlist)
+
+    def _do_get_all_counts(self):
+        """Blocking: read the FIFO, decode, convert to KC/sec, timestamp."""
+        collect = self.collectionTime[self.collectionMode]
+        now = time.time()
+        rows = []
+        if self.collectionMode == 'Differential':
+            for count, is_866_on in self.driver.pmt_read_diff_counts():
+                rows.append([count, 'ON' if is_866_on else 'OFF'])
+        else:
+            for count in self.driver.pmt_read_counts():
+                rows.append([count, 'ON'])
+        # drop the first few windows after a config change (startup transient)
+        while self.clear_next_pmt_counts and rows:
+            rows.pop(0)
+            self.clear_next_pmt_counts -= 1
+        out = []
+        n = len(rows)
+        for i, (count, status) in enumerate(rows):
+            kc = float(count) / collect / 1000.0
+            # guess arrival times: the last row is "now", earlier ones back off
+            t = now - (n - 1 - i) * collect
+            out.append((kc, status, t))
+        return out
+
+    @setting(28, 'Get Collection Mode', returns='s')
+    def getMode(self, c):
+        """The active counting mode ('Normal' or 'Differential')."""
+        return self.collectionMode
+
+    @setting(19, 'Set PMT Synthetic', synthetic='b', returns='')
+    def setPMTSynthetic(self, c, synthetic):
+        """Select the on-FPGA synthetic photon source (True, bring-up) vs the
+        real detector input (False). Re-applies the active mode."""
+        self.pmt_synthetic = bool(synthetic)
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self._apply_pmt_mode)
+            self.clear_next_pmt_counts = 3
+        finally:
+            self.inCommunication.release()
+
+    @setting(20, 'Set PMT Sim Rate', rate='v', returns='')
+    def setPMTSimRate(self, c, rate):
+        """Set the synthetic source photon rate in Hz (bring-up only)."""
+        rate = float(rate)
+        if rate <= 0:
+            raise Exception("sim rate must be positive")
+        self.pmt_sim_rate = rate
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self._apply_pmt_mode)
+            self.clear_next_pmt_counts = 3
+        finally:
+            self.inCommunication.release()
+
+    # ---- PMT time-resolved timetagging -------------------------------------
+    @setting(31, 'Reset Timetags', returns='')
+    def resetTimetags(self, c):
+        """Clear the time-resolved (photon-timestamp) FIFO."""
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self.driver.pmt_timetag_reset)
+        finally:
+            self.inCommunication.release()
+
+    @setting(30, 'Record Timetags', record='b', returns='')
+    def recordTimetags(self, c, record):
+        """Open (True) or close (False) the photon-timestamp detection window."""
+        yield self.inCommunication.acquire()
+        try:
+            if record:
+                period = self.driver.rate_to_period(self.pmt_sim_rate)
+                yield deferToThread(self.driver.pmt_record_start,
+                                    self.pmt_synthetic, period)
+            else:
+                yield deferToThread(self.driver.pmt_record_stop)
+        finally:
+            self.inCommunication.release()
+
+    @setting(32, 'Get Timetags', returns='*v')
+    def getTimetags(self, c):
+        """Recorded photon arrival times, in seconds (5 ns resolution)."""
+        yield self.inCommunication.acquire()
+        try:
+            ticks = yield deferToThread(self.driver.pmt_read_timetags)
+        finally:
+            self.inCommunication.release()
+        returnValue([self.driver.ticks_to_seconds(t) for t in ticks])
+
+    @setting(33, 'Get TimeTag Resolution', returns='v')
+    def getTimeTagResolution(self, c):
+        """Timetag tick resolution in seconds."""
+        from pulser3 import wiremap as W
+        return W.TIMETAG_RESOLUTION_S
 
     # ---- introspection -----------------------------------------------------
     @setting(12, 'Get Channels', returns='*(sw)')

@@ -18,6 +18,24 @@ stop / status). PMT counting, DDS, and switch manual/auto are added next.
 |---|---|
 | `pulser_server.py` | the `Pulser` LabRAD server (run this) |
 | `test_client.py` | minimal client: build a TTL sequence, program, run, wait |
+| `pmt_client.py` | exercise the PMT counting settings (normal + timetags) |
+
+## Settings
+
+Sequence build/run (proof-of-stack): `New Sequence` (0), `Add TTL Pulse` (5),
+`Add TTL Pulses` (6), `Extend Sequence Length` (7), `Program Sequence` (1),
+`Start Single` (4), `Start Infinite` (2), `Start Number` (9), `Stop Sequence`
+(8), `Wait Sequence Done` (16), `Repeatitions Completed` (17), `Get Channels`
+(12).
+
+PMT photon counting (legacy IDs/names, over the pulser3 datapath): `Set Mode`
+(21, Normal/Differential), `Set Collection Time` (22), `Get Collection Time`
+(23), `Reset FIFO Normal` (24), `Get PMT Counts` (25, `(rate_kc/s, status,
+time)`), `Get Collection Mode` (28), `Reset Timetags` (31), `Record Timetags`
+(30), `Get Timetags` (32, seconds), `Get TimeTag Resolution` (33). Bring-up
+helpers for the on-FPGA synthetic source: `Set PMT Synthetic` (19), `Set PMT
+Sim Rate` (20). DDS (90-92) and the second-PMT/readout settings are not ported
+(hardware-blocked / unbuilt).
 
 ## One-time setup
 
@@ -73,6 +91,16 @@ python pulser_labrad/test_client.py
 
 Expected: it lists channels, programs a small TTL sequence, runs it, and prints
 `PASS`. That proves `scalabrad -> Pulser server -> pulser3 -> FPGA` end to end.
+
+To exercise PMT counting over LabRAD (uses the on-FPGA synthetic source, so no
+detector needed):
+
+```bash
+python pulser_labrad/pmt_client.py
+```
+
+Expected: Normal mode reports ~100 KC/s for a 100 kHz source over a 10 ms gate,
+and a short timetag window returns photon arrival times in seconds.
 
 ## Notes / expected rough edges
 
