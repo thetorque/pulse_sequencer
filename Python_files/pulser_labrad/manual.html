@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulser Manual — XEM7305 / LabRAD</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1c2230; --muted:#5a6472; --line:#e3e7ee;
+    --accent:#2f6df6; --accent-soft:#eaf1ff; --code-bg:#0f172a; --code-ink:#e6edf7;
+    --warn-bg:#fff6e6; --warn-line:#f0c66b; --ok-bg:#e9f8ee; --ok-line:#8fd6a6;
+    --tip-bg:#eef4ff; --tip-line:#a9c6ff;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd,pre{font-family:"SF Mono",ui-monospace,"Cascadia Code","Consolas",monospace}
+  .wrap{display:flex;max-width:1180px;margin:0 auto;gap:36px;padding:0 24px}
+  /* sidebar */
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;
+    width:240px;flex:none;padding:28px 8px 40px;border-right:1px solid var(--line)}
+  nav h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    margin:22px 10px 8px}
+  nav a{display:block;padding:5px 10px;color:var(--muted);border-radius:7px;font-size:14.5px}
+  nav a:hover{background:var(--panel);color:var(--ink);text-decoration:none}
+  /* main */
+  main{flex:1;min-width:0;padding:34px 0 96px}
+  header.hero{background:linear-gradient(180deg,#fff, #fbfcfe);border:1px solid var(--line);
+    border-radius:16px;padding:26px 30px;margin-bottom:30px}
+  header.hero h1{margin:.1em 0 .15em;font-size:27px;letter-spacing:-.01em}
+  header.hero p{margin:.2em 0;color:var(--muted)}
+  .pill{display:inline-block;background:var(--accent-soft);color:#20458f;border-radius:999px;
+    padding:3px 11px;font-size:12.5px;font-weight:600;margin-right:6px}
+  section{margin:0 0 40px;scroll-margin-top:18px}
+  h2.sec{font-size:21px;margin:34px 0 10px;padding-top:8px;border-top:1px solid var(--line)}
+  h3{font-size:16.5px;margin:22px 0 6px}
+  p{margin:.5em 0}
+  ol,ul{margin:.5em 0 .5em;padding-left:22px}
+  li{margin:.28em 0}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:14px 16px;
+    overflow-x:auto;font-size:13.5px;line-height:1.55;margin:12px 0}
+  pre .c{color:#7d8aa3}         /* comment */
+  pre .k{color:#8fd6ff}         /* keyword-ish */
+  pre .s{color:#b6e3a0}         /* string */
+  p code,li code,td code{background:#eef1f6;border:1px solid var(--line);border-radius:5px;
+    padding:.08em .38em;font-size:13.5px;color:#20305a}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:#f0f3f8;font-weight:600}
+  td code{white-space:nowrap}
+  .box{border-radius:11px;padding:12px 16px;margin:14px 0;border:1px solid}
+  .box p:first-child{margin-top:0}.box p:last-child{margin-bottom:0}
+  .warn{background:var(--warn-bg);border-color:var(--warn-line)}
+  .ok{background:var(--ok-bg);border-color:var(--ok-line)}
+  .tip{background:var(--tip-bg);border-color:var(--tip-line)}
+  .box b.tag{display:block;font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:2px}
+  .arch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;
+    font-size:13.5px;color:var(--muted);overflow-x:auto}
+  .arch pre{background:none;color:var(--ink);padding:0;margin:0;font-size:13px}
+  .kbd{background:#fff;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;
+    padding:1px 6px;font-size:12.5px}
+  footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:40px}
+  @media (max-width:820px){
+    .wrap{flex-direction:column;gap:0;padding:0 16px}
+    nav{position:static;height:auto;width:auto;border-right:none;border-bottom:1px solid var(--line);
+      padding:14px 0;display:flex;flex-wrap:wrap;gap:2px}
+    nav h2{width:100%;margin:8px 10px 2px}
+    main{padding-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h2>Getting started</h2>
+  <a href="#overview">Overview</a>
+  <a href="#setup">One-time setup</a>
+  <a href="#start">Starting the system</a>
+  <h2>Using it</h2>
+  <a href="#sequences">Writing a sequence</a>
+  <a href="#settings">Server settings</a>
+  <a href="#channels">TTL channels</a>
+  <a href="#headless">Headless (no LabRAD)</a>
+  <a href="#pmt">PMT counting</a>
+  <h2>Reference</h2>
+  <a href="#troubleshoot">Troubleshooting</a>
+  <a href="#files">Files &amp; layout</a>
+</nav>
+
+<main>
+<header class="hero">
+  <span class="pill">XEM7305 Pulser</span><span class="pill">Python 3</span><span class="pill">scalabrad</span>
+  <h1>Pulser — User Manual</h1>
+  <p>Starting the LabRAD manager and Pulser server, writing pulse sequences, and configuring TTL channels.</p>
+  <p style="font-size:13.5px">Applies to the modern (2026) stack: <code>scalabrad</code> manager + <code>pylabrad</code> (py3) + the <code>Pulser</code> LabRAD server, which is a thin shim over the headless <code>pulser3</code> driver for the Opal Kelly XEM7305.</p>
+</header>
+
+<!-- ============================ OVERVIEW ============================ -->
+<section id="overview">
+  <h2 class="sec">Overview</h2>
+  <p>The pulse sequencer is driven through a small stack of layers. You normally interact at the top (a LabRAD client); each layer just forwards work down to the FPGA.</p>
+  <div class="arch"><pre>
+  ┌─────────────────────────┐
+  │  Your client / GUI      │   pylabrad (py3): connect, program, run
+  └───────────┬─────────────┘
+              │  LabRAD protocol (TCP 7682)
+  ┌───────────▼─────────────┐
+  │  scalabrad  (manager)   │   JVM broker + registry; routes requests
+  └───────────┬─────────────┘
+              │
+  ┌───────────▼─────────────┐
+  │  Pulser  LabRAD server  │   pulser_labrad/pulser_server.py  (thin)
+  └───────────┬─────────────┘
+              │  delegates every action to…
+  ┌───────────▼─────────────┐
+  │  pulser3.Driver / Sequence   compile → DDR3, start/stop, PMT counts
+  └───────────┬─────────────┘
+              │  Opal Kelly FrontPanel (USB 3)
+  ┌───────────▼─────────────┐
+  │  XEM7305 FPGA (photon.bit)   DDR3 program store, sequencer, PMT
+  └─────────────────────────┘</pre></div>
+  <div class="box tip"><b class="tag">Two ways to drive it</b>
+    <p><b>Through LabRAD</b> (this manual's main path) — the manager + Pulser server run continuously; clients connect over the network. Use this for the experiment.</p>
+    <p><b>Headless</b> — call <code>pulser3</code> directly from a Python script, no manager needed. Good for bring-up and testing. See <a href="#headless">Headless</a>.</p>
+  </div>
+</section>
+
+<!-- ============================ SETUP ============================ -->
+<section id="setup">
+  <h2 class="sec">One-time setup</h2>
+  <p>Do these once per machine. (Already done on the current bench PC — kept here for a fresh install.)</p>
+
+  <h3>1. Java (for scalabrad)</h3>
+  <p>Install a JDK <b>8 or 11</b> — use <a href="https://adoptium.net/temurin/releases/?version=11&os=windows&package=jdk&arch=x64">Eclipse Temurin 11</a> (free OpenJDK, no Oracle account). Tick <em>“Set JAVA_HOME”</em> and <em>“Add to PATH”</em> in the installer. Verify with <code>java -version</code>.</p>
+  <div class="box warn"><b class="tag">Windows gotcha — spaces in the path</b>
+    <p>If Java lives in <code>C:\Program&nbsp;Files\…</code>, the <code>labrad.bat</code> launcher breaks on the space (<code>'C:\Program' is not recognized</code>). Fix by pointing <code>JAVA_HOME</code> at the short (8.3) form. In PowerShell:</p>
+    <pre>$javaExe = (Get-Command java).Source
+$jdk = Split-Path (Split-Path $javaExe)
+$env:JAVA_HOME = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($jdk).ShortPath</pre>
+    <p>Prints something like <code>C:\PROGRA~1\ECLIPS~1\JDK-11~1.29</code>. Set that permanently in System → Environment Variables, or reinstall the JDK to a no-space folder like <code>C:\Temurin\jdk-11</code>.</p>
+  </div>
+
+  <h3>2. scalabrad manager</h3>
+  <p>Download a release from <a href="https://github.com/labrad/scalabrad/releases">github.com/labrad/scalabrad/releases</a> and extract it. The launchers are in <code>scalabrad-&lt;ver&gt;\bin\</code> (<code>labrad.bat</code> on Windows; the extension-less <code>labrad</code> is for Mac/Linux).</p>
+
+  <h3>3. Python packages (py3)</h3>
+  <pre>python -m pip install pylabrad twisted numpy pyopenssl
+python -m pip install "numpy&lt;2"    <span class="c"># pylabrad uses np.bool8, removed in numpy 2.0</span></pre>
+  <div class="box warn"><b class="tag">Important</b>
+    <p>Pin <code>numpy&lt;2</code> — pylabrad 0.98.x imports <code>np.bool8</code>, which numpy 2.0 removed, so <code>import labrad</code> fails otherwise. (Safe: <code>pulser3</code> itself is numpy-free.)</p>
+  </div>
+</section>
+
+<!-- ============================ START ============================ -->
+<section id="start">
+  <h2 class="sec">Starting the system</h2>
+  <p>Three windows: the manager, the Pulser server, then your client. Start them in that order.</p>
+
+  <h3>Step 1 — Start the LabRAD manager</h3>
+  <p>Create its two working directories once (scalabrad won't create them itself):</p>
+  <pre>mkdir C:\labrad-registry
+mkdir C:\Users\thanedp\.labrad</pre>
+  <p>Then, from <code>scalabrad-&lt;ver&gt;\bin\</code> (with <code>JAVA_HOME</code> set — see setup):</p>
+  <pre>.\labrad.bat --registry <span class="s">"file:///C:/labrad-registry?format=binary"</span> --password test --tls-required false</pre>
+  <p>It should log <code>now accepting labrad connections: port=7682</code> and stay running. <b>Leave this window open.</b></p>
+  <div class="box warn"><b class="tag">Not a web page</b>
+    <p>Port 7682 speaks LabRAD's binary protocol, <b>not HTTP</b> — don't open it in a browser (that spams the log with harmless <code>Invalid login packet</code> errors). You talk to it only through LabRAD clients.</p>
+  </div>
+
+  <h3>Step 2 — Start the Pulser server</h3>
+  <p>New window. Set the LabRAD environment (must match the manager's password + TLS) and the bitstream path, then run the server from <code>Python_files</code>:</p>
+  <pre>$env:LABRADHOST = <span class="s">"localhost"</span>
+$env:LABRADPASSWORD = <span class="s">"test"</span>
+$env:LABRAD_TLS = <span class="s">"off"</span>
+$env:PULSER_BIT_PATH = <span class="s">"C:\...\build\xem7305_pulser.runs\impl_1\photon.bit"</span>
+cd C:\Users\thanedp\Desktop\pulse_sequencer\Python_files
+python pulser_labrad\pulser_server.py</pre>
+  <p>It configures the FPGA (<code>Pulser: connecting…</code> → <code>FPGA ready.</code>) and registers with the manager as <b>Pulser</b>. Leave it running.</p>
+  <div class="box tip"><b class="tag">Tip</b>
+    <p><code>PULSER_BIT_PATH</code> must point at a valid <code>photon.bit</code> — the server reconfigures the FPGA on startup. Rebuild the bitstream in Vivado when the RTL changes; the server just loads whatever you point it at.</p>
+  </div>
+
+  <h3>Step 3 — Verify</h3>
+  <p>New window (same LabRAD env), run the bundled smoke test:</p>
+  <pre>python pulser_labrad\test_client.py</pre>
+  <p>Expected output ends with:</p>
+  <pre class="ok" style="color:#1c5c34;background:var(--ok-bg)">sequence done: True
+PASS -- scalabrad -&gt; Pulser server -&gt; pulser3 -&gt; FPGA works end to end</pre>
+</section>
+
+<!-- ============================ SEQUENCES ============================ -->
+<section id="sequences">
+  <h2 class="sec">Writing a pulse sequence</h2>
+  <p>A sequence is built from TTL pulses in real units (seconds), then compiled and run. From a Python client:</p>
+  <pre><span class="k">import</span> labrad
+<span class="k">from</span> labrad.units <span class="k">import</span> s
+
+cxn = labrad.connect()                 <span class="c"># uses LABRAD* env vars</span>
+p = cxn.pulser                         <span class="c"># the Pulser server</span>
+
+p.new_sequence()                       <span class="c"># start a fresh sequence</span>
+p.add_ttl_pulse(<span class="s">'sMOT_PROBE'</span>, 0.1*s, 0.5*s)   <span class="c"># channel, start, duration</span>
+p.add_ttl_pulse(<span class="s">'BIG_MOT_SH'</span>, 0.3*s, 0.5*s)
+p.extend_sequence_length(1.0*s)        <span class="c"># optional: pad total length</span>
+
+p.program_sequence()                   <span class="c"># compile -&gt; load into DDR3</span>
+p.start_single()                       <span class="c"># run it once</span>
+done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within 5 s</span>
+<span class="k">print</span>(<span class="s">'done:'</span>, done)</pre>
+
+  <div class="box tip"><b class="tag">How the timing works</b>
+    <ul>
+      <li>Times are in <b>seconds</b>; the hardware tick is <b>40&nbsp;ns</b>, so times round to the nearest 40&nbsp;ns.</li>
+      <li>A pulse turns a channel <b>ON at <code>start</code></b> and <b>OFF at <code>start+duration</code></b>. Overlapping pulses on different channels are fine; two pulses overlapping on the <em>same</em> channel are rejected.</li>
+      <li>The maximum single-pass length is <b>~85&nbsp;s</b> (31-bit time field). Loops repeat that.</li>
+      <li>Channels not mentioned stay OFF. The sequence ends automatically (an all-off terminator is appended by the compiler).</li>
+    </ul>
+  </div>
+
+  <h3>Running modes</h3>
+  <table>
+    <tr><th>Call</th><th>Effect</th></tr>
+    <tr><td><code>p.start_single()</code></td><td>Run the program once.</td></tr>
+    <tr><td><code>p.start_infinite()</code></td><td>Loop forever until <code>p.stop_sequence()</code>.</td></tr>
+    <tr><td><code>p.start_number(N)</code></td><td>Loop exactly <code>N</code> times.</td></tr>
+    <tr><td><code>p.stop_sequence()</code></td><td>Stop any running sequence.</td></tr>
+    <tr><td><code>p.wait_sequence_done(t)</code></td><td>Block up to <code>t</code> s; returns <code>True</code> if it finished.</td></tr>
+    <tr><td><code>p.repeatitions_completed()</code></td><td>Loops completed so far (infinite/number modes).</td></tr>
+  </table>
+  <div class="box ok"><b class="tag">You don't need to stop before re-programming</b>
+    <p><code>program_sequence()</code> stops any prior run and cleans up the DDR3 state automatically, so you can program → run → program → run indefinitely from a long-lived client.</p>
+  </div>
+</section>
+
+<!-- ============================ SETTINGS ============================ -->
+<section id="settings">
+  <h2 class="sec">Server settings reference</h2>
+  <p>Setting names map to client methods by lowercasing and replacing spaces with underscores (e.g. <em>“Add TTL Pulse”</em> → <code>p.add_ttl_pulse</code>). IDs and names match the legacy <code>pulser_ok.py</code> so existing clients keep working.</p>
+  <table>
+    <tr><th>ID</th><th>Method</th><th>Arguments</th><th>What it does</th></tr>
+    <tr><td>0</td><td><code>new_sequence</code></td><td>—</td><td>Start a fresh (empty) sequence in this context.</td></tr>
+    <tr><td>5</td><td><code>add_ttl_pulse</code></td><td>channel <code>s</code>, start <code>v[s]</code>, duration <code>v[s]</code></td><td>Add one TTL pulse (named channel, seconds).</td></tr>
+    <tr><td>6</td><td><code>add_ttl_pulses</code></td><td><code>*(s v[s] v[s])</code></td><td>Add many pulses at once.</td></tr>
+    <tr><td>7</td><td><code>extend_sequence_length</code></td><td>timeLength <code>v[s]</code></td><td>Pad the total length beyond the last pulse.</td></tr>
+    <tr><td>1</td><td><code>program_sequence</code></td><td>—</td><td>Compile the current sequence and load it into DDR3.</td></tr>
+    <tr><td>4</td><td><code>start_single</code></td><td>—</td><td>Run once.</td></tr>
+    <tr><td>2</td><td><code>start_infinite</code></td><td>—</td><td>Loop until stopped.</td></tr>
+    <tr><td>9</td><td><code>start_number</code></td><td>repetition <code>w</code></td><td>Loop N times.</td></tr>
+    <tr><td>8</td><td><code>stop_sequence</code></td><td>—</td><td>Stop.</td></tr>
+    <tr><td>16</td><td><code>wait_sequence_done</code></td><td>timeout <code>v</code> → <code>b</code></td><td>Wait for completion.</td></tr>
+    <tr><td>17</td><td><code>repeatitions_completed</code></td><td>→ <code>w</code></td><td>Loops completed.</td></tr>
+    <tr><td>12</td><td><code>get_channels</code></td><td>→ <code>*(s w)</code></td><td>All channel names and numbers.</td></tr>
+  </table>
+  <div class="box tip"><b class="tag">Coming next</b>
+    <p>The PMT counting settings (normal / time-resolved / differential) and switch manual/auto are being added to the server — the underlying capability already exists in <code>pulser3</code> (see <a href="#pmt">PMT counting</a>).</p>
+  </div>
+</section>
+
+<!-- ============================ CHANNELS ============================ -->
+<section id="channels">
+  <h2 class="sec">Configuring TTL channels</h2>
+  <p>Channel names map to hardware TTL line numbers in one place:</p>
+  <p><code>Python_files/pulser3/hwconfig.py</code> → the <code>CHANNELS</code> dictionary.</p>
+  <pre>CHANNELS = {
+    <span class="s">'ttl_0'</span>:            0,   <span class="c"># camera</span>
+    <span class="s">'sMOT_PROBE'</span>:       1,
+    <span class="s">'sMOT_PROBE_SPIN'</span>:  2,
+    <span class="s">'BIG_MOT_SH'</span>:       3,
+    <span class="s">'sMOT_AO'</span>:          4,
+    <span class="s">'BIG_MOT_AO'</span>:       5,
+    <span class="s">'405_ECDL'</span>:         6,
+    <span class="c"># … up to channel 31 …</span>
+}</pre>
+  <h3>To add or rename a channel</h3>
+  <ol>
+    <li>Edit <code>CHANNELS</code>: add a line <code><span class="s">'my_channel'</span>: 12,</code> (name → the physical TTL line number, 0–31).</li>
+    <li>Save. <b>Restart the Pulser server</b> (it loads the map at startup).</li>
+    <li>The name is now usable everywhere: <code>p.add_ttl_pulse('my_channel', …)</code>, and it shows up in <code>p.get_channels()</code>.</li>
+  </ol>
+  <div class="box tip"><b class="tag">Notes</b>
+    <ul>
+      <li>Valid channel numbers are <b>0–31</b> (32 TTL lines). Numbers 0–5 also drive the on-board LEDs, handy for eyeballing.</li>
+      <li>Two names <em>may</em> share a number (e.g. <code>AO2</code> and <code>B_x_sign</code> are both 21) — two labels for one physical line. That's allowed.</li>
+      <li>Channel <b>16</b> (<code>DiffCountTrigger</code>) and channel <b>0</b> (<code>866</code>) have special meaning for differential PMT counting — avoid repurposing them if you use that mode.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================ HEADLESS ============================ -->
+<section id="headless">
+  <h2 class="sec">Headless use (no LabRAD)</h2>
+  <p>For bring-up and testing you can skip the manager/server entirely and drive the FPGA directly with <code>pulser3</code>. Run from <code>Python_files</code> (needs the Opal Kelly <code>ok</code> module on the path, same as the FPGA test scripts).</p>
+  <pre><span class="k">from</span> pulser3 <span class="k">import</span> Driver
+<span class="k">from</span> pulser3 <span class="k">import</span> hwconfig
+
+d = Driver()
+d.connect(<span class="s">r"C:\...\photon.bit"</span>)          <span class="c"># ConfigureFPGA + MIG calibration</span>
+
+seq = hwconfig.new_sequence()             <span class="c"># named channels, 40 ns ticks</span>
+seq.add_pulse(<span class="s">'sMOT_PROBE'</span>, 0.1, 0.5)      <span class="c"># seconds (plain floats here)</span>
+seq.add_pulse(<span class="s">'BIG_MOT_SH'</span>, 0.3, 0.5)
+
+d.load_program(seq.to_lines())            <span class="c"># compile -&gt; DDR3</span>
+d.start_single()
+<span class="k">print</span>(<span class="s">'done:'</span>, d.wait_done(5.0))</pre>
+  <p>Ready-made demos (run <code>python -m pulser3.&lt;name&gt; &lt;photon.bit&gt;</code> from <code>Python_files</code>):</p>
+  <table>
+    <tr><th>Module</th><th>What it demonstrates</th></tr>
+    <tr><td><code>pulser3.run_demo</code></td><td>A 12-state TTL waveform.</td></tr>
+    <tr><td><code>pulser3.run_sequence</code></td><td>Named-channel staircase (LED walk).</td></tr>
+    <tr><td><code>pulser3.pmt_demo</code></td><td>Normal-mode photon counting.</td></tr>
+    <tr><td><code>pulser3.pmt_timetag_demo</code></td><td>Time-resolved timetagging.</td></tr>
+    <tr><td><code>pulser3.pmt_diff_demo</code></td><td>Differential (sequence-gated) counting.</td></tr>
+  </table>
+</section>
+
+<!-- ============================ PMT ============================ -->
+<section id="pmt">
+  <h2 class="sec">PMT photon counting</h2>
+  <p>Three counting modes are implemented in the FPGA and exposed by <code>pulser3.Driver</code>. Until the detector is wired to a pin, an on-FPGA <b>synthetic source</b> at a known rate stands in, so the whole path is testable.</p>
+  <table>
+    <tr><th>Mode</th><th>What it gives</th><th>Driver calls</th></tr>
+    <tr><td><b>Normal</b></td><td>Photon counts in fixed collection windows.</td><td><code>pmt_configure</code>, <code>pmt_start</code>, <code>pmt_available</code>, <code>pmt_read_counts</code></td></tr>
+    <tr><td><b>Time-resolved</b></td><td>Each photon's arrival time (5 ns ticks).</td><td><code>pmt_record_start/stop</code>, <code>pmt_read_timetags</code></td></tr>
+    <tr><td><b>Differential</b></td><td>Sequence-gated counts tagged with the 866 state.</td><td><code>pmt_diff_start</code>, <code>pmt_read_diff_counts</code></td></tr>
+  </table>
+  <p>See the demo scripts above for complete, self-checking examples. LabRAD server settings for these (matching the legacy <em>Get PMT Counts</em> / <em>Get Timetags</em> / <em>Set Mode</em>) are the next thing being added to <code>pulser_server.py</code>.</p>
+</section>
+
+<!-- ============================ TROUBLESHOOTING ============================ -->
+<section id="troubleshoot">
+  <h2 class="sec">Troubleshooting</h2>
+  <table>
+    <tr><th>Symptom</th><th>Cause &amp; fix</th></tr>
+    <tr>
+      <td><code>'C:\Program' is not recognized</code> when starting <code>labrad.bat</code></td>
+      <td>Space in the Java path. Set <code>JAVA_HOME</code> to the 8.3 short path, or reinstall the JDK to a no-space folder. See <a href="#setup">setup</a>.</td>
+    </tr>
+    <tr>
+      <td><code>invalid format for registry file</code></td>
+      <td>The registry directory doesn't exist yet. <code>mkdir C:\labrad-registry</code> first, then use <code>?format=binary</code>.</td>
+    </tr>
+    <tr>
+      <td><code>'…\.labrad' does not exist</code> (SQLite)</td>
+      <td>Create the auth-store folder: <code>mkdir C:\Users\&lt;you&gt;\.labrad</code>, then restart the manager.</td>
+    </tr>
+    <tr>
+      <td><code>module 'numpy' has no attribute 'bool8'</code></td>
+      <td>numpy ≥ 2.0 with pylabrad. <code>pip install "numpy&lt;2"</code>.</td>
+    </tr>
+    <tr>
+      <td>Client can't connect / TLS handshake error</td>
+      <td>Set <code>LABRAD_TLS=off</code> in the client window and start the manager with <code>--tls-required false</code>. Password must match (<code>LABRADPASSWORD</code> = manager <code>--password</code>).</td>
+    </tr>
+    <tr>
+      <td>Manager log floods with <code>Invalid login packet</code></td>
+      <td>A browser (or other HTTP tool) is hitting port 7682. Harmless — close the tab. LabRAD isn't a web server.</td>
+    </tr>
+    <tr>
+      <td><code>DDR3 write-verify mismatch</code> / <code>write path never reported idle</code> after several runs</td>
+      <td>A persistent-session lifecycle issue — already handled: the server stops + resets before each re-program and skips the idle-sensitive verify read. If you see it, make sure the server is on the latest code (restart it after a <code>git pull</code>).</td>
+    </tr>
+    <tr>
+      <td>Server: <code>FPGA not connected</code> / can't find <code>ok</code></td>
+      <td>Run from an environment where the Opal Kelly FrontPanel <code>ok</code> module imports (the same one the FPGA test scripts use), and set <code>PULSER_BIT_PATH</code>.</td>
+    </tr>
+    <tr>
+      <td><code>Unknown channel …</code></td>
+      <td>The name isn't in <code>hwconfig.CHANNELS</code>. Add it (see <a href="#channels">TTL channels</a>) and restart the server. <code>p.get_channels()</code> lists valid names.</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ============================ FILES ============================ -->
+<section id="files">
+  <h2 class="sec">Files &amp; layout</h2>
+  <table>
+    <tr><th>Path (under <code>Python_files/</code>)</th><th>Role</th></tr>
+    <tr><td><code>pulser_labrad/pulser_server.py</code></td><td>The <b>Pulser</b> LabRAD server (run this).</td></tr>
+    <tr><td><code>pulser_labrad/test_client.py</code></td><td>Smoke-test client (program + run a sequence).</td></tr>
+    <tr><td><code>pulser_labrad/README.md</code></td><td>Setup notes for scalabrad + pylabrad.</td></tr>
+    <tr><td><code>pulser3/hwconfig.py</code></td><td><b>Channel map</b> (<code>CHANNELS</code>) + timing constants.</td></tr>
+    <tr><td><code>pulser3/sequence.py</code></td><td>Sequence builder / compiler (seconds → 64-bit lines).</td></tr>
+    <tr><td><code>pulser3/driver.py</code></td><td>Headless FPGA driver: program, run, status, PMT.</td></tr>
+    <tr><td><code>pulser3/run_demo.py</code>, <code>run_sequence.py</code>, <code>pmt_*_demo.py</code></td><td>Standalone demos (no LabRAD).</td></tr>
+    <tr><td><code>pulser3/wiremap.py</code></td><td>The host↔FPGA endpoint map (single source of truth).</td></tr>
+  </table>
+  <p style="margin-top:16px">The FPGA bitstream is built from the RTL under <code>VHDL_files/XEM7305_Pulser_2026_09_07/</code> (see that folder's own docs / <code>create_project.tcl</code>).</p>
+</section>
+
+<footer>
+  Pulser manual · XEM7305 / scalabrad / pulser3. Edit this file in
+  <code>Python_files/pulser_labrad/manual.html</code> and open it in any browser.
+</footer>
+</main>
+</div>
+</body>
+</html>
