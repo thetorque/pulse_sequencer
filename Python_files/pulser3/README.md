@@ -20,11 +20,12 @@ which the test scripts under `VHDL_files/.../test/` already validated.
 | `wiremap.py` | 2026 endpoint constants (single source of truth for the host<->FPGA contract). Pure, hardware-free. |
 | `ddr3_backend.py` | Canonical low-level DDR3 pipe primitives (connect, calib wait, write/read). Single source of truth (M1.5). |
 | `_ddr3.py` | Thin lazy seam over `ddr3_backend` that keeps the `ok` import deferred for off-bench use. |
-| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status. |
+| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status; **PMT normal-mode counting** (configure/start/stop/read). |
 | `sequence.py` | `Sequence`: build TTL pulses in seconds (int or named channels) -> compile to the 64-bit line list. |
 | `hwconfig.py` | Experiment config: channel name->number map + timing; `new_sequence()` factory. |
 | `run_demo.py` | M1 end-to-end proof: 12-state waveform via the driver (`python -m pulser3.run_demo <bit>`). |
 | `run_sequence.py` | M3 named-channel runner: hwconfig -> Sequence -> Driver (`python -m pulser3.run_sequence <bit>`). |
+| `pmt_demo.py` | PMT normal-count readout via the Driver API (`python -m pulser3.pmt_demo <bit>`). |
 | `test_sequence.py` | `Sequence` unit tests, no hardware (`python -m pulser3.test_sequence`). |
 
 ## Status
@@ -50,13 +51,21 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   and `run_all_6c` keep working unchanged). The package no longer reaches into
   `VHDL_files/`. Re-verify `run_all_6c` on the bench once (behavior is identical
   by construction, but it touches the green 6c path).
+- **PMT normal-mode counting (done):** `Driver.pmt_*` ports the legacy
+  `getNormalTotal`/`getNormalCounts`/`resetFIFONormal` onto the 2026 map
+  (WireIn 0x08/0x09/0x0A, WireOut 0x29 fill, BTPipeOut 0xA1, TriggerIn 0x40
+  bit2). Counts come from the FPGA PMT datapath (Phase 5 m2 on the RTL side --
+  an on-FPGA synthetic source feeds a gated counter into `normal_pmt_fifo`
+  until the detector is wired). `pmt_demo.py` verifies a known synthetic rate
+  reads back the exact per-window count. Requires an m2+ bitstream.
 
-## Deferred (M4) -- DDS + PMT
+## Deferred (M4) -- DDS + PMT (Differential / time-resolved)
 
-The 2026 design will include DDS and PMT/photon-counting, but that **hardware
-isn't ready yet**, so it is intentionally not ported. When it lands, port
-`servers/pulser/dds.py` and the readout pipes (`getNormalCounts`,
-`getResolvedCounts`, `getReadoutCounts`, BTPipeOut 0xa0-0xa2) against the then-
+DDS and the remaining PMT modes are not ported yet. **DDS** waits on hardware
+(`servers/pulser/dds.py` + BTPipeIn 0x81). **PMT Differential** (sequence-gated)
+mode and **time-resolved timetagging** (`getResolvedCounts`, BTPipeOut 0xA0)
+wait on their FPGA datapath (Phase 5 m4). Also `getReadoutCounts` / BTPipeOut
+0xa2. When they land, port them against the then-
 current wire map. Tracked so it isn't forgotten.
 
 ## Requirements

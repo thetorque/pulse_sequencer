@@ -42,6 +42,26 @@ SEQ_OVERFLOW_BIT = 1 << 17   # streamer FIFO-overflow / dropped-beat sticky flag
 
 CALIB_COMPLETE_BIT = 1
 
+# ---- PMT normal-mode photon counting (Phase 5 m2) --------------------------
+# The counter runs on clk_100 (100 MHz): gate/period are in clk_100 cycles.
+EP_PMT_CTRL   = 0x08    # WireIn: bit0 = counter enable, bit1 = use synthetic source
+EP_PMT_PERIOD = 0x09    # WireIn: synthetic-source period (clk_100 cycles per pulse)
+EP_PMT_GATE   = 0x0A    # WireIn: collection gate length (clk_100 cycles per window)
+PMT_COUNT_EN_BIT = 1 << 0
+PMT_SIM_EN_BIT   = 1 << 1
+
+WO_PMT_FILL   = 0x29    # WireOut: normal_pmt_fifo fill level (readable words, bits 9:0)
+PMT_FILL_MASK = 0x3FF
+PMT_PIPE      = 0xA1    # BTPipeOut: per-window counts (32-bit words)
+# ep_ready is tied high on 0xA0/A1/A2 in this bitstream -> read ONLY whole
+# 16-byte (4-word) blocks that WO_PMT_FILL reports are present.
+PMT_PIPE_BLOCK = 16     # bytes
+PMT_PIPE_WORDS_PER_BLOCK = PMT_PIPE_BLOCK // 4
+
+TRIG_PMT_FIFO_RESET_BIT = 2   # TriggerIn 0x40 bit2: normal_pmt_fifo reset (legacy resetFIFONormal)
+
+CLK_100_HZ = 100_000_000      # counting clock; converts gate/period cycles <-> seconds/Hz
+
 # ---- Program-line format ---------------------------------------------------
 # 64-bit line: channel = bits[31:0], time = bits[62:32] (31-bit absolute tick,
 # ~86 s max), bit63 reserved. 1 tick = 40 ns. See pulse-sequence-ram-format memo.

@@ -12,9 +12,12 @@ Legacy -> 2026 highlights (see wiremap.py for the full table):
   * reset is TriggerIn 0x40 bit0 (was bit1 "resetRam")
   * status: seq_done = WireOut 0x2C bit16, seq_count = bits[15:0], line_count = 0x35
 
-DDS and PMT/photon-counting are intentionally NOT ported here yet -- the 2026
-hardware for them isn't ready. See README.md "Deferred (M4)".
+Normal-mode PMT photon counting IS ported (the datapath exists in the 2026
+bitstream, Phase 5 m2, fed by an on-FPGA synthetic source for bring-up). DDS,
+Differential (sequence-gated) counting, and time-resolved timetagging are not
+ported yet -- see README.md "Deferred (M4)".
 """
+import struct
 import time
 
 from . import wiremap as W
@@ -147,3 +150,69 @@ class Driver:
                 return True
             time.sleep(poll)
         return False
+
+    # ---- PMT normal-mode photon counting -----------------------------------
+    # The counter (pmt_counter) tallies rising edges over a collection gate and
+    # pushes one count per closed window into normal_pmt_fifo (read over pipe
+    # 0xA1). For bring-up the input is an on-FPGA synthetic source (pmt_sim) at
+    # a known rate; the real detector wires into the same mux later. Ports the
+    # legacy getNormalTotal/getNormalCounts/resetFIFONormal onto the 2026 map.
+
+    @staticmethod
+    def seconds_to_cycles(seconds):
+        """Collection time (s) -> clk_100 cycles for the gate length."""
+        return round(seconds * W.CLK_100_HZ)
+
+    @staticmethod
+    def rate_to_period(rate_hz):
+        """Synthetic-source rate (Hz) -> clk_100 cycles between pulses."""
+        return round(W.CLK_100_HZ / rate_hz)
+
+    def pmt_reset_fifo(self):
+        """Clear normal_pmt_fifo (legacy resetFIFONormal)."""
+        self._check()
+        self.xem.ActivateTriggerIn(W.TRIG_RESET, W.TRIG_PMT_FIFO_RESET_BIT)
+
+    def pmt_configure(self, gate_cycles, period_cycles=0):
+        """Set the collection gate length and (for the synthetic source) the
+        pulse period, both in clk_100 cycles. See seconds_to_cycles/rate_to_period."""
+        self._check()
+        self.xem.SetWireInValue(W.EP_PMT_GATE, gate_cycles & 0xFFFFFFFF, 0xFFFFFFFF)
+        self.xem.SetWireInValue(W.EP_PMT_PERIOD, period_cycles & 0xFFFFFFFF, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_start(self, synthetic=True):
+        """Begin periodic counting. synthetic=True drives the on-FPGA source;
+        False selects the real detector input (all-zero until a pin is wired)."""
+        self._check()
+        ctrl = W.PMT_COUNT_EN_BIT | (W.PMT_SIM_EN_BIT if synthetic else 0)
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, ctrl, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_stop(self):
+        """Stop counting (freezes the FIFO fill so a readout is stable)."""
+        self._check()
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, 0, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_available(self):
+        """Windows currently in normal_pmt_fifo (legacy getNormalTotal)."""
+        return self._read(W.WO_PMT_FILL) & W.PMT_FILL_MASK
+
+    def pmt_read_counts(self, n=None):
+        """Read per-window counts from normal_pmt_fifo (legacy getNormalCounts).
+        Reads only whole 16-byte blocks that are actually present (0xA1's
+        ep_ready is tied high -- reading past the fill would return stale data),
+        so the result may be up to 3 words short of `n`; stop counting first for
+        a stable fill. Returns a list of 32-bit counts."""
+        self._check()
+        avail = self.pmt_available()
+        n = avail if n is None else min(n, avail)
+        n -= n % W.PMT_PIPE_WORDS_PER_BLOCK          # whole blocks only
+        if n == 0:
+            return []
+        buf = bytearray(n * 4)
+        got = self.xem.ReadFromBlockPipeOut(W.PMT_PIPE, W.PMT_PIPE_BLOCK, buf)
+        if got != len(buf):
+            raise PulserError(f"PMT pipe read returned {got}, expected {len(buf)}")
+        return list(struct.unpack(f"<{n}I", bytes(buf)))
