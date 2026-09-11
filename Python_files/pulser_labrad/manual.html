@@ -84,6 +84,7 @@
   <a href="#sequences">Writing a sequence</a>
   <a href="#settings">Server settings</a>
   <a href="#channels">TTL channels</a>
+  <a href="#gui">Switch Control GUI</a>
   <a href="#headless">Headless (no LabRAD)</a>
   <a href="#pmt">PMT counting</a>
   <h2>Reference</h2>
@@ -273,8 +274,17 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
     <tr><td>19</td><td><code>set_pmt_synthetic</code></td><td>synthetic <code>b</code></td><td>On-FPGA synthetic source (bring-up) vs real detector.</td></tr>
     <tr><td>20</td><td><code>set_pmt_sim_rate</code></td><td>rate <code>v</code> (Hz)</td><td>Synthetic-source photon rate.</td></tr>
   </table>
+
+  <h3>Manual TTL switching</h3>
+  <p>Force an individual TTL output independently of the running sequence (the per-channel override mux). Wired for channel numbers <b>0–11</b> only. The <a href="#gui">Switch Control GUI</a> drives these.</p>
+  <table>
+    <tr><th>ID</th><th>Method</th><th>Arguments</th><th>What it does</th></tr>
+    <tr><td>13</td><td><code>switch_manual</code></td><td>channelName <code>s</code>, state <code>b</code></td><td>Force a channel ON/OFF (manual override).</td></tr>
+    <tr><td>14</td><td><code>switch_auto</code></td><td>channelName <code>s</code>, invert <code>b</code></td><td>Return a channel to sequence control.</td></tr>
+    <tr><td>15</td><td><code>get_state</code></td><td>channelName <code>s</code> → <code>(b b b b)</code></td><td>(ismanual, manualstate, manualinv, autoinv).</td></tr>
+  </table>
   <div class="box tip"><b class="tag">Coming next</b>
-    <p>DDS settings (90–92) and switch manual/auto are still to come — DDS is hardware-blocked. See <code>pmt_client.py</code> for a runnable PMT example.</p>
+    <p>DDS settings (90–92) are still to come — DDS is hardware-blocked. See <code>pmt_client.py</code> for a runnable PMT example and <code>../pulser_gui/</code> for the PyQt5 GUI.</p>
   </div>
 </section>
 
@@ -305,6 +315,26 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
       <li>Two names <em>may</em> share a number (e.g. <code>AO2</code> and <code>B_x_sign</code> are both 21) — two labels for one physical line. That's allowed.</li>
       <li>Channel <b>16</b> (<code>DiffCountTrigger</code>) and channel <b>0</b> (<code>866</code>) have special meaning for differential PMT counting — avoid repurposing them if you use that mode.</li>
     </ul>
+  </div>
+</section>
+
+<!-- ============================ GUI ============================ -->
+<section id="gui">
+  <h2 class="sec">Switch Control GUI</h2>
+  <p>A PyQt5 GUI for driving the TTL channels by hand lives in <code>Python_files/pulser_gui/</code> (a Python-3 / PyQt5 port of the legacy PyQt4 client). Each switchable channel gets three buttons:</p>
+  <table>
+    <tr><th>Button</th><th>Effect</th></tr>
+    <tr><td><b>ON</b> / <b>OFF</b></td><td>Force that TTL output high/low via the manual override, independent of any running sequence.</td></tr>
+    <tr><td><b>Auto</b></td><td>Return the channel to sequence control.</td></tr>
+  </table>
+  <p>Buttons reflect the live state and stay in sync across multiple clients via the server's <em>switch toggled</em> signal. Only channels wired for override (number <b>0–11</b>) appear.</p>
+  <h3>Run it</h3>
+  <pre><code>pip install PyQt5 qt5reactor
+# manager + Pulser server already running (see above)
+cd Python_files/pulser_gui
+python switch_control.py</code></pre>
+  <div class="box tip"><b class="tag">qt5reactor</b>
+    <p><code>qt5reactor</code> marries Twisted's reactor to the Qt event loop — the PyQt5 equivalent of the legacy <code>qt4reactor</code>. It reads the same <code>LABRADHOST</code> / <code>LABRADPASSWORD</code> / <code>LABRAD_TLS</code> environment as the server and test clients.</p>
   </div>
 </section>
 
@@ -400,7 +430,10 @@ d.start_single()
     <tr><th>Path (under <code>Python_files/</code>)</th><th>Role</th></tr>
     <tr><td><code>pulser_labrad/pulser_server.py</code></td><td>The <b>Pulser</b> LabRAD server (run this).</td></tr>
     <tr><td><code>pulser_labrad/test_client.py</code></td><td>Smoke-test client (program + run a sequence).</td></tr>
+    <tr><td><code>pulser_labrad/pmt_client.py</code></td><td>PMT counting smoke test (synthetic source, no detector).</td></tr>
     <tr><td><code>pulser_labrad/README.md</code></td><td>Setup notes for scalabrad + pylabrad.</td></tr>
+    <tr><td><code>pulser_gui/switch_control.py</code></td><td>PyQt5 Switch Control GUI (manual TTL override).</td></tr>
+    <tr><td><code>pulser_gui/connection.py</code></td><td>Shared async LabRAD connection for the GUIs.</td></tr>
     <tr><td><code>pulser3/hwconfig.py</code></td><td><b>Channel map</b> (<code>CHANNELS</code>) + timing constants.</td></tr>
     <tr><td><code>pulser3/sequence.py</code></td><td>Sequence builder / compiler (seconds → 64-bit lines).</td></tr>
     <tr><td><code>pulser3/driver.py</code></td><td>Headless FPGA driver: program, run, status, PMT.</td></tr>

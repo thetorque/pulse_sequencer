@@ -37,7 +37,7 @@ import time
 # make the sibling pulser3 package importable when run as a standalone script
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from labrad.server import LabradServer, setting          # noqa: E402
+from labrad.server import LabradServer, setting, Signal   # noqa: E402
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock  # noqa: E402
 from twisted.internet.threads import deferToThread        # noqa: E402
 
@@ -56,6 +56,10 @@ class Pulser(LabradServer):
     """LabRAD front end for the XEM7305 pulse sequencer (delegates to pulser3)."""
 
     name = 'Pulser'
+
+    # Fired when any switch is toggled, so other clients (GUIs) stay in sync.
+    # Same ID/name/signature as the legacy server -> existing listeners work.
+    onSwitch = Signal(611051, 'signal: switch toggled', '(ss)')
 
     @inlineCallbacks
     def initServer(self):
@@ -79,6 +83,14 @@ class Pulser(LabradServer):
         self.clear_next_pmt_counts = 0
         self.pmt_synthetic = True
         self.pmt_sim_rate = 1.0e5          # Hz, synthetic-source photon rate
+        # per-channel manual-switch state (mirrors legacy channel objects):
+        # ismanual, the remembered manual level, and the manual/auto invert
+        # flags. Only channels wired for override (number < 12) are switchable.
+        self.switchState = {
+            name: {'ismanual': False, 'manualstate': False,
+                   'manualinv': False, 'autoinv': False}
+            for name in self.channels}
+        self.listeners = set()             # client contexts, for signal fan-out
         print("Pulser: connecting to XEM7305 and configuring %s ..." % bit_path)
         yield deferToThread(self.driver.connect, bit_path)   # ConfigureFPGA + MIG calib
         print("Pulser: FPGA ready.")
@@ -374,6 +386,76 @@ class Pulser(LabradServer):
         """Timetag tick resolution in seconds."""
         from pulser3 import wiremap as W
         return W.TIMETAG_RESOLUTION_S
+
+    # ---- manual TTL switching (per-channel override) -----------------------
+    # Force a TTL output ON/OFF independently of the sequence, or return it to
+    # sequence ('Auto') control. Same legacy setting IDs/names + switch-toggled
+    # signal so the GUI clients work unchanged. Hardware override is wired for
+    # channel numbers 0..11 only (pulser3 raises for higher ones).
+
+    @staticmethod
+    def _cnot(control, value):
+        """Conditional NOT: flip value when control is set (legacy cnot)."""
+        return (not value) if control else value
+
+    def _notify_switch(self, c, channel_name, label):
+        """Fire onSwitch to every listener except the caller's context."""
+        others = self.listeners.copy()
+        others.discard(c.ID)
+        self.onSwitch((channel_name, label), others)
+
+    @setting(13, 'Switch Manual', channelName='s', state='b', returns='')
+    def switchManual(self, c, channelName, state=None):
+        """Force a channel ON/OFF (manual override). With no state, reuse the
+        last remembered manual level."""
+        if channelName not in self.switchState:
+            raise Exception("Incorrect Channel")
+        st = self.switchState[channelName]
+        st['ismanual'] = True
+        if state is not None:
+            st['manualstate'] = bool(state)
+        level = st['manualstate']
+        number = self.channels[channelName]
+        yield self.inCommunication.acquire()
+        try:
+            # manual invert flag is folded into the forced level, as legacy did
+            yield deferToThread(self.driver.set_manual, number,
+                                self._cnot(st['manualinv'], level))
+        finally:
+            self.inCommunication.release()
+        self._notify_switch(c, channelName, 'ManualOn' if level else 'ManualOff')
+
+    @setting(14, 'Switch Auto', channelName='s', invert='b', returns='')
+    def switchAuto(self, c, channelName, invert=None):
+        """Return a channel to sequence ('Auto') control, optionally inverted."""
+        if channelName not in self.switchState:
+            raise Exception("Incorrect Channel")
+        st = self.switchState[channelName]
+        st['ismanual'] = False
+        if invert is not None:
+            st['autoinv'] = bool(invert)
+        number = self.channels[channelName]
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self.driver.set_auto, number, st['autoinv'])
+        finally:
+            self.inCommunication.release()
+        self._notify_switch(c, channelName, 'Auto')
+
+    @setting(15, 'Get State', channelName='s', returns='(bbbb)')
+    def getState(self, c, channelName):
+        """(ismanual, manualstate, manualinv, autoinv) for a channel."""
+        if channelName not in self.switchState:
+            raise Exception("Incorrect Channel")
+        st = self.switchState[channelName]
+        return (st['ismanual'], st['manualstate'], st['manualinv'], st['autoinv'])
+
+    # ---- listener bookkeeping (for the switch-toggled signal) --------------
+    def initContext(self, c):
+        self.listeners.add(c.ID)
+
+    def expireContext(self, c):
+        self.listeners.discard(c.ID)
 
     # ---- introspection -----------------------------------------------------
     @setting(12, 'Get Channels', returns='*(sw)')

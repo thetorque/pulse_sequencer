@@ -141,6 +141,35 @@ class Driver:
         """Current TTL output word (master_logic, WireOut 0x2B)."""
         return self._read(W.WO_LOGIC)
 
+    # ---- manual TTL override (per-channel force/invert mux) ----------------
+    # The logic_out mux (photon.vhd Phase 5a) forces or inverts an individual
+    # TTL output independently of the running sequence, driven exactly like the
+    # legacy design's ep02/ep03 wires. select picks manual(1)/auto(0); level is
+    # the forced value in manual, or the invert flag in auto. Only channels
+    # 0..11 are wired -- higher channels are passthrough, so overriding them is
+    # a no-op the hardware ignores; we reject it here to catch mistakes early.
+    # Ports legacy api.setManual/setAuto onto the 2026 map.
+
+    def _set_override(self, channel, select, level):
+        self._check()
+        if not 0 <= channel < W.MANUAL_OVERRIDE_CHANNELS:
+            raise PulserError(
+                f"manual override is only wired for channels "
+                f"0..{W.MANUAL_OVERRIDE_CHANNELS - 1} (got {channel})")
+        bit = 1 << channel
+        self.xem.SetWireInValue(W.EP_MANUAL_SELECT, bit if select else 0, bit)
+        self.xem.SetWireInValue(W.EP_MANUAL_STATE, bit if level else 0, bit)
+        self.xem.UpdateWireIns()
+
+    def set_manual(self, channel, level):
+        """Force channel to a fixed output (level True=high, False=low),
+        overriding the sequence (legacy setManual)."""
+        self._set_override(channel, select=True, level=bool(level))
+
+    def set_auto(self, channel, invert=False):
+        """Return channel to sequence control, optionally inverted (legacy setAuto)."""
+        self._set_override(channel, select=False, level=bool(invert))
+
     def wait_done(self, timeout=90.0, poll=0.05):
         """Block until seq_done or timeout. Returns True if done in time."""
         self._check()

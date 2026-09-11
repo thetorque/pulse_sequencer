@@ -30,6 +30,16 @@ EP_LOOP_LIMIT = 0x05    # 16-bit: 0 = unlimited (with INFINITE_BIT), N = stop af
 TRIG_RESET = 0x40
 TRIG_RESET_BIT = 0      # bit 0: pulser_counter_reset (resets sequencer FSM + counters)
 
+# ---- WireIn 0x02/0x03: per-channel manual TTL override (Phase 5a mux) ------
+# The logic_out mux (photon.vhd) lets the host force/invert individual TTL
+# outputs independently of the running sequence, exactly like the legacy
+# design. Per channel bit: select=0 -> follow the sequence (level=invert flag);
+# select=1 -> force the output (level=forced value). Only channels 0..11 are
+# wired for override (12/13 are DDS bits, 14/15 tied 0, 16-31 passthrough).
+EP_MANUAL_SELECT = 0x02   # WireIn: 1 = manual override, 0 = follow sequence (per channel)
+EP_MANUAL_STATE  = 0x03   # WireIn: manual -> forced level; auto -> invert flag (per channel)
+MANUAL_OVERRIDE_CHANNELS = 12   # override wired for channel numbers 0..11 only
+
 # ---- WireOut status --------------------------------------------------------
 WO_LOGIC      = 0x2B    # ep2Bwire: logic_out (== master_logic when override mux off)
 WO_SEQ        = 0x2C    # ep2Cwire: bit16 seq_done, bits[15:0] seq_count, bit17 drop/overflow

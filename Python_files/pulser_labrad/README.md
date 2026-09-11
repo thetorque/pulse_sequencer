@@ -34,8 +34,16 @@ PMT photon counting (legacy IDs/names, over the pulser3 datapath): `Set Mode`
 time)`), `Get Collection Mode` (28), `Reset Timetags` (31), `Record Timetags`
 (30), `Get Timetags` (32, seconds), `Get TimeTag Resolution` (33). Bring-up
 helpers for the on-FPGA synthetic source: `Set PMT Synthetic` (19), `Set PMT
-Sim Rate` (20). DDS (90-92) and the second-PMT/readout settings are not ported
-(hardware-blocked / unbuilt).
+Sim Rate` (20).
+
+Manual TTL switching (legacy IDs/names): `Switch Manual` (13, force a channel
+ON/OFF), `Switch Auto` (14, return to sequence control), `Get State` (15). The
+server fires the *switch toggled* signal (611051) so GUI clients stay in sync;
+override is wired for channel numbers 0..11 only. The PyQt5 Switch Control GUI
+that drives these lives in `../pulser_gui/`.
+
+DDS (90-92) and the second-PMT/readout settings are not ported (hardware-
+blocked / unbuilt).
 
 ## One-time setup
 
