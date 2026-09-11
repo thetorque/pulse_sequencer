@@ -62,6 +62,16 @@ TRIG_PMT_FIFO_RESET_BIT = 2   # TriggerIn 0x40 bit2: normal_pmt_fifo reset (lega
 
 CLK_100_HZ = 100_000_000      # counting clock; converts gate/period cycles <-> seconds/Hz
 
+# ---- PMT time-resolved timetagging (Phase 5 m4b) ---------------------------
+# The timetagger runs on clk_200 (200 MHz) = fifo_photon's wr_clk, so each
+# timestamp tick is 5 ns (finer than the legacy 10 ns timeResolvedResolution).
+PMT_RECORD_EN_BIT = 1 << 2    # WireIn 0x08 bit2: record photon timestamps (detection window)
+WO_PHOTON_FILL    = 0x28      # WireOut: fifo_photon fill level (readable words, bits 14:0)
+PHOTON_FILL_MASK  = 0x7FFF
+PHOTON_PIPE       = 0xA0      # BTPipeOut: photon timestamps (32-bit words, 5 ns ticks)
+TRIG_PHOTON_FIFO_RESET_BIT = 3   # TriggerIn 0x40 bit3: fifo_photon reset
+TIMETAG_RESOLUTION_S = 5.0e-9    # 1 timestamp tick = 5 ns (clk_200)
+
 # ---- Program-line format ---------------------------------------------------
 # 64-bit line: channel = bits[31:0], time = bits[62:32] (31-bit absolute tick,
 # ~86 s max), bit63 reserved. 1 tick = 40 ns. See pulse-sequence-ram-format memo.

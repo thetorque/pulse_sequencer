@@ -216,3 +216,59 @@ class Driver:
         if got != len(buf):
             raise PulserError(f"PMT pipe read returned {got}, expected {len(buf)}")
         return list(struct.unpack(f"<{n}I", bytes(buf)))
+
+    # ---- PMT time-resolved timetagging -------------------------------------
+    # The timetagger records each photon's arrival TIME (5 ns ticks, clk_200)
+    # into fifo_photon (pipe 0xA0) while record_en is high -- the detection
+    # window. Ports the legacy getTimetags/getResolvedTotal/resetTimetags onto
+    # the 2026 map. Independent of the normal counter above (different FIFO/
+    # pipe), though both share the synthetic source and ep08.
+
+    @staticmethod
+    def ticks_to_seconds(ticks):
+        """Timestamp ticks -> seconds (5 ns each, clk_200)."""
+        return ticks * W.TIMETAG_RESOLUTION_S
+
+    def pmt_timetag_reset(self):
+        """Clear fifo_photon (legacy resetTimetags)."""
+        self._check()
+        self.xem.ActivateTriggerIn(W.TRIG_RESET, W.TRIG_PHOTON_FIFO_RESET_BIT)
+
+    def pmt_record_start(self, synthetic=True, period_cycles=None):
+        """Open the detection window: record photon timestamps. synthetic=True
+        drives the on-FPGA source (set period_cycles, in clk_100 cycles, to pick
+        its rate); False records the real detector input."""
+        self._check()
+        if period_cycles is not None:
+            self.xem.SetWireInValue(W.EP_PMT_PERIOD, period_cycles & 0xFFFFFFFF, 0xFFFFFFFF)
+        ctrl = W.PMT_RECORD_EN_BIT | (W.PMT_SIM_EN_BIT if synthetic else 0)
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, ctrl, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_record_stop(self):
+        """Close the detection window (freezes the FIFO fill for a stable read)."""
+        self._check()
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, 0, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_timetags_available(self):
+        """Photon timestamps currently in fifo_photon (legacy getResolvedTotal)."""
+        return self._read(W.WO_PHOTON_FILL) & W.PHOTON_FILL_MASK
+
+    def pmt_read_timetags(self, n=None):
+        """Read photon timestamps from fifo_photon (legacy getTimetags). Like
+        pmt_read_counts, reads only whole 16-byte blocks the fill wire reports
+        (0xA0's ep_ready is tied high); stop recording first for a stable fill.
+        Returns a list of 32-bit timestamps (multiply by TIMETAG_RESOLUTION_S,
+        or use ticks_to_seconds, for seconds)."""
+        self._check()
+        avail = self.pmt_timetags_available()
+        n = avail if n is None else min(n, avail)
+        n -= n % W.PMT_PIPE_WORDS_PER_BLOCK          # whole blocks only
+        if n == 0:
+            return []
+        buf = bytearray(n * 4)
+        got = self.xem.ReadFromBlockPipeOut(W.PHOTON_PIPE, W.PMT_PIPE_BLOCK, buf)
+        if got != len(buf):
+            raise PulserError(f"photon pipe read returned {got}, expected {len(buf)}")
+        return list(struct.unpack(f"<{n}I", bytes(buf)))

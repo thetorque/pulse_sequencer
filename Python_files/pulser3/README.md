@@ -20,12 +20,13 @@ which the test scripts under `VHDL_files/.../test/` already validated.
 | `wiremap.py` | 2026 endpoint constants (single source of truth for the host<->FPGA contract). Pure, hardware-free. |
 | `ddr3_backend.py` | Canonical low-level DDR3 pipe primitives (connect, calib wait, write/read). Single source of truth (M1.5). |
 | `_ddr3.py` | Thin lazy seam over `ddr3_backend` that keeps the `ok` import deferred for off-bench use. |
-| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status; **PMT normal-mode counting** (configure/start/stop/read). |
+| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status; **PMT normal-mode counting** + **time-resolved timetagging** (configure/start/stop/read). |
 | `sequence.py` | `Sequence`: build TTL pulses in seconds (int or named channels) -> compile to the 64-bit line list. |
 | `hwconfig.py` | Experiment config: channel name->number map + timing; `new_sequence()` factory. |
 | `run_demo.py` | M1 end-to-end proof: 12-state waveform via the driver (`python -m pulser3.run_demo <bit>`). |
 | `run_sequence.py` | M3 named-channel runner: hwconfig -> Sequence -> Driver (`python -m pulser3.run_sequence <bit>`). |
 | `pmt_demo.py` | PMT normal-count readout via the Driver API (`python -m pulser3.pmt_demo <bit>`). |
+| `pmt_timetag_demo.py` | PMT time-resolved timetag readout via the Driver API (`python -m pulser3.pmt_timetag_demo <bit>`). |
 | `test_sequence.py` | `Sequence` unit tests, no hardware (`python -m pulser3.test_sequence`). |
 
 ## Status
@@ -58,15 +59,21 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   an on-FPGA synthetic source feeds a gated counter into `normal_pmt_fifo`
   until the detector is wired). `pmt_demo.py` verifies a known synthetic rate
   reads back the exact per-window count. Requires an m2+ bitstream.
+- **PMT time-resolved timetagging (done):** `Driver.pmt_record_*` /
+  `pmt_read_timetags` port the legacy `getTimetags`/`getResolvedTotal`/
+  `resetTimetags` onto the 2026 map (WireIn 0x08 bit2 record enable, WireOut
+  0x28 fill, BTPipeOut 0xA0, TriggerIn 0x40 bit3). The FPGA timetagger (Phase 5
+  m4a/m4b) records each photon's arrival time at 5 ns/tick (clk_200) into
+  `fifo_photon`. `pmt_timetag_demo.py` verifies a known synthetic rate reads
+  back evenly-spaced timestamps. Requires an m4b+ bitstream.
 
-## Deferred (M4) -- DDS + PMT (Differential / time-resolved)
+## Deferred (M4) -- DDS + PMT (Differential)
 
-DDS and the remaining PMT modes are not ported yet. **DDS** waits on hardware
-(`servers/pulser/dds.py` + BTPipeIn 0x81). **PMT Differential** (sequence-gated)
-mode and **time-resolved timetagging** (`getResolvedCounts`, BTPipeOut 0xA0)
-wait on their FPGA datapath (Phase 5 m4). Also `getReadoutCounts` / BTPipeOut
-0xa2. When they land, port them against the then-
-current wire map. Tracked so it isn't forgotten.
+Still not ported: **DDS** (waits on hardware -- `servers/pulser/dds.py` +
+BTPipeIn 0x81) and **PMT Differential** (sequence-gated counting with 866-on/off
+status -- ties the counter's gate to the sequencer; Phase 5 m4d on the RTL
+side). Also `getReadoutCounts` / BTPipeOut 0xa2. When they land, port them
+against the then-current wire map. Tracked so it isn't forgotten.
 
 ## Requirements
 
