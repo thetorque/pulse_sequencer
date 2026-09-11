@@ -77,7 +77,11 @@ begin
       if trig_rise = '1' then
         -- close the window: publish count + 866 status, restart the accumulator
         fifo_din(30 downto 0) <= std_logic_vector(cnt_v);
-        fifo_din(31)          <= '0' when status_in = '1' else '1';  -- '1' => 866 OFF
+        if status_in = '1' then         -- 866 ON  -> bit31 = '0'
+          fifo_din(31) <= '0';
+        else                            -- 866 OFF -> bit31 = '1' (word >= 2^31)
+          fifo_din(31) <= '1';
+        end if;
         if fifo_full = '0' then
           fifo_wr_en <= '1';
         end if;
