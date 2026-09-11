@@ -24,16 +24,16 @@ cd "$(dirname "$0")"
 # synthesizable modules live in ../src (built by create_project.tcl); the
 # behavioural models + testbenches live here.
 SRCS="../src/ddr3_line_streamer.vhd ../src/pulse_sequencer.vhd ../src/pulse_cdc.vhd \
-      ../src/pmt_sim.vhd ../src/pmt_counter.vhd \
+      ../src/pmt_sim.vhd ../src/pmt_counter.vhd ../src/pmt_timetagger.vhd \
       line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd mig_ramp_model.vhd \
       tb_line_streamer.vhd tb_streamer_throughput.vhd \
       tb_sequencer.vhd tb_sequencer_loop.vhd tb_sequencer_stall.vhd tb_sequencer_long.vhd \
-      tb_sequencer_nloop.vhd tb_pmt_counter.vhd"
+      tb_sequencer_nloop.vhd tb_pmt_counter.vhd tb_pmt_timetagger.vhd"
 
 echo "== analyze =="
 "$GHDL" -a --std=08 $SRCS
 
-for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop tb_sequencer_stall tb_sequencer_long tb_sequencer_nloop tb_pmt_counter; do
+for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop tb_sequencer_stall tb_sequencer_long tb_sequencer_nloop tb_pmt_counter tb_pmt_timetagger; do
   echo "== run $tb =="
   "$GHDL" --elab-run --std=08 "$tb" --stop-time=20ms
 done
