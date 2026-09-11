@@ -106,7 +106,14 @@ class Pulser(LabradServer):
         lines = seq.to_lines()
         yield self.inCommunication.acquire()
         try:
-            yield deferToThread(self.driver.load_program, lines)
+            # verify=False: this server keeps ONE FPGA session across many runs,
+            # so the MIG idles between them. The write-verify readback is the
+            # roundtrip read path, which hits the Phase-6b cold-start
+            # mis-address after an idle (the WRITE is fine; only that read
+            # mis-addresses). The standalone scripts avoid it by reconfiguring
+            # (fresh calibration) each run. The running sequence validates
+            # itself via line_count / drop flags, so the verify is redundant here.
+            yield deferToThread(self.driver.load_program, lines, verify=False)
         finally:
             self.inCommunication.release()
         self.isProgrammed = True
