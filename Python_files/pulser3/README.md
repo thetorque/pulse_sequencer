@@ -20,13 +20,14 @@ which the test scripts under `VHDL_files/.../test/` already validated.
 | `wiremap.py` | 2026 endpoint constants (single source of truth for the host<->FPGA contract). Pure, hardware-free. |
 | `ddr3_backend.py` | Canonical low-level DDR3 pipe primitives (connect, calib wait, write/read). Single source of truth (M1.5). |
 | `_ddr3.py` | Thin lazy seam over `ddr3_backend` that keeps the `ok` import deferred for off-bench use. |
-| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status; **PMT normal-mode counting** + **time-resolved timetagging** (configure/start/stop/read). |
+| `driver.py` | `Driver`: connect, load DDR3 program, start/stop/loop, reset, status; **PMT normal counting**, **time-resolved timetagging**, **differential (sequence-gated) counting**. |
 | `sequence.py` | `Sequence`: build TTL pulses in seconds (int or named channels) -> compile to the 64-bit line list. |
 | `hwconfig.py` | Experiment config: channel name->number map + timing; `new_sequence()` factory. |
 | `run_demo.py` | M1 end-to-end proof: 12-state waveform via the driver (`python -m pulser3.run_demo <bit>`). |
 | `run_sequence.py` | M3 named-channel runner: hwconfig -> Sequence -> Driver (`python -m pulser3.run_sequence <bit>`). |
 | `pmt_demo.py` | PMT normal-count readout via the Driver API (`python -m pulser3.pmt_demo <bit>`). |
 | `pmt_timetag_demo.py` | PMT time-resolved timetag readout via the Driver API (`python -m pulser3.pmt_timetag_demo <bit>`). |
+| `pmt_diff_demo.py` | Differential PMT counting: a gating program on the sequencer + count/status readout (`python -m pulser3.pmt_diff_demo <bit>`). |
 | `test_sequence.py` | `Sequence` unit tests, no hardware (`python -m pulser3.test_sequence`). |
 
 ## Status
@@ -66,14 +67,21 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   m4a/m4b) records each photon's arrival time at 5 ns/tick (clk_200) into
   `fifo_photon`. `pmt_timetag_demo.py` verifies a known synthetic rate reads
   back evenly-spaced timestamps. Requires an m4b+ bitstream.
+- **PMT differential (sequence-gated) counting (done):** `Driver.pmt_set_mode`
+  / `pmt_diff_start`/`pmt_read_diff_counts` port the legacy
+  `setModeDifferential` + `infoFromBuf` ON/OFF split onto the 2026 map (ep08
+  bit3 mode; count word bit31 = 866-off). The running pulse program defines the
+  windows (channel 16 = DiffCountTrigger) and the 866 state (channel 0) -- the
+  FPGA diff counter (Phase 5 m4d) feeds `normal_pmt_fifo`. `pmt_diff_demo.py`
+  builds the gating program, runs it on the DDR3 sequencer with the synthetic
+  source, and checks per-window counts + status. Requires an m4d bitstream.
 
-## Deferred (M4) -- DDS + PMT (Differential)
+## Deferred (M4) -- DDS
 
 Still not ported: **DDS** (waits on hardware -- `servers/pulser/dds.py` +
-BTPipeIn 0x81) and **PMT Differential** (sequence-gated counting with 866-on/off
-status -- ties the counter's gate to the sequencer; Phase 5 m4d on the RTL
-side). Also `getReadoutCounts` / BTPipeOut 0xa2. When they land, port them
-against the then-current wire map. Tracked so it isn't forgotten.
+BTPipeIn 0x81) and the readout counter (`getReadoutCounts` / BTPipeOut 0xa2,
+also unused so far). When they land, port them against the then-current wire
+map. Tracked so it isn't forgotten.
 
 ## Requirements
 

@@ -62,6 +62,18 @@ TRIG_PMT_FIFO_RESET_BIT = 2   # TriggerIn 0x40 bit2: normal_pmt_fifo reset (lega
 
 CLK_100_HZ = 100_000_000      # counting clock; converts gate/period cycles <-> seconds/Hz
 
+# ---- PMT differential (sequence-gated) counting (Phase 5 m4d) ---------------
+# Differential mode (ep08 bit3): normal_pmt_fifo is fed by the sequence-gated
+# counter instead of the free-running one. Each count word carries the 866
+# state in bit31 (1 = 866 was OFF), count in bits[30:0] -- legacy infoFromBuf.
+# The window is gated by the running program's channel 16 (DiffCountTrigger);
+# the 866 state is its channel 0.
+PMT_DIFF_MODE_BIT  = 1 << 3    # WireIn 0x08 bit3: 1 = differential mode
+PMT_STATUS_OFF_BIT = 1 << 31   # count word bit31: 1 = 866 was OFF, 0 = ON
+PMT_COUNT_MASK     = 0x7FFFFFFF  # count word bits[30:0]
+CH_DIFF_TRIGGER = 16          # sequence channel that gates differential windows
+CH_866          = 0           # sequence channel carrying the 866/repump state
+
 # ---- PMT time-resolved timetagging (Phase 5 m4b) ---------------------------
 # The timetagger runs on clk_200 (200 MHz) = fifo_photon's wr_clk, so each
 # timestamp tick is 5 ns (finer than the legacy 10 ns timeResolvedResolution).

@@ -272,3 +272,45 @@ class Driver:
         if got != len(buf):
             raise PulserError(f"photon pipe read returned {got}, expected {len(buf)}")
         return list(struct.unpack(f"<{n}I", bytes(buf)))
+
+    # ---- PMT differential (sequence-gated) counting ------------------------
+    # In differential mode (ep08 bit3), normal_pmt_fifo is fed by the counter
+    # gated by the running pulse program: channel 16 (DiffCountTrigger) closes
+    # each window, and each count word carries the 866 state (channel 0) in
+    # bit31. Read over the same pipe 0xA1 as normal counting, then decode.
+    # Ports the legacy setModeDifferential + infoFromBuf ON/OFF split.
+
+    def pmt_set_mode(self, differential):
+        """Select differential (True) or normal (False) counting -- which
+        counter feeds normal_pmt_fifo (ep08 bit3). Composable: touches only bit3."""
+        self._check()
+        val = W.PMT_DIFF_MODE_BIT if differential else 0
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, val, W.PMT_DIFF_MODE_BIT)
+        self.xem.UpdateWireIns()
+
+    @staticmethod
+    def decode_diff_count(word):
+        """Split a differential count word -> (count, is_866_on)."""
+        return (word & W.PMT_COUNT_MASK, (word & W.PMT_STATUS_OFF_BIT) == 0)
+
+    def pmt_diff_start(self, synthetic=True, period_cycles=None):
+        """Enter differential mode (and, for bring-up, the synthetic source).
+        The count windows come from the running program's channel 16, so start a
+        sequence after this. period_cycles sets the synthetic photon rate."""
+        self._check()
+        if period_cycles is not None:
+            self.xem.SetWireInValue(W.EP_PMT_PERIOD, period_cycles & 0xFFFFFFFF, 0xFFFFFFFF)
+        ctrl = W.PMT_DIFF_MODE_BIT | (W.PMT_SIM_EN_BIT if synthetic else 0)
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, ctrl, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_diff_stop(self):
+        """Leave differential mode and stop the source."""
+        self._check()
+        self.xem.SetWireInValue(W.EP_PMT_CTRL, 0, 0xFFFFFFFF)
+        self.xem.UpdateWireIns()
+
+    def pmt_read_diff_counts(self, n=None):
+        """Read differential count words from normal_pmt_fifo and decode ->
+        list of (count, is_866_on)."""
+        return [self.decode_diff_count(w) for w in self.pmt_read_counts(n)]
