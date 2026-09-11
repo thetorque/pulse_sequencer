@@ -71,19 +71,25 @@ def main(argv=None):
     print(f"  read {len(counts)} windows: "
           + ", ".join(f"{c}{'on' if on else 'OFF'}" for c, on in counts))
 
+    # Window 0 is the startup transient: the diff counter accumulates from the
+    # reset, but there is a ~1 ms host gap (USB round-trips) before the sequence
+    # emits its first ch16 edge, during which the running source piles photons
+    # into that first window. The legacy host discards the first counts after a
+    # mode change for exactly this reason (pulser_ok clear_next_pmt_counts). Skip
+    # it; every sequence-gated window after it is exact.
     errors = 0
     for i, (c, on) in enumerate(counts):
         if on != repump_on:
             errors += 1
             print(f"    window {i}: status {'ON' if on else 'OFF'} "
                   f"(expected {'ON' if repump_on else 'OFF'})")
-        if abs(c - expect) > 2:
+        if i >= 1 and abs(c - expect) > 2:
             errors += 1
             print(f"    window {i}: count {c} (expected ~{expect})")
     good = errors == 0 and len(counts) >= args.windows - 1
     print("  RESULT:", "PASS" if good else "FAIL",
-          f"-- {len(counts)} windows, status all "
-          f"{'ON' if repump_on else 'OFF'}, counts ~{expect}"
+          f"-- {len(counts)} windows (0 = startup, skipped), status all "
+          f"{'ON' if repump_on else 'OFF'}, gated counts ~{expect}"
           if good else f"-- {errors} problem(s)")
     return 0 if good else 1
 
