@@ -268,8 +268,9 @@ class scan_experiment_1D(experiment):
         self.script_cls = script_cls
         self.parameter = parameter
         self.units = units
-        self.scan_points = linspace(minim, maxim, steps)
-        self.scan_points = [WithUnit(pt, units) for pt in self.scan_points]
+        # minim/maxim arrive as dimensionless labrad Values (tag 'v[]'); coerce to float
+        self.scan_points = linspace(float(minim), float(maxim), steps)
+        self.scan_points = [WithUnit(float(pt), units) for pt in self.scan_points]
         scan_name = self.name_format(script_cls.name)
         super(scan_experiment_1D, self).__init__(scan_name)
 
@@ -326,8 +327,9 @@ class scan_experiment_1D_measure(experiment):
         self.measure_script_cls = measure_script_cls
         self.parameter = parameter
         self.units = units
-        self.scan_points = linspace(minim, maxim, steps)
-        self.scan_points = [WithUnit(pt, units) for pt in self.scan_points]
+        # minim/maxim arrive as dimensionless labrad Values (tag 'v[]'); coerce to float
+        self.scan_points = linspace(float(minim), float(maxim), steps)
+        self.scan_points = [WithUnit(float(pt), units) for pt in self.scan_points]
         scan_name = self.name_format(scan_script_cls.name, measure_script_cls.name)
         super(scan_experiment_1D_measure, self).__init__(scan_name)
 

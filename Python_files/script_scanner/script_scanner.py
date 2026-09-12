@@ -153,7 +153,7 @@ class ScriptScanner(Signals):
         return scan_id
 
     @setting(12, "New Script Scan", scan_script_name='s', measure_script_name='s', collection='s',
-             parameter_name='s', minim='v', maxim='v', steps='w', units='s')
+             parameter_name='s', minim='v[]', maxim='v[]', steps='w', units='s')
     def new_scan(self, c, scan_script_name, measure_script_name, collection, parameter_name,
                  minim, maxim, steps, units):
         # need error checking that parameters are valid
