@@ -69,7 +69,9 @@ edit its parameters on the right (numeric values with their range + units,
 strings, bools, simple/line selections, and scans), then **Apply** to write them
 back and **Save to registry** to persist. **Add parameter…** creates a new one
 (pick or type a collection, name, type, and initial value) -- it writes the typed
-record into the registry and reloads the vault. It's the graphical way to change
+record into the registry and reloads the vault. Each row has a **✕** to delete
+that parameter (with a confirm); deleting the last one in a collection removes the
+now-empty collection too. It's the graphical way to change
 e.g. `LedBlink.on_time` before re-running an experiment. Manual **Refresh** (no
 poll, so it never clobbers an edit in progress).
 

@@ -213,7 +213,18 @@ class ParameterEditor(QtWidgets.QWidget):
             except Exception as e:
                 widget = QtWidgets.QLabel("(error: %s)" % e)
                 getter = None
-            self.form.addRow(name, widget)
+            # editor + a small delete button per row
+            row = QtWidgets.QWidget()
+            h = QtWidgets.QHBoxLayout(row)
+            h.setContentsMargins(0, 0, 0, 0)
+            h.setSpacing(6)
+            h.addWidget(widget, 1)
+            del_btn = QtWidgets.QToolButton()
+            del_btn.setText("✕")
+            del_btn.setToolTip("Delete %s" % name)
+            del_btn.clicked.connect(lambda _=False, n=name: self._delete_parameter(n))
+            h.addWidget(del_btn)
+            self.form.addRow(name, row)
             self._rows[name] = {'get': getter}
 
     # ---- per-type editors -------------------------------------------------
@@ -427,6 +438,39 @@ class ParameterEditor(QtWidgets.QWidget):
                 return None
             record = ('selection_simple', (options[0], options))
         return collection, name, record
+
+    # ---- delete a parameter ----------------------------------------------
+    def _delete_parameter(self, name):
+        if not self._current:
+            return
+        if QtWidgets.QMessageBox.question(
+                self, "Delete parameter",
+                "Delete %s / %s?\nThis removes it from the registry." % (self._current, name)
+        ) != QtWidgets.QMessageBox.Yes:
+            return
+        collection = self._current
+        removed_collection = False
+        try:
+            # reload (below) reverts in-memory to the registry, so persist current
+            # values first -- keeps Applied-but-unsaved edits on other parameters
+            self.pv.save_parameters_to_registry()
+            reg = self.cxn.registry
+            reg.cd(['', 'Servers', 'Parameter Vault', collection])
+            reg.del_(name)
+            subdirs, keys = reg.dir()
+            if not keys and not subdirs:
+                # collection is now empty -- remove the empty directory too
+                reg.cd(['', 'Servers', 'Parameter Vault'])
+                reg.rmdir(collection)
+                removed_collection = True
+            self.pv.reload_parameters()
+        except Exception as e:
+            self._warn("Delete failed", e)
+            return
+        if removed_collection:
+            self._load_collections()
+        else:
+            self._load_collection(collection)
 
     def _save(self):
         try:
