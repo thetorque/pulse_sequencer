@@ -25,16 +25,18 @@ timeout = 20
 # signals are unchanged, so existing clients keep working.
 #
 # Normal mode works end-to-end with the Pulser's on-FPGA synthetic source (no
-# detector needed). Differential mode is ported faithfully but needs the diff
-# channels ('DiffCountTrigger', '866DP', 'Internal866') added to
-# pulser3.hwconfig and the real 866 repump -- it won't run until then.
+# detector needed). Differential mode runs on the FPGA differential counter
+# gated by 'DiffCountTrigger' (channel 16); the '866DP'/'Internal866' repump
+# pulses are added only if those channels exist in pulser3.hwconfig (a real
+# ON/OFF differential needs the actual 866 laser).
 #
-# py3 changes: print()-functions, listeners.remove->discard, and the legacy
-# Pulser's 'complete_infinite_iteration' (not in the 2026 server) mapped to
+# py3 changes: print()-functions, listeners.remove->discard, returnValue->return
+# (deprecated in Twisted 24.7), and the legacy Pulser's
+# 'complete_infinite_iteration' (absent in the 2026 server) mapped to
 # stop_sequence in _stopPulserDiff.
 from labrad.server import LabradServer, setting, Signal
 from labrad import types as T
-from twisted.internet.defer import Deferred, returnValue, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import LoopingCall
 import time
 
@@ -161,7 +163,7 @@ class NormalPMTFlow(LabradServer):
         self.startTime = time.time()
         yield self.addParameters(self.startTime)
         name = newSet[1]
-        returnValue(name)
+        return name
 
     @inlineCallbacks
     def addParameters(self, start):
@@ -182,7 +184,7 @@ class NormalPMTFlow(LabradServer):
         self.openDataSet = yield self.makeNewDataSet(self.saveFolder, self.dataSetName)
         otherListeners = self.getOtherListeners(c)
         self.onNewSetting(('dataset', self.openDataSet), otherListeners)
-        returnValue(self.openDataSet)
+        return self.openDataSet
 
     @setting(2, "Set Mode", mode='s', returns='')
     def setMode(self, c, mode):
@@ -228,7 +230,7 @@ class NormalPMTFlow(LabradServer):
         if self.openDataSet is None:
             self.openDataSet = yield self.makeNewDataSet(self.saveFolder, self.dataSetName)
         self.recording.start(self.collection_period['s'] / 2.0)
-        returnValue(newSet)
+        return newSet
 
     @setting(5, returns='')
     def stopRecording(self, c):
@@ -295,7 +297,7 @@ class NormalPMTFlow(LabradServer):
         data = yield d
         if average:
             data = sum(data) / len(data)
-        returnValue(data)
+        return data
 
     @setting(10, 'Get Time Length', returns='v')
     def getMode(self, c):
