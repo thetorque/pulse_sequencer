@@ -26,6 +26,7 @@ sequence's Auto channels -- changes something (the same effect the legacy
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
 | `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
 | `script_scanner_gui.py` | operator view for ScriptScanner: launch (run/repeat/scan/schedule) + live queue / running (progress + pause/stop) / scheduled |
+| `workbench.py` | **Experiment Workbench** -- Script Scanner + Sequence Editor + Sequence Viewer as tabs, sharing one LabRAD connection |
 | `theme.py` | shared modern look (Fusion + light QSS); the GUIs call `theme.apply(app)` |
 | `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
 
@@ -58,7 +59,17 @@ Start the manager and the `Pulser` server first (see
 python switch_control.py     # TTL switch panel
 python pmt_control.py        # PMT mode / window / record panel (talks to NormalPMTFlow)
 python script_scanner_gui.py # launch + monitor experiments (talks to ScriptScanner)
+python workbench.py          # all three of the below in one tabbed window
 ```
+
+`workbench.py` is the **Experiment Workbench**: the Script Scanner, the Sequence
+Editor, and the Sequence Viewer as three tabs in one window, sharing a single
+LabRAD connection (one login). It's the natural way to use them together --
+write/preview a sequence, then run it as an experiment. The Editor and Viewer
+work with no hardware, so if the manager isn't up (or you cancel the login) the
+window still opens for those two and the Script Scanner tab shows a short note.
+The standalone GUIs and dashboard panels are unchanged; this is just an extra
+launcher.
 
 `script_scanner_gui.py` needs the **ScriptScanner** server running (see
 `../script_scanner/README.md`); scans/repeats also need the Data Vault. The left
