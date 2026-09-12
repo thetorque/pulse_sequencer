@@ -72,6 +72,20 @@ And two that **do** drive hardware, as real pulse-sequence examples:
 `(channel, start_s, duration_s)` pulses); it's the py3 stand-in for the lab's
 legacy `experiment/pulser_sequences/`.
 
+### Previewing a sequence (no hardware)
+
+`view_led_blink.py` turns the `alternating_blink` sequence into a
+`pulser3.Sequence` so you can **see** it before running: start the viewer and
+open that file --
+
+```
+python ../seq_viewer/seq_viewer.py     # then Open... -> script_scanner/view_led_blink.py
+```
+
+It's a tiny `build_sequence()` wrapper (import a builder from `pulse_sequences.py`,
+turn its pulse tuples into a Sequence, return it). Copy the pattern to preview any
+other sequence.
+
 ## Test
 
 Start the manager + ScriptScanner (and the Data Vault for the scan step), then:
