@@ -22,9 +22,9 @@ its pin CSV, then fill the "FPGA pin" / "Conn pin" columns. Do **not** guess pin
 | Group | Signals | Count | Dir (FPGA) | Level on carrier | Notes |
 |---|---|---:|---|---|---|
 | **TTL pulse outputs** | `logic_out[31:0]` | 32 | out | 3.3V → **5V TTL** | main pulse channels; buffer/level-translate 3.3→5V. Names per `pulser3/hwconfig.py` (ttl_0, sMOT_PROBE, … 0-11 used; 16 = DiffCountTrigger; 18/19 DDS adv/reset; 20-23 AO/B-field; 24 clock). |
-| **PMT input** | `pmt_input` | 1 | in | **5V TTL → 3.3V** | **fast: 5-7 ns pulses.** Put on a clock-capable / low-skew pin; keep the trace short, translator must pass ~5 ns. |
-| **Logic inputs** | `logic_in[3:0]` | 4 | in | 5V → 3.3V | `logic_in(0)` = **line trigger** (conditioned on-board in legacy: debounce → user delay). Others = aux / external trigger. |
-| **Aux clock in** | `aux_clk_in` | 1 | in | 5V → 3.3V | external reference; route to a **clock-capable (MRCC/SRCC)** pin. |
+| **PMT input** | `pmt_input` | 1 | in | **5V TTL → 3.3V** | **fast: 5-7 ns pulses**, but used as a **synchronized DATA input** (2-FF + edge-detect in `clk_100`/`clk_200`), **not a clock → any I/O pin is fine**. Keep the trace short + fast translator (must pass ~5 ns). An MRCC pin only if you later want IDELAY/ISERDES. |
+| **Logic inputs** | `logic_in[3:0]` | 4 | in | 5V → 3.3V | `logic_in(0)` = **line trigger** (conditioned on-board in legacy: debounce → user delay). Others = aux / external trigger. Any I/O pin. |
+| **Aux clock in** | `aux_clk_in` | 1 | in | 5V → 3.3V | external reference — **if it drives a clock network, put it on an MRCC pin** (see list below); if only edge-sampled in logic, any pin. |
 | **DDS bus** *(deferred)* | see sub-table below | 26 | mixed | 3.3V | to the separate DDS board; **DDS hardware not built** — route the header now if convenient, not needed for current firmware. All lines pass **inverted** (`not`) across the interface. |
 | **I²C** | `i2c_sda`, `i2c_scl` | 2 | — | 3.3V | **UNUSED** — the legacy FPGA only tri-states these (`<= 'Z'`), no controller. Provisioned-but-never-used bus. **Drop unless you plan an on-carrier I²C device** (level-translator config, DAC, temp sensor, EEPROM); optional 2-pin header at most. |
 
@@ -34,7 +34,7 @@ its pin CSV, then fill the "FPGA pin" / "Conn pin" columns. Do **not** guess pin
 |---|---:|---|---|
 | `dds_logic_data_out[15:0]` | 16 | out | 16-bit DDS instruction word streamed from `fifo_dds` |
 | `dds_logic_address[3:0]` | 4 | out | DDS channel/chip select (host WireIn 0x04) |
-| `dds_logic_fifo_rd_clk` | 1 | **in** | read clock **from the DDS board** — needs a **clock-capable pin** |
+| `dds_logic_fifo_rd_clk` | 1 | **in** | read clock **from the DDS board** — clocks the DDS FIFO read side, so it drives a clock network → **MUST be on an MRCC clock-capable pin** (the one hard pin constraint in this design). See MRCC list below. |
 | `dds_logic_fifo_rd_en` | 1 | **in** | read-enable from the DDS board (pop next word) |
 | `dds_logic_fifo_empty` | 1 | out | FIFO-empty flag to the DDS board |
 | `dds_logic_ram_reset` | 1 | out | reset DDS RAM — `master_logic(19)` (`ResetDDS`) or host ep40(4) |
@@ -59,11 +59,19 @@ usable FPGA I/O** — plenty for the 38 core pins, and even the full ~66 with DD
 | Bank 34 | MC2 | 48 | `VCCO_MC2` (MC2-41/42) |
 | Bank 16 | MC2 | 10 | `VCCO_MC2` |
 
-- **Set VCCIO to 3.3 V** for the LVCMOS33 pulser I/O by powering `VCCO_MC1` /
-  `VCCO_MC2` at 3.3 V (bank 15 alone = 50 pins, enough for all 32 TTL on one
-  connector).
-- **MRCC clock-capable pins** (use for PMT-in, aux-clk-in, DDS `fifo_rd_clk`):
-  bank 15 → D14/D15 (MC1-49/51), F14/F15 (MC1-67/69); bank 34 → R3/T2 (MC2-75/77).
+- **All 108 pins can be 3.3 V.** Both expansion VCCIO rails are user-supplied and
+  rated **1.14–3.465 V**: `VCCO_MC1` (bank 15, MC1-12/13) and `VCCO_MC2`
+  (banks 16 & 34, MC2-41/42). Set both to **3.3 V** → every expansion I/O is
+  LVCMOS33 (the legacy approach). Bank 15 alone = 50 pins (enough for all 32 TTL
+  on one connector). NOTE: **banks 16 and 34 share `VCCO_MC2`** — they can't be
+  different voltages (irrelevant for an all-3.3 V design). With 3.3 V VCCO the
+  Artix-7 needs VCCO-vs-VCCAUX power-on sequencing per DS189 (a supply detail).
+- **The one hard pin constraint: `dds_logic_fifo_rd_clk` must be on an MRCC pin**
+  (it drives a clock net). Everything else — TTL out, PMT in, logic in — is a
+  plain LVCMOS input/output and can go on **any** expansion I/O pin. `aux_clk_in`
+  needs an MRCC pin only if it's used as a real clock.
+  **MRCC clock-capable pins:** bank 15 → D14/D15 (MC1-49/51), F14/F15
+  (MC1-67/69); bank 34 → R3/T2 (MC2-75/77).
 - MC2 also carries **JTAG** (TCK/TMS/TDI/TDO) and **XADC** (VP/VN) — avoid those.
 - **Authoritative per-pin table + XDC generator:** the *Opal Kelly Pins* interactive
   reference for the XEM7305 (docs.opalkelly.com → XEM7305 → Expansion Connectors).
@@ -91,9 +99,11 @@ So `led_ext[5:0]` gives you **6 confirmed 3.3V expansion pins** today; the other
   5V. Legacy used translators on every line ("5V through level translator to 3.3V"
   for PMT/TRIGGER/AUX inputs; outputs buffered up to 5V). Plan translator ICs +
   their VCC on the carrier.
-- **PMT path is the tight one:** 5-7 ns pulses → use a fast translator/comparator,
-  a short controlled-impedance trace, and a clock-capable FPGA pin. This is the
-  one signal where pin choice actually matters for performance.
+- **PMT path is the tight one electrically** (not for pin choice): 5-7 ns pulses →
+  fast translator/comparator + a short controlled-impedance trace. Pin choice does
+  NOT matter here — `pmt_in` is edge-detected in logic, not used as a clock, so any
+  I/O pin works. The only pin *capability* that matters anywhere is the MRCC
+  requirement on `dds_logic_fifo_rd_clk` (see above).
 - **Bank VCCIO:** the pulser 3.3V I/O must land in expansion banks set to 3.3V —
   confirm from the User's Guide which JP2/JP3 pins are on 3.3V-capable banks (not
   the 1.5V DDR3 banks). Group all TTL on the same bank(s) where possible.
