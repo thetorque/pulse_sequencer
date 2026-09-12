@@ -49,7 +49,9 @@ def labrad_urlencode(data):
     else:
         data_bytes, t = T.flatten(data)
         all_bytes, _ = T.flatten((str(t), data_bytes), 'ss')
-    data_url = DATA_URL_PREFIX + base64.urlsafe_b64encode(all_bytes)
+    # py3: urlsafe_b64encode returns bytes; DATA_URL_PREFIX is str -> decode the
+    # base64 (pure ASCII) so the data url is a str, as the .ini store expects.
+    data_url = DATA_URL_PREFIX + base64.urlsafe_b64encode(all_bytes).decode('ascii')
     return data_url
 
 def labrad_urldecode(data_url):
