@@ -42,6 +42,11 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self._run_rows = {}               # ident -> dict of row widgets
         self._scan_ident = None           # the scan we launched, tracked by its own bar
         self._repeat_ident = None         # the repeat we launched, tracked by its own bar
+        # compact media icons for the per-row action buttons (built into Qt)
+        style = self.style()
+        self._icon_pause = style.standardIcon(QtWidgets.QStyle.SP_MediaPause)
+        self._icon_play = style.standardIcon(QtWidgets.QStyle.SP_MediaPlay)
+        self._icon_stop = style.standardIcon(QtWidgets.QStyle.SP_MediaStop)
         self._owns_cxn = cxn is None      # only disconnect a connection we opened
         self.cxn = cxn or self._connect() or self._login_loop()
         self._build_ui()
@@ -258,7 +263,7 @@ class ScriptScannerGui(QtWidgets.QWidget):
         hh.setSectionResizeMode(3, QtWidgets.QHeaderView.Fixed)
         hh.setSectionResizeMode(4, QtWidgets.QHeaderView.Fixed)
         self.running_table.setColumnWidth(3, 100)
-        self.running_table.setColumnWidth(4, 160)
+        self.running_table.setColumnWidth(4, 84)   # two compact icon buttons
         rl.addWidget(self.running_table)
         v.addWidget(run_box, 2)
 
@@ -472,10 +477,14 @@ class ScriptScannerGui(QtWidgets.QWidget):
         h = QtWidgets.QHBoxLayout(btns)
         h.setContentsMargins(2, 1, 2, 1)
         h.setSpacing(4)
-        pause_btn = QtWidgets.QPushButton("Pause")
-        pause_btn.setMinimumWidth(78)     # fits the wider "Resume" label too
-        stop_btn = QtWidgets.QPushButton("Stop")
-        stop_btn.setMinimumWidth(60)
+        pause_btn = QtWidgets.QPushButton()
+        pause_btn.setIcon(self._icon_pause)
+        pause_btn.setToolTip("Pause")
+        pause_btn.setFixedWidth(30)
+        stop_btn = QtWidgets.QPushButton()
+        stop_btn.setIcon(self._icon_stop)
+        stop_btn.setToolTip("Stop")
+        stop_btn.setFixedWidth(30)
         pause_btn.clicked.connect(lambda _, i=ident: self._on_pause_clicked(i))
         stop_btn.clicked.connect(lambda _, i=ident: self._stop_running(i))
         h.addWidget(pause_btn)
@@ -493,7 +502,8 @@ class ScriptScannerGui(QtWidgets.QWidget):
         r['bar'].setValue(int(round(pct)))
         paused = status in ('Paused', 'Pausing')
         r['paused'] = paused
-        r['pause_btn'].setText("Resume" if paused else "Pause")
+        r['pause_btn'].setIcon(self._icon_play if paused else self._icon_pause)
+        r['pause_btn'].setToolTip("Resume" if paused else "Pause")
 
     def _on_pause_clicked(self, ident):
         r = self._run_rows.get(ident)
