@@ -87,6 +87,7 @@
   <a href="#gui">Switch Control GUI</a>
   <a href="#headless">Headless (no LabRAD)</a>
   <a href="#pmt">PMT counting</a>
+  <a href="#stack">Wider server stack</a>
   <h2>Reference</h2>
   <a href="#troubleshoot">Troubleshooting</a>
   <a href="#files">Files &amp; layout</a>
@@ -199,6 +200,12 @@ python pulser_labrad\pulser_server.py</pre>
   <p>Expected output ends with:</p>
   <pre class="ok" style="color:#1c5c34;background:var(--ok-bg)">sequence done: True
 PASS -- scalabrad -&gt; Pulser server -&gt; pulser3 -&gt; FPGA works end to end</pre>
+
+  <h3>Step 4 — See what's connected (Manager Monitor)</h3>
+  <p>scalabrad is headless, so there's no built-in window showing which servers are up. <code>manager_monitor.py</code> is our small PyQt5 panel for exactly that — a live table of connected servers plus a connect/disconnect event log. Handy to confirm the Pulser server actually registered.</p>
+  <pre>pip install PyQt5
+python manager_monitor\manager_monitor.py</pre>
+  <p>You'll see the built-in <code>Manager</code> / <code>Registry</code> / <code>Auth</code> servers (scalabrad ships these), plus <code>Pulser</code> and any other servers you've started. Double-click a row to copy its name. See <a href="#stack">The wider server stack</a>.</p>
 </section>
 
 <!-- ============================ SEQUENCES ============================ -->
@@ -387,6 +394,20 @@ d.start_single()
   <p>See the demo scripts above for complete, self-checking examples. These are also exposed over LabRAD (matching the legacy <em>Set Mode</em> / <em>Get PMT Counts</em> / <em>Get Timetags</em> settings — see the <a href="#settings">settings reference</a>); <code>pmt_client.py</code> drives them against the synthetic source with no detector attached.</p>
 </section>
 
+<!-- ============================ STACK ============================ -->
+<section id="stack">
+  <h2 class="sec">The wider server stack</h2>
+  <p>The Pulser is one server in a larger trapped-ion control stack that's being ported from the legacy Python-2 code to Python-3 on the same scalabrad manager. They all share the manager, the same LabRAD env, and the blocking-client / PyQt5 patterns used here. Ported so far:</p>
+  <table>
+    <tr><th>Component</th><th>What it is</th><th>Location</th></tr>
+    <tr><td><b>Pulser</b> + <code>pulser3</code></td><td>Sequencer, TTL, PMT counting, manual switching (this manual)</td><td><code>pulser_labrad/</code>, <code>pulser3/</code></td></tr>
+    <tr><td><b>Switch Control GUI</b></td><td>ON/OFF/Auto per TTL channel (<a href="#gui">above</a>)</td><td><code>pulser_gui/</code></td></tr>
+    <tr><td><b>ParameterVault</b></td><td>Central store of experiment parameters (registry-backed, typed values). Run it like the Pulser server: <code>python parameter_vault\parameter_vault.py</code>.</td><td><code>parameter_vault/</code></td></tr>
+    <tr><td><b>Manager Monitor</b></td><td>Live "what's connected" panel (<a href="#start">Step 4</a>)</td><td><code>manager_monitor/</code></td></tr>
+  </table>
+  <p>Each server registers with the manager and shows up in the Manager Monitor. Still to port (dependency order): <b>Data Vault</b> (data storage), <b>NormalPMTFlow</b> (higher-level PMT server on top of the Pulser), <b>ScriptScanner</b> (experiment orchestrator), the hardware servers (NI DAC, Andor camera) and the trackers. DDS is hardware-blocked. Each ported server carries its own <code>README.md</code>.</p>
+</section>
+
 <!-- ============================ TROUBLESHOOTING ============================ -->
 <section id="troubleshoot">
   <h2 class="sec">Troubleshooting</h2>
@@ -457,7 +478,9 @@ d.start_single()
     <tr><td><code>pulser_labrad/pmt_client.py</code></td><td>PMT counting smoke test (synthetic source, no detector).</td></tr>
     <tr><td><code>pulser_labrad/README.md</code></td><td>Setup notes for scalabrad + pylabrad.</td></tr>
     <tr><td><code>pulser_gui/switch_control.py</code></td><td>PyQt5 Switch Control GUI (manual TTL override).</td></tr>
-    <tr><td><code>pulser_gui/connection.py</code></td><td>Shared async LabRAD connection for the GUIs.</td></tr>
+    <tr><td><code>pulser_gui/connection.py</code></td><td>Shared async LabRAD connection (kept for a future async client).</td></tr>
+    <tr><td><code>manager_monitor/manager_monitor.py</code></td><td>PyQt5 "what's connected" panel for the manager.</td></tr>
+    <tr><td><code>parameter_vault/parameter_vault.py</code></td><td>ParameterVault server (experiment parameter store).</td></tr>
     <tr><td><code>pulser3/hwconfig.py</code></td><td><b>Channel map</b> (<code>CHANNELS</code>) + timing constants.</td></tr>
     <tr><td><code>pulser3/sequence.py</code></td><td>Sequence builder / compiler (seconds → 64-bit lines).</td></tr>
     <tr><td><code>pulser3/driver.py</code></td><td>Headless FPGA driver: program, run, status, PMT.</td></tr>
