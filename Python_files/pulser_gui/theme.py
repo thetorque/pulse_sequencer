@@ -50,6 +50,20 @@ QComboBox QAbstractItemView {
 
 QCheckBox { spacing: 6px; }
 
+QTableWidget {
+    background: #ffffff; border: 0.5px solid #e4e7ec; border-radius: 8px;
+    gridline-color: #f0f1f4; outline: none;
+}
+QTableWidget::item { padding: 4px 6px; }
+QTableWidget::item:selected { background: #e8f0fe; color: #1f2328; }
+QHeaderView::section {
+    background: #f8fafc; border: none; border-bottom: 1px solid #e4e7ec;
+    padding: 6px 8px; font-weight: 600; color: #667085;
+}
+QSplitter::handle { background: transparent; }
+
+PlotWidget { border: 0.5px solid #e4e7ec; border-radius: 8px; }
+
 QLCDNumber {
     background: #0f172a; color: #22d3ee;
     border: 1px solid #e4e7ec; border-radius: 8px;
