@@ -45,6 +45,7 @@
   pre .c{color:#7d8aa3}         /* comment */
   pre .k{color:#8fd6ff}         /* keyword-ish */
   pre .s{color:#b6e3a0}         /* string */
+  pre .fn{color:#f0b072}        /* function / class name */
   p code,li code,td code{background:#eef1f6;border:1px solid var(--line);border-radius:5px;
     padding:.08em .38em;font-size:13.5px;color:#20305a}
   table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
@@ -88,6 +89,7 @@
   <a href="#gui">Switch Control GUI</a>
   <a href="#headless">Headless (no LabRAD)</a>
   <a href="#pmt">PMT counting</a>
+  <a href="#scriptscanner">Running experiments</a>
   <a href="#stack">Wider server stack</a>
   <a href="#roadmap">Roadmap</a>
   <a href="#platforms">Mac / Linux</a>
@@ -412,6 +414,124 @@ d.start_single()
   <p>See the demo scripts above for complete, self-checking examples. These are also exposed over LabRAD (matching the legacy <em>Set Mode</em> / <em>Get PMT Counts</em> / <em>Get Timetags</em> settings — see the <a href="#settings">settings reference</a>); <code>pmt_client.py</code> drives them against the synthetic source with no detector attached.</p>
 </section>
 
+<!-- ============================ SCRIPTSCANNER ============================ -->
+<section id="scriptscanner">
+  <h2 class="sec">Running experiments (ScriptScanner)</h2>
+  <p><b>ScriptScanner</b> is the experiment orchestrator: instead of driving the
+  Pulser by hand, you write <em>experiment scripts</em>, register them, and then
+  <b>run / repeat / scan / schedule</b> them from one place. It runs each script
+  in a worker thread, reports live progress, honours pause/stop, and (for scans
+  and saved repeats) writes results straight into the Data Vault. It depends on
+  the <a href="#stack">ParameterVault and Data Vault</a>, which are already ported.</p>
+
+  <h3>Starting it</h3>
+  <p>Start the manager first, then the <b>ScriptScanner</b> server — it appears in
+  the <a href="#launcher">Launcher</a>'s server list like any other, or from a
+  shell:</p>
+  <pre>python script_scanner/script_scanner.py           <span class="c"># the server (needs the manager)</span>
+python pulser_gui/script_scanner_gui.py           <span class="c"># the operator GUI (needs PyQt5)</span></pre>
+  <p>For scans and saved repeats also start the <b>Data Vault</b>; for scripts
+  that read parameters, the <b>ParameterVault</b>.</p>
+
+  <h3>The GUI</h3>
+  <p>The window has two halves:</p>
+  <ul>
+    <li><b>Launch (left)</b> — pick an experiment from the dropdown and start it
+      one of four ways (below).</li>
+    <li><b>Status (right)</b> — three live tables, polled a few times a second:
+      <b>Running</b> (status + progress bar, with <em>Pause/Resume</em> and
+      <em>Stop</em> per row), <b>Queue</b> (waiting scans, with <em>Cancel</em>),
+      and <b>Scheduled</b> (periodic scans, with <em>Cancel</em>).</li>
+  </ul>
+  <table>
+    <tr><th>Way to launch</th><th>What it does</th><th>Setting</th></tr>
+    <tr><td><b>Run once</b></td><td>Run the selected experiment a single time.</td><td><code>new_experiment</code></td></tr>
+    <tr><td><b>Repeat</b> N × (+ save)</td><td>Run N times, reloading parameters each time; optionally save each result to the Data Vault.</td><td><code>new_script_repeat</code></td></tr>
+    <tr><td><b>Scan</b> a parameter</td><td>Sweep one <code>(collection, parameter)</code> from min→max in N steps (given units), saving result vs value. Choose “measure with” to scan one experiment while measuring another.</td><td><code>new_script_scan</code></td></tr>
+    <tr><td><b>Schedule</b> every T s</td><td>Re-queue the experiment every T seconds at a chosen priority.</td><td><code>new_script_schedule</code></td></tr>
+  </table>
+  <div class="box tip"><b class="tag">Try it with no hardware</b>
+    <p>Three example scripts ship so you can exercise everything on any laptop:
+    <b>Sleep Experiment</b> (steps through a short sleep, reporting progress and
+    honouring pause/stop), <b>PMT Point</b> (returns a synthetic Gaussian
+    lineshape over a scanned frequency), and <b>crashing_example</b> (raises, to
+    show the error path). <em>Scan</em> the pre-filled <b>PMT Point</b>
+    (<code>Spectrum</code> / <code>frequency</code> / <code>kHz</code>, −3→3, 21
+    steps) and open the result in the <a href="#stack">Live Grapher</a> — a
+    lineshape appears under <code>['','ScriptScanner', &lt;date&gt;]</code>.</p>
+  </div>
+
+  <h3>Writing an experiment script</h3>
+  <p>An experiment is a subclass of <code>scan_methods.experiment</code> with a
+  <code>name</code>, an optional list of <code>required_parameters</code>, and
+  three lifecycle methods. ScriptScanner calls them in order —
+  <code>initialize</code> → <code>run</code> → <code>finalize</code> — in a worker
+  thread with its own LabRAD connection:</p>
+  <pre><span class="k">import</span> time
+<span class="k">from</span> scan_methods <span class="k">import</span> experiment
+
+<span class="k">class</span> <span class="fn">my_experiment</span>(experiment):
+
+    name = <span class="s">'My Experiment'</span>            <span class="c"># shown in the GUI dropdown</span>
+    required_parameters = [             <span class="c"># loaded from the ParameterVault</span>
+        (<span class="s">'Spectrum'</span>, <span class="s">'frequency'</span>),
+    ]
+
+    <span class="k">def</span> <span class="fn">initialize</span>(self, cxn, context, ident):
+        <span class="c"># connect to the servers you need; keep ident to report progress</span>
+        self.ident = ident
+        self.sc = cxn.servers[<span class="s">'ScriptScanner'</span>]
+        self.pulser = cxn.pulser
+        self.dv = cxn.data_vault
+
+    <span class="k">def</span> <span class="fn">run</span>(self, cxn, context):
+        <span class="c"># parameters are in self.parameters (a dotted dict)</span>
+        freq = self.parameters.Spectrum.frequency
+        <span class="c"># ... program the pulser / take data ...</span>
+        <span class="k">if</span> self.pause_or_stop():        <span class="c"># blocks while paused; True = should stop</span>
+            <span class="k">return</span> <span class="k">None</span>
+        self.sc.script_set_progress(self.ident, 50.0)   <span class="c"># 0..100</span>
+        result = 123.0                  <span class="c"># a number -> saved by scan/repeat</span>
+        <span class="k">return</span> result
+
+    <span class="k">def</span> <span class="fn">finalize</span>(self, cxn, context):
+        <span class="k">pass</span></pre>
+
+  <div class="box tip"><b class="tag">The rules that matter</b>
+    <ul>
+      <li><b><code>name</code></b> is what appears in the GUI and what clients pass to launch it.</li>
+      <li><b>Parameters</b> in <code>required_parameters</code> are fetched from the
+        ParameterVault into <code>self.parameters</code>, a dotted dict — read them
+        as <code>self.parameters.Collection.name</code> or
+        <code>self.parameters['Collection.name']</code>. Leave the list empty and no
+        ParameterVault is needed.</li>
+      <li><b>Report progress</b> with <code>self.sc.script_set_progress(self.ident, pct)</code> (0–100).</li>
+      <li><b>Be interruptible</b>: call <code>self.pause_or_stop()</code> regularly in
+        any long loop — it blocks while the operator has paused you and returns
+        <code>True</code> when they've asked to stop (then just <code>return</code>).</li>
+      <li><b>Return a number</b> from <code>run</code> and a <em>scan</em> saves it
+        against the swept value, and a saved <em>repeat</em> saves it per iteration.</li>
+      <li>A <b>scan</b> injects the swept value into <code>self.parameters</code> under
+        the <code>(collection, parameter)</code> you chose, so a scannable script
+        just reads that parameter in <code>run</code>.</li>
+    </ul>
+  </div>
+
+  <h3>Registering it</h3>
+  <p>Put the class in a module ScriptScanner can import (the bundled examples live
+  in <code>script_scanner/sample_experiment.py</code>) and add an
+  <code>(import_path, class_name)</code> entry to
+  <code>script_scanner/configuration.py</code>:</p>
+  <pre><span class="k">class</span> <span class="fn">config</span>(object):
+    scripts = [
+        (<span class="s">'sample_experiment'</span>, <span class="s">'sleep_experiment'</span>),
+        (<span class="s">'my_module'</span>,         <span class="s">'my_experiment'</span>),   <span class="c"># &lt;- your script</span>
+    ]
+    allowed_concurrent = {}     <span class="c"># name -> [experiments allowed to run alongside]</span></pre>
+  <p>Restart the ScriptScanner server and your experiment shows up in the GUI
+  dropdown. See <code>script_scanner/README.md</code> for the full settings list.</p>
+</section>
+
 <!-- ============================ STACK ============================ -->
 <section id="stack">
   <h2 class="sec">The wider server stack</h2>
@@ -422,7 +542,8 @@ d.start_single()
     <tr><td><b>ParameterVault</b></td><td>Central store of experiment parameters (registry-backed, typed values)</td><td><code>parameter_vault/</code></td></tr>
     <tr><td><b>Data Vault</b></td><td>Numeric data store (HDF5); adopted upstream, py3-ported</td><td><code>data_vault/</code></td></tr>
     <tr><td><b>NormalPMTFlow</b></td><td>Continuous PMT-count acquisition into the Data Vault (on top of the Pulser)</td><td><code>pmt_flow/</code></td></tr>
-    <tr><td><b>Switch / PMT Control GUIs</b></td><td>TTL switch panel; PMT mode / window / record + live count</td><td><code>pulser_gui/</code></td></tr>
+    <tr><td><b>ScriptScanner</b></td><td>Experiment orchestrator: run / repeat / scan / schedule experiment scripts (<a href="#scriptscanner">above</a>)</td><td><code>script_scanner/</code></td></tr>
+    <tr><td><b>Switch / PMT / Script Scanner GUIs</b></td><td>TTL switch panel; PMT mode / window / record + live count; experiment runner</td><td><code>pulser_gui/</code></td></tr>
     <tr><td><b>Live Grapher</b></td><td>Live Data Vault plotter (pyqtgraph)</td><td><code>grapher/</code></td></tr>
     <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">above</a>)</td><td><code>labrad_launcher/</code></td></tr>
     <tr><td><b>Dashboard</b></td><td>Dockable host for the client GUIs (one login, arrangeable panels)</td><td><code>dashboard/</code></td></tr>
@@ -436,18 +557,18 @@ d.start_single()
   <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot) plus the operator GUIs. What's next, in dependency order:</p>
 
   <div class="box ok"><b class="tag">Done &amp; hardware-verified</b>
-    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow; the GUIs — switch control, PMT control, live grapher, sequence viewer + editor, launcher, dashboard.</p>
+    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow, ScriptScanner (run / repeat / scan / schedule); the GUIs — switch control, PMT control, script scanner, live grapher, sequence viewer + editor, launcher, dashboard.</p>
   </div>
   <div class="box tip"><b class="tag">Cross-platform</b>
     <p>The whole stack is cross-platform Python (scalabrad/JVM + pylabrad + PyQt5/pyqtgraph). It has been <em>run</em> on Windows so far; on Mac/Linux everything should run natively — see <a href="#platforms">Running on Mac / Linux</a>. The hardware-free tools (sequence viewer/editor) run anywhere with just <code>PyQt5</code> + <code>pyqtgraph</code>.</p>
   </div>
 
-  <h3>Phase A — Experiment orchestration <span style="color:#16a34a">(next; not hardware-blocked)</span></h3>
-  <p>Turns "instruments you drive by hand" into "experiments you run and scan." Its dependencies (ParameterVault + Data Vault) are done.</p>
+  <h3>Phase A — Experiment orchestration <span style="color:#16a34a">(mostly done)</span></h3>
+  <p>Turns "instruments you drive by hand" into "experiments you run and scan."</p>
   <ul>
-    <li><b>ScriptScanner server</b> (<code>script_scanner/</code>) — register / queue / schedule experiment scripts, scan a parameter across a range, log to the Data Vault.</li>
-    <li><b>script_scanner_gui</b> (PyQt4→PyQt5) — the experiment-runner GUI (queue, progress, scan setup); would become a dashboard panel.</li>
-    <li><b>Experiment layer</b> — <code>experiment_scripts/</code> (MOT_loading, Clock_spectrum…), <code>pulser_sequences/</code> (replace py2 <code>treedict</code>), <code>analog_sequences/</code>.</li>
+    <li><b>ScriptScanner server</b> (<code>script_scanner/</code>) — <b>done</b>: register / queue / schedule experiment scripts, scan a parameter across a range, log to the Data Vault (<a href="#scriptscanner">above</a>).</li>
+    <li><b>script_scanner_gui</b> (PyQt5, dashboard panel) — <b>done</b>: launch (run / repeat / scan / schedule) + live queue / running / scheduled.</li>
+    <li><b>Experiment layer</b> <span style="color:#b45309">(next)</span> — port the real physics scripts: <code>experiment_scripts/</code> (MOT_loading, Clock_spectrum…), <code>pulser_sequences/</code> (replace py2 <code>treedict</code>), <code>analog_sequences/</code>. A dedicated ParameterVault editor for the GUI.</li>
   </ul>
 
   <h3>Phase B — Remaining hardware servers <span style="color:#b45309">(each needs its instrument)</span></h3>
