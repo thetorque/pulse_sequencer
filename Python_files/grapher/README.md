@@ -28,8 +28,10 @@ pip install PyQt5 pyqtgraph
 python grapher/live_grapher.py
 ```
 
-(with the usual `LABRADHOST` / `LABRADPASSWORD` / `LABRAD_TLS` env). Start the
-manager + Data Vault first (easiest via the Launcher).
+Start the manager + Data Vault first (easiest via the Launcher). It uses the
+`LABRADHOST` / `LABRADPASSWORD` / `LABRAD_TLS` environment if set; **if those
+are missing or wrong it pops a login dialog** for the host and password and
+retries, so you don't have to set env vars in the launching shell.
 
 ## Use
 

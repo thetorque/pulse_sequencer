@@ -58,7 +58,9 @@ class Grapher(QtWidgets.QWidget):
         self.x = []
         self.ys = []
 
-        self.cxn = self._connect()
+        self.cxn = self._connect()                 # try environment credentials
+        if self.cxn is None and labrad is not None and pg is not None:
+            self.cxn = self._login_loop()          # else prompt for host/password
         self._build_ui()
         if self.cxn is not None:
             self._refresh_dir()
@@ -67,19 +69,58 @@ class Grapher(QtWidgets.QWidget):
             self.timer.start(POLL_MS)
 
     # ---- connection --------------------------------------------------------
-    def _connect(self):
+    def _connect(self, host=None, password=None):
         if labrad is None:
             return None
-        host = os.environ.get('LABRADHOST', 'localhost') or 'localhost'
-        pw = os.environ.get('LABRADPASSWORD', '') or ''
+        host = host or os.environ.get('LABRADHOST', 'localhost') or 'localhost'
+        if password is None:
+            password = os.environ.get('LABRADPASSWORD', '') or ''
         tls = 'on' if os.environ.get('LABRAD_TLS', 'off') in ('on', 'true', '1') else 'off'
         try:
-            cxn = labrad.connect(host=host, username='', password=pw, tls_mode=tls)
+            cxn = labrad.connect(host=host, username='', password=password, tls_mode=tls)
             self.dv = cxn.data_vault
             return cxn
         except Exception as e:
             self._err = str(e)
             return None
+
+    def _login_loop(self):
+        """Prompt for host/password and retry until it connects or the user
+        cancels. Used when the environment credentials don't work."""
+        host = os.environ.get('LABRADHOST', 'localhost') or 'localhost'
+        pw = os.environ.get('LABRADPASSWORD', '') or ''
+        while True:
+            creds = self._prompt_login(host, pw)
+            if creds is None:
+                return None
+            host, pw = creds
+            cxn = self._connect(host=host, password=pw)
+            if cxn is not None:
+                return cxn
+            QtWidgets.QMessageBox.warning(
+                self, "Connection failed",
+                "Could not connect to the manager:\n%s\n\n"
+                "Check the host and password, then try again."
+                % getattr(self, '_err', ''))
+
+    def _prompt_login(self, host, pw):
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Connect to LabRAD")
+        form = QtWidgets.QFormLayout(dlg)
+        host_edit = QtWidgets.QLineEdit(host)
+        pw_edit = QtWidgets.QLineEdit(pw)
+        pw_edit.setEchoMode(QtWidgets.QLineEdit.Password)
+        form.addRow("Manager host:", host_edit)
+        form.addRow("Password:", pw_edit)
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        form.addRow(buttons)
+        pw_edit.setFocus()
+        if dlg.exec_() == QtWidgets.QDialog.Accepted:
+            return (host_edit.text().strip() or 'localhost'), pw_edit.text()
+        return None
 
     # ---- UI ----------------------------------------------------------------
     def _build_ui(self):
