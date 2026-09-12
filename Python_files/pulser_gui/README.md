@@ -67,9 +67,11 @@ python workbench.py          # all of the above in one tabbed window
 `parameter_editor.py` browses the ParameterVault: pick a collection on the left,
 edit its parameters on the right (numeric values with their range + units,
 strings, bools, simple/line selections, and scans), then **Apply** to write them
-back and **Save to registry** to persist. It's the graphical way to change e.g.
-`LedBlink.on_time` before re-running an experiment. Manual **Refresh** (no poll,
-so it never clobbers an edit in progress).
+back and **Save to registry** to persist. **Add parameter…** creates a new one
+(pick or type a collection, name, type, and initial value) -- it writes the typed
+record into the registry and reloads the vault. It's the graphical way to change
+e.g. `LedBlink.on_time` before re-running an experiment. Manual **Refresh** (no
+poll, so it never clobbers an edit in progress).
 
 `workbench.py` is the **Experiment Workbench**: the Script Scanner, the Parameter
 Editor, the Sequence Editor, and the Sequence Viewer as tabs in one window, sharing a single

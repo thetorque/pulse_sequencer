@@ -146,6 +146,9 @@ class ParameterEditor(QtWidgets.QWidget):
         refresh = QtWidgets.QPushButton("Refresh")
         refresh.clicked.connect(self._refresh)
         lv.addWidget(refresh)
+        add_btn = QtWidgets.QPushButton("Add parameter…")
+        add_btn.clicked.connect(self._add_parameter)
+        lv.addWidget(add_btn)
         splitter.addWidget(left)
 
         right = QtWidgets.QWidget()
@@ -303,6 +306,127 @@ class ParameterEditor(QtWidgets.QWidget):
         else:
             self.apply_btn.setText("Applied ✓")
             QtCore.QTimer.singleShot(1200, lambda: self.apply_btn.setText("Apply"))
+
+    # ---- add a new parameter ---------------------------------------------
+    def _add_parameter(self):
+        result = self._prompt_add_parameter()
+        if result is None:
+            return
+        collection, name, record = result
+        # new parameters can't be created via Set Parameter; write the typed
+        # record into the registry and reload the vault
+        try:
+            existing = list(self.pv.get_collections())
+            if collection in existing and name in list(self.pv.get_parameter_names(collection)):
+                if QtWidgets.QMessageBox.question(
+                        self, "Overwrite?",
+                        "%s / %s already exists. Overwrite it?" % (collection, name)
+                ) != QtWidgets.QMessageBox.Yes:
+                    return
+            # reload (below) reverts in-memory values to the registry, so persist
+            # current values first -- otherwise Applied-but-unsaved edits are lost
+            self.pv.save_parameters_to_registry()
+            reg = self.cxn.registry
+            reg.cd(['', 'Servers', 'Parameter Vault', collection], True)
+            reg.set(name, record)
+            self.pv.reload_parameters()
+        except Exception as e:
+            self._warn("Add failed", e)
+            return
+        # show it: (re)load collections, select this one
+        self._load_collections()
+        items = self.collection_list.findItems(collection, QtCore.Qt.MatchExactly)
+        if items:
+            self.collection_list.setCurrentItem(items[0])
+
+    def _prompt_add_parameter(self):
+        dlg = QtWidgets.QDialog(self)
+        dlg.setWindowTitle("Add parameter")
+        form = QtWidgets.QFormLayout(dlg)
+
+        coll_combo = QtWidgets.QComboBox()
+        coll_combo.setEditable(True)
+        try:
+            coll_combo.addItems(sorted(self.pv.get_collections()))
+        except Exception:
+            pass
+        if self._current:
+            coll_combo.setCurrentText(self._current)
+        form.addRow("Collection", coll_combo)
+
+        name_edit = QtWidgets.QLineEdit()
+        form.addRow("Name", name_edit)
+
+        type_combo = QtWidgets.QComboBox()
+        type_combo.addItems(['parameter', 'string', 'bool', 'selection_simple'])
+        form.addRow("Type", type_combo)
+
+        # type-specific fields in a stack
+        stack = QtWidgets.QStackedWidget()
+
+        # parameter: min / max / current / unit
+        pw = QtWidgets.QWidget(); pf = QtWidgets.QFormLayout(pw)
+        min_sp = QtWidgets.QDoubleSpinBox(); min_sp.setDecimals(6); min_sp.setRange(-1e12, 1e12); min_sp.setValue(0.0)
+        max_sp = QtWidgets.QDoubleSpinBox(); max_sp.setDecimals(6); max_sp.setRange(-1e12, 1e12); max_sp.setValue(1.0)
+        cur_sp = QtWidgets.QDoubleSpinBox(); cur_sp.setDecimals(6); cur_sp.setRange(-1e12, 1e12); cur_sp.setValue(0.5)
+        unit_edit = QtWidgets.QLineEdit(); unit_edit.setPlaceholderText("e.g. s, MHz -- blank = no unit")
+        pf.addRow("Min", min_sp); pf.addRow("Max", max_sp); pf.addRow("Current", cur_sp); pf.addRow("Unit", unit_edit)
+        stack.addWidget(pw)
+
+        # string
+        sw = QtWidgets.QWidget(); sf = QtWidgets.QFormLayout(sw)
+        str_edit = QtWidgets.QLineEdit()
+        sf.addRow("Value", str_edit)
+        stack.addWidget(sw)
+
+        # bool
+        bw = QtWidgets.QWidget(); bf = QtWidgets.QFormLayout(bw)
+        bool_box = QtWidgets.QCheckBox("true")
+        bf.addRow("Value", bool_box)
+        stack.addWidget(bw)
+
+        # selection_simple
+        selw = QtWidgets.QWidget(); self_f = QtWidgets.QFormLayout(selw)
+        opts_edit = QtWidgets.QLineEdit(); opts_edit.setPlaceholderText("comma-separated, e.g. a, b, c")
+        self_f.addRow("Options", opts_edit)
+        stack.addWidget(selw)
+
+        type_combo.currentIndexChanged.connect(stack.setCurrentIndex)
+        form.addRow(stack)
+
+        bb = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        form.addRow(bb)
+
+        if dlg.exec_() != QtWidgets.QDialog.Accepted:
+            return None
+
+        collection = coll_combo.currentText().strip()
+        name = name_edit.text().strip()
+        if not collection or not name:
+            self._warn("Add failed", ValueError("collection and name are required"))
+            return None
+
+        kind = type_combo.currentText()
+        if kind == 'parameter':
+            unit = unit_edit.text().strip()
+            lo, hi, cur = min_sp.value(), max_sp.value(), cur_sp.value()
+            if not (lo <= cur <= hi):
+                self._warn("Add failed", ValueError("need min <= current <= max"))
+                return None
+            record = ('parameter', [_mk(lo, unit), _mk(hi, unit), _mk(cur, unit)])
+        elif kind == 'string':
+            record = ('string', str(str_edit.text()))
+        elif kind == 'bool':
+            record = ('bool', bool(bool_box.isChecked()))
+        else:  # selection_simple
+            options = [o.strip() for o in opts_edit.text().split(',') if o.strip()]
+            if not options:
+                self._warn("Add failed", ValueError("give at least one option"))
+                return None
+            record = ('selection_simple', (options[0], options))
+        return collection, name, record
 
     def _save(self):
         try:
