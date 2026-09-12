@@ -90,10 +90,18 @@ frequency, leaving a lineshape under `['','ScriptScanner', <date>]`.
 - `scheduler.stop_running()` added -- the legacy `stopServer` called it but the
   method was missing (the resulting `AttributeError` was silently swallowed).
 
+## GUI
+
+`../pulser_gui/script_scanner_gui.py` is the PyQt5 operator view: pick an
+experiment and launch it (run once / repeat / scan / schedule), and watch the
+live queue, running scripts (progress bar + pause/resume/stop), and scheduled
+scans. It's also a dashboard panel. See `../pulser_gui/README.md`.
+
 ## Next
 
-- **script_scanner_gui** (PyQt5) -- the operator view: available experiments,
-  the queue, running scripts with progress bars + pause/stop, scheduled scans.
-  It will reuse `seq_viewer`'s `SequencePlot` to preview an experiment's pulses.
+- A ParameterVault editor (the tree_view from the old GUI) so scans can pick a
+  parameter instead of typing collection/name/units.
+- Reuse `seq_viewer`'s `SequencePlot` to preview an experiment's pulses once the
+  experiment layer exposes its sequence.
 - Port the **experiment layer** (`experiment_scripts` + `pulser_sequences`) so
   the real MOT / clock experiments run here.

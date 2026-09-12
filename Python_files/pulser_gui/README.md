@@ -25,7 +25,8 @@ sequence's Auto channels -- changes something (the same effect the legacy
 |---|---|
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
 | `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
-| `theme.py` | shared modern look (Fusion + light QSS); both GUIs call `theme.apply(app)` |
+| `script_scanner_gui.py` | operator view for ScriptScanner: launch (run/repeat/scan/schedule) + live queue / running (progress + pause/stop) / scheduled |
+| `theme.py` | shared modern look (Fusion + light QSS); the GUIs call `theme.apply(app)` |
 | `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
 
 Both GUIs use the modern theme in `theme.py` (card panels, rounded accent
@@ -56,7 +57,20 @@ Start the manager and the `Pulser` server first (see
 ```bash
 python switch_control.py     # TTL switch panel
 python pmt_control.py        # PMT mode / window / record panel (talks to NormalPMTFlow)
+python script_scanner_gui.py # launch + monitor experiments (talks to ScriptScanner)
 ```
+
+`script_scanner_gui.py` needs the **ScriptScanner** server running (see
+`../script_scanner/README.md`); scans/repeats also need the Data Vault. The left
+panel launches the selected experiment **once**, **repeated** N times (optionally
+saving), on a **schedule** (every N seconds, with a priority), or as a
+**parameter scan** (type a collection / parameter / units and a min–max–steps
+range — e.g. the bundled *PMT Point* scans `Spectrum` / `frequency` / `kHz` into
+a lineshape). The right panel polls the server ~2.5×/s and shows the **running**
+scripts (status + progress bar, with Pause/Resume and Stop), the **queue**, and
+**scheduled** scans, each with a Cancel button. The parameter-editing tree from
+the old GUI is left out for now — a dedicated ParameterVault editor can come
+later.
 
 `pmt_control.py` needs the NormalPMTFlow server running (which needs Pulser +
 Data Vault); it prompts for the LabRAD password if the env credentials don't
