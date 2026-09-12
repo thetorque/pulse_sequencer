@@ -26,7 +26,8 @@ sequence's Auto channels -- changes something (the same effect the legacy
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
 | `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
 | `script_scanner_gui.py` | operator view for ScriptScanner: launch (run/repeat/scan/schedule) + live queue / running (progress + pause/stop) / scheduled |
-| `workbench.py` | **Experiment Workbench** -- Script Scanner + Sequence Editor + Sequence Viewer as tabs, sharing one LabRAD connection |
+| `parameter_editor.py` | edit ParameterVault values (numeric/string/bool/selection/scan), Apply + Save to registry |
+| `workbench.py` | **Experiment Workbench** -- Script Scanner + Parameters + Sequence Editor + Sequence Viewer as tabs, sharing one LabRAD connection |
 | `theme.py` | shared modern look (Fusion + light QSS); the GUIs call `theme.apply(app)` |
 | `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
 
@@ -59,11 +60,19 @@ Start the manager and the `Pulser` server first (see
 python switch_control.py     # TTL switch panel
 python pmt_control.py        # PMT mode / window / record panel (talks to NormalPMTFlow)
 python script_scanner_gui.py # launch + monitor experiments (talks to ScriptScanner)
-python workbench.py          # all three of the below in one tabbed window
+python parameter_editor.py   # edit ParameterVault values
+python workbench.py          # all of the above in one tabbed window
 ```
 
-`workbench.py` is the **Experiment Workbench**: the Script Scanner, the Sequence
-Editor, and the Sequence Viewer as three tabs in one window, sharing a single
+`parameter_editor.py` browses the ParameterVault: pick a collection on the left,
+edit its parameters on the right (numeric values with their range + units,
+strings, bools, simple/line selections, and scans), then **Apply** to write them
+back and **Save to registry** to persist. It's the graphical way to change e.g.
+`LedBlink.on_time` before re-running an experiment. Manual **Refresh** (no poll,
+so it never clobbers an edit in progress).
+
+`workbench.py` is the **Experiment Workbench**: the Script Scanner, the Parameter
+Editor, the Sequence Editor, and the Sequence Viewer as tabs in one window, sharing a single
 LabRAD connection (one login). It's the natural way to use them together --
 write/preview a sequence, then run it as an experiment. The Editor and Viewer
 work with no hardware, so if the manager isn't up (or you cancel the login) the

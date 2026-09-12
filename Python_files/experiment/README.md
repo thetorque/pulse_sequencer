@@ -96,9 +96,10 @@ server puts `Python_files` on `sys.path`, so `experiment.*` imports resolve.
 
 The LEDs blink in two alternating banks. The ON time is whatever
 `LedBlink.on_time` holds in the vault; **the experiment seeds a default
-(0.25 s) the first time if it's missing**, so it works out of the box. Edit
-`LedBlink.on_time` in the ParameterVault (or run `python experiment/seed_parameters.py`)
-to change the speed, then run again -- that's the ParameterVault-driven pattern.
+(0.25 s) the first time if it's missing**, so it works out of the box. Change the
+speed by editing `LedBlink.on_time` -- most easily in the **Parameter Editor**
+(`pulser_gui/parameter_editor.py`, or the Parameters tab of the Workbench) -- then
+run again. That's the ParameterVault-driven pattern.
 
 ## Status / next
 

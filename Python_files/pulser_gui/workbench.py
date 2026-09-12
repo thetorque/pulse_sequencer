@@ -7,6 +7,7 @@ connection (one login for the whole window) -- the same connection-sharing the
 dashboard does, but as a focused, fixed three-tab layout instead of docks.
 
   - Script Scanner  -- launch / monitor experiments (needs the manager + server)
+  - Parameters      -- edit ParameterVault values (needs the manager + server)
   - Sequence Editor -- build a sequence, preview it live, Program + Run
   - Sequence Viewer -- open and view a sequence .py
 
@@ -44,6 +45,7 @@ def _load(mod_name, relpath):
 
 
 ScriptScannerGui = _load('wb_script_scanner_gui', 'pulser_gui/script_scanner_gui.py').ScriptScannerGui
+ParameterEditor = _load('wb_parameter_editor', 'pulser_gui/parameter_editor.py').ParameterEditor
 SeqEditor = _load('wb_seq_editor', 'seq_viewer/seq_editor.py').SeqEditor
 SeqViewer = _load('wb_seq_viewer', 'seq_viewer/seq_viewer.py').SeqViewer
 
@@ -61,6 +63,7 @@ class Workbench(QtWidgets.QWidget):
         tabs = QtWidgets.QTabWidget()
         if self.cxn is not None:
             tabs.addTab(ScriptScannerGui(cxn=self.cxn), "Script Scanner")
+            tabs.addTab(ParameterEditor(cxn=self.cxn), "Parameters")
         else:
             note = QtWidgets.QLabel(
                 "Not connected to LabRAD.\n\nStart the manager and the ScriptScanner "

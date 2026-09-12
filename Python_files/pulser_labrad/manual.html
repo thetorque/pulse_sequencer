@@ -615,11 +615,11 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><td><b>Data Vault</b></td><td>Numeric data store (HDF5); adopted upstream, py3-ported</td><td><code>data_vault/</code></td></tr>
     <tr><td><b>NormalPMTFlow</b></td><td>Continuous PMT-count acquisition into the Data Vault (on top of the Pulser)</td><td><code>pmt_flow/</code></td></tr>
     <tr><td><b>ScriptScanner</b></td><td>Experiment orchestrator: run / repeat / scan / schedule experiment scripts (<a href="#scriptscanner">above</a>)</td><td><code>script_scanner/</code></td></tr>
-    <tr><td><b>Switch / PMT / Script Scanner GUIs</b></td><td>TTL switch panel; PMT mode / window / record + live count; experiment runner</td><td><code>pulser_gui/</code></td></tr>
+    <tr><td><b>Switch / PMT / Script Scanner / Parameter GUIs</b></td><td>TTL switch panel; PMT mode / window / record + live count; experiment runner; ParameterVault editor</td><td><code>pulser_gui/</code></td></tr>
     <tr><td><b>Live Grapher</b></td><td>Live Data Vault plotter (pyqtgraph)</td><td><code>grapher/</code></td></tr>
     <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">above</a>)</td><td><code>labrad_launcher/</code></td></tr>
     <tr><td><b>Dashboard</b></td><td>Dockable host for the client GUIs (one login, arrangeable panels)</td><td><code>dashboard/</code></td></tr>
-    <tr><td><b>Experiment Workbench</b></td><td>Script Scanner + Sequence Editor + Viewer as tabs sharing one connection</td><td><code>pulser_gui/workbench.py</code></td></tr>
+    <tr><td><b>Experiment Workbench</b></td><td>Script Scanner + Parameters + Sequence Editor + Viewer as tabs sharing one connection</td><td><code>pulser_gui/workbench.py</code></td></tr>
   </table>
   <p>Each server registers with the manager and shows up in the Launcher's connected view; each ported component carries its own <code>README.md</code>. See the <a href="#roadmap">Roadmap</a> for what's next.</p>
 </section>
@@ -630,7 +630,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
   <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot), experiment orchestration (ScriptScanner: run / repeat / scan / schedule), and the operator GUIs. What's next, in dependency order:</p>
 
   <div class="box ok"><b class="tag">Done &amp; hardware-verified</b>
-    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow, ScriptScanner (run / repeat / scan / schedule); the GUIs — switch control, PMT control, script scanner, live grapher, sequence viewer + editor, launcher, dashboard, and the Experiment Workbench (script scanner + sequence editor/viewer in one tabbed window).</p>
+    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow, ScriptScanner (run / repeat / scan / schedule); the GUIs — switch control, PMT control, script scanner, parameter editor, live grapher, sequence viewer + editor, launcher, dashboard, and the Experiment Workbench (script scanner + parameters + sequence editor/viewer in one tabbed window).</p>
   </div>
   <div class="box tip"><b class="tag">Cross-platform</b>
     <p>The whole stack is cross-platform Python (scalabrad/JVM + pylabrad + PyQt5/pyqtgraph). It has been <em>run</em> on Windows so far; on Mac/Linux everything should run natively — see <a href="#platforms">Running on Mac / Linux</a>. The hardware-free tools (sequence viewer/editor) run anywhere with just <code>PyQt5</code> + <code>pyqtgraph</code>.</p>
@@ -641,7 +641,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
   <ul>
     <li><b>ScriptScanner server</b> (<code>script_scanner/</code>) — <b>done</b>: register / queue / schedule experiment scripts, scan a parameter across a range, log to the Data Vault (<a href="#scriptscanner">above</a>).</li>
     <li><b>script_scanner_gui</b> (PyQt5, dashboard panel) — <b>done</b>: launch (run / repeat / scan / schedule) + live queue / running / scheduled.</li>
-    <li><b>Experiment layer</b> — <b>framework done</b>: <code>experiment/pulse_sequence.py</code> (the composable pulse-sequence base class, py3, no more py2 <code>treedict</code>) with a worked TTL example driven by the ParameterVault (<code>experiment/pulser_sequences/led_blink_seq.py</code> + <code>experiment/experiment_scripts/led_blink_experiment.py</code>, shown as <em>LED Blink (from ParameterVault)</em> in ScriptScanner). <span style="color:#b45309">Next:</span> the real physics scripts (MOT_loading, Clock_spectrum…) — they also need the hardware servers below (NI analog/DAC, Andor, DDS), so they land as those come online; plus a dedicated ParameterVault editor for the GUI.</li>
+    <li><b>Experiment layer</b> — <b>framework done</b>: <code>experiment/pulse_sequence.py</code> (the composable pulse-sequence base class, py3, no more py2 <code>treedict</code>) with a worked TTL example driven by the ParameterVault (<code>experiment/pulser_sequences/led_blink_seq.py</code> + <code>experiment/experiment_scripts/led_blink_experiment.py</code>, shown as <em>LED Blink (from ParameterVault)</em> in ScriptScanner). <b>ParameterVault editor done</b> (<code>pulser_gui/parameter_editor.py</code>, also a Workbench tab): browse collections, edit values (numeric/string/bool/selection/scan), Apply + Save to registry. <span style="color:#b45309">Next:</span> the real physics scripts (MOT_loading, Clock_spectrum…) — they also need the hardware servers below (NI analog/DAC, Andor, DDS), so they land as those come online.</li>
   </ul>
 
   <h3>Phase B — Remaining hardware servers <span style="color:#b45309">(each needs its instrument)</span></h3>
