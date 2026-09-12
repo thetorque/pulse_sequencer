@@ -404,13 +404,16 @@ class ScriptScannerGui(QtWidgets.QWidget):
         table.setItem(row, 2, status_item)
         bar = QtWidgets.QProgressBar()
         bar.setRange(0, 100)
+        bar.setMinimumWidth(90)
         table.setCellWidget(row, 3, bar)
         btns = QtWidgets.QWidget()
         h = QtWidgets.QHBoxLayout(btns)
         h.setContentsMargins(2, 1, 2, 1)
         h.setSpacing(4)
         pause_btn = QtWidgets.QPushButton("Pause")
+        pause_btn.setMinimumWidth(78)     # fits the wider "Resume" label too
         stop_btn = QtWidgets.QPushButton("Stop")
+        stop_btn.setMinimumWidth(56)
         pause_btn.clicked.connect(lambda _, i=ident: self._on_pause_clicked(i))
         stop_btn.clicked.connect(lambda _, i=ident: self._stop_running(i))
         h.addWidget(pause_btn)
@@ -472,6 +475,7 @@ class ScriptScannerGui(QtWidgets.QWidget):
             table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(ident)))
             table.setItem(row, 1, QtWidgets.QTableWidgetItem(name))
             btn = QtWidgets.QPushButton("Cancel")
+            btn.setMinimumWidth(64)
             btn.clicked.connect(lambda _, i=ident: cancel_cb(i))
             table.setCellWidget(row, 2, btn)
 
@@ -484,6 +488,7 @@ class ScriptScannerGui(QtWidgets.QWidget):
             table.setItem(row, 1, QtWidgets.QTableWidgetItem(name))
             table.setItem(row, 2, QtWidgets.QTableWidgetItem(secs))
             btn = QtWidgets.QPushButton("Cancel")
+            btn.setMinimumWidth(64)
             btn.clicked.connect(lambda _, i=ident: self._cancel_scheduled(i))
             table.setCellWidget(row, 3, btn)
 
