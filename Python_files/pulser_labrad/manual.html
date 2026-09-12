@@ -641,7 +641,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
   <ul>
     <li><b>ScriptScanner server</b> (<code>script_scanner/</code>) — <b>done</b>: register / queue / schedule experiment scripts, scan a parameter across a range, log to the Data Vault (<a href="#scriptscanner">above</a>).</li>
     <li><b>script_scanner_gui</b> (PyQt5, dashboard panel) — <b>done</b>: launch (run / repeat / scan / schedule) + live queue / running / scheduled.</li>
-    <li><b>Experiment layer</b> <span style="color:#b45309">(next)</span> — port the real physics scripts: <code>experiment_scripts/</code> (MOT_loading, Clock_spectrum…), <code>pulser_sequences/</code> (replace py2 <code>treedict</code>), <code>analog_sequences/</code>. A dedicated ParameterVault editor for the GUI.</li>
+    <li><b>Experiment layer</b> — <b>framework done</b>: <code>experiment/pulse_sequence.py</code> (the composable pulse-sequence base class, py3, no more py2 <code>treedict</code>) with a worked TTL example driven by the ParameterVault (<code>experiment/pulser_sequences/led_blink_seq.py</code> + <code>experiment/experiment_scripts/led_blink_experiment.py</code>, shown as <em>LED Blink (from ParameterVault)</em> in ScriptScanner). <span style="color:#b45309">Next:</span> the real physics scripts (MOT_loading, Clock_spectrum…) — they also need the hardware servers below (NI analog/DAC, Andor, DDS), so they land as those come online; plus a dedicated ParameterVault editor for the GUI.</li>
   </ul>
 
   <h3>Phase B — Remaining hardware servers <span style="color:#b45309">(each needs its instrument)</span></h3>

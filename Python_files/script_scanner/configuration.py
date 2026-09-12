@@ -23,6 +23,9 @@ class config(object):
         ('sample_experiment', 'led_staircase'),
         ('sample_experiment', 'led_blink'),
         ('sample_experiment', 'crashing_example'),
+        # experiment-layer example: sequence in experiment/pulser_sequences/,
+        # parameters from the ParameterVault (seed with experiment/seed_parameters.py)
+        ('experiment.experiment_scripts.led_blink_experiment', 'LedBlinkFromVault'),
     ]
 
     allowed_concurrent = {

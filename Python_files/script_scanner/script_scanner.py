@@ -28,7 +28,12 @@ timeout = 20
 from labrad.server import LabradServer, setting
 from labrad.units import WithUnit
 from twisted.internet.defer import inlineCallbacks, DeferredList
+import os
 import sys
+
+# put Python_files (the parent dir) on the path so experiment classes can be
+# imported by dotted path, e.g. 'experiment.experiment_scripts.led_blink_experiment'
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from signals import Signals
 from configuration import config
