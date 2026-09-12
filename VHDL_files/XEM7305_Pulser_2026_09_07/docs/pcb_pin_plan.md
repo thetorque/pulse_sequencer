@@ -32,7 +32,7 @@ its pin CSV, then fill the "FPGA pin" / "Conn pin" columns. Do **not** guess pin
 
 | Signal | Count | Dir (XEM) | Meaning |
 |---|---:|---|---|
-| `dds_logic_data_out[15:0]` | 16 | out | 16-bit DDS instruction word streamed from `fifo_dds` |
+| `dds_logic_data_out[15:0]` | 16 | out | DDS config/instruction word streamed from `fifo_dds`. **Fixed at 16 bit by design** — deliberately not widened to the legacy 32 bit, to keep the **BOM down** (fewer data-line driver / level-translator ICs). The new Cyclone 10 DDS board is built around this 16-bit bus. |
 | `dds_logic_address[3:0]` | 4 | out | DDS channel/chip select (host WireIn 0x04) |
 | `dds_logic_fifo_rd_clk` | 1 | **in** | read clock **from the DDS board** — clocks the DDS FIFO read side, so it drives a clock network → **MUST be on an MRCC clock-capable pin** (the one hard pin constraint in this design). See MRCC list below. |
 | `dds_logic_fifo_rd_en` | 1 | **in** | read-enable from the DDS board (pop next word) |
