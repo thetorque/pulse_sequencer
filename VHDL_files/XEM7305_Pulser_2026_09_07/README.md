@@ -584,3 +584,47 @@ customization from the checked-in `src/ip_cfg/ddr3_256_16.prj` (copied from
 the ramtester reference) via a normalized path, not the absolute path the
 GUI records, so it is reproducible on any machine. Generated IP still lands
 in the git-ignored `src/ip/`. **Needs a clean-checkout build to verify.**
+
+## Roadmap — owed: DDR3 read-path hardening (deferred)
+
+**Current reality (supersedes the "Bring-up diagnostics stripped" note above,
+which predates this):** the read-path `dbg_*` diagnostics were later found to be
+**load-bearing** and had to be RESTORED. After the Phase 6c dual-path
+integration, legacy-mode `memtest` (`ep00wire(5)=0`) showed transient one-beat
+corruption (different chunks each pass, ZERO fail both passes → data intact;
+`dbg_retry_count=0` → not the command path). Root cause was placement/timing, not
+logic: stripping the diagnostics removed the 128-bit `dbg_prev_rd_data` register
+that happened to sample `mig_app_rd_data`, changing the routing/fanout on that
+return bus enough to tip a sub-WNS-margin capture over the edge (WNS stayed
+positive throughout). Restoring the diagnostics made memtest green again. So they
+are currently kept, and **the read path is placement-marginal** — any re-place
+(new Vivado run, added logic) can re-expose it.
+
+**The real fix (planned, not yet done): register the MIG return path.**
+The marginal capture is read state 2 in `photon.vhd`:
+`if mig_app_rd_data_valid='1' then ddr3_read_din <= mig_app_rd_data;` — a wide,
+high-fanout MIG return bus captured straight from the controller. Plan:
+
+1. Add `mig_app_rd_data_q` (128b) + `mig_app_rd_data_valid_q`, registered on
+   `ui_clk`, marked `DONT_TOUCH`/`KEEP` so the tool can't retime/absorb them.
+2. Route EVERY consumer off the `_q` copies — the legacy read-prefetch capture,
+   the `ddr3_line_streamer` instance port map, and any remaining diagnostics — so
+   the raw `mig_app_rd_data`/`_valid` fan out to exactly one load (the register).
+   That clean register boundary + minimal fanout at the interface is the fix,
+   replacing the diagnostic register's accidental timing help with an intentional
+   one.
+3. Leave `app_rdy`/`app_en` (command channel) combinational-tight and untouched
+   (the failure was the data path; `retry_count` was 0). Registering data+valid
+   together preserves beat alignment; the 1-cycle extra latency is absorbed by
+   the FSM's ~2047-cycle lost-command timeout and the streamer's timeouts.
+
+**Verification (hardware-only — GHDL can't analyze `photon.vhd`/unisim), bisectable:**
+- Step A: add the register + reroute all consumers, KEEP diagnostics. Build →
+  `ddr3_roundtrip_demo.py memtest` (two-pass) + `run_all_6c.py`. Green = no regression.
+- Step B (separate commit): remove diagnostics. Build → same tests. Green = the
+  register carried the load. Regress = revert only Step B (keep the register) and
+  fall back to placement/timing constraints (small pblock pinning the return
+  registers near the MIG, or `MAX_FANOUT`).
+
+Do NOT strip the read-path diagnostics again without this (or an equivalent
+placement-independent) fix in place first — see the last session's revert.
