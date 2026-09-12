@@ -89,6 +89,7 @@
   <a href="#headless">Headless (no LabRAD)</a>
   <a href="#pmt">PMT counting</a>
   <a href="#stack">Wider server stack</a>
+  <a href="#roadmap">Roadmap</a>
   <h2>Reference</h2>
   <a href="#troubleshoot">Troubleshooting</a>
   <a href="#files">Files &amp; layout</a>
@@ -417,11 +418,59 @@ d.start_single()
   <table>
     <tr><th>Component</th><th>What it is</th><th>Location</th></tr>
     <tr><td><b>Pulser</b> + <code>pulser3</code></td><td>Sequencer, TTL, PMT counting, manual switching (this manual)</td><td><code>pulser_labrad/</code>, <code>pulser3/</code></td></tr>
-    <tr><td><b>Switch Control GUI</b></td><td>ON/OFF/Auto per TTL channel (<a href="#gui">above</a>)</td><td><code>pulser_gui/</code></td></tr>
-    <tr><td><b>ParameterVault</b></td><td>Central store of experiment parameters (registry-backed, typed values). Run it like the Pulser server: <code>python parameter_vault\parameter_vault.py</code>.</td><td><code>parameter_vault/</code></td></tr>
-    <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">below</a>)</td><td><code>labrad_launcher/</code></td></tr>
+    <tr><td><b>ParameterVault</b></td><td>Central store of experiment parameters (registry-backed, typed values)</td><td><code>parameter_vault/</code></td></tr>
+    <tr><td><b>Data Vault</b></td><td>Numeric data store (HDF5); adopted upstream, py3-ported</td><td><code>data_vault/</code></td></tr>
+    <tr><td><b>NormalPMTFlow</b></td><td>Continuous PMT-count acquisition into the Data Vault (on top of the Pulser)</td><td><code>pmt_flow/</code></td></tr>
+    <tr><td><b>Switch / PMT Control GUIs</b></td><td>TTL switch panel; PMT mode / window / record + live count</td><td><code>pulser_gui/</code></td></tr>
+    <tr><td><b>Live Grapher</b></td><td>Live Data Vault plotter (pyqtgraph)</td><td><code>grapher/</code></td></tr>
+    <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">above</a>)</td><td><code>labrad_launcher/</code></td></tr>
+    <tr><td><b>Dashboard</b></td><td>Dockable host for the client GUIs (one login, arrangeable panels)</td><td><code>dashboard/</code></td></tr>
   </table>
-  <p>Each server registers with the manager and shows up in the Launcher's connected view. Still to port (dependency order): <b>Data Vault</b> (data storage), <b>NormalPMTFlow</b> (higher-level PMT server on top of the Pulser), <b>ScriptScanner</b> (experiment orchestrator), the hardware servers (NI DAC, Andor camera) and the trackers. DDS is hardware-blocked. Each ported server carries its own <code>README.md</code>.</p>
+  <p>Each server registers with the manager and shows up in the Launcher's connected view; each ported component carries its own <code>README.md</code>. See the <a href="#roadmap">Roadmap</a> for what's next.</p>
+</section>
+
+<!-- ============================ ROADMAP ============================ -->
+<section id="roadmap">
+  <h2 class="sec">Roadmap</h2>
+  <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot) plus the operator GUIs. What's next, in dependency order:</p>
+
+  <div class="box ok"><b class="tag">Done &amp; hardware-verified</b>
+    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow; the GUIs (switch control, PMT control, live grapher, launcher, dashboard).</p>
+  </div>
+
+  <h3>Phase A — Experiment orchestration <span style="color:#16a34a">(next; not hardware-blocked)</span></h3>
+  <p>Turns "instruments you drive by hand" into "experiments you run and scan." Its dependencies (ParameterVault + Data Vault) are done.</p>
+  <ul>
+    <li><b>ScriptScanner server</b> (<code>script_scanner/</code>) — register / queue / schedule experiment scripts, scan a parameter across a range, log to the Data Vault.</li>
+    <li><b>script_scanner_gui</b> (PyQt4→PyQt5) — the experiment-runner GUI (queue, progress, scan setup); would become a dashboard panel.</li>
+    <li><b>Experiment layer</b> — <code>experiment_scripts/</code> (MOT_loading, Clock_spectrum…), <code>pulser_sequences/</code> (replace py2 <code>treedict</code>), <code>analog_sequences/</code>.</li>
+  </ul>
+
+  <h3>Phase B — Remaining hardware servers <span style="color:#b45309">(each needs its instrument)</span></h3>
+  <ul>
+    <li><b>NI Analog Server / DAC</b> (<code>dac/</code>) + <b>Simple_DAC_control</b> GUI — analog voltage sequences; needs the NI card.</li>
+    <li><b>AndorServer</b> (camera) + <b>AndorVideo</b> GUI — ion imaging; needs the Andor CCD.</li>
+    <li><b>LINETRIGGER_CONTROL</b> — AC-line-sync triggering.</li>
+  </ul>
+
+  <h3>Phase C — Physics trackers</h3>
+  <ul>
+    <li><b>SD Tracker</b> (<code>SD_tracker/</code>) + <b>drift_tracker</b> GUI — S–D / B-field tracking for the clock.</li>
+    <li><b>Line Tracker</b> (<code>Line_tracker/</code>, bundles Andor) + <b>line_tracker</b> GUI — line-center drift.</li>
+  </ul>
+
+  <h3>Phase D — DDS <span style="color:#b45309">(hardware-blocked: board not built)</span></h3>
+  <ul>
+    <li>DDS in <code>pulser3</code> + the FPGA datapath, <b>DDS server settings</b> (90–92), <b>DDS_CONTROL</b> GUI.</li>
+  </ul>
+
+  <h3>Phase E — Polish &amp; infra <span style="color:#6b7280">(anytime, small)</span></h3>
+  <ul>
+    <li><code>returnValue → return</code> sweep on <code>pulser_server.py</code> / <code>parameter_vault.py</code> (Twisted 24.7 deprecation).</li>
+    <li>Grapher: curve fitting, multi-dataset overlays.</li>
+    <li>Merge launcher + dashboard into one tabbed "mission control"; launcher autostart list; per-server env rows.</li>
+    <li>Wire real-866 <code>866DP</code> / <code>Internal866</code> channels for a physically-meaningful differential.</li>
+  </ul>
 </section>
 
 <!-- ============================ TROUBLESHOOTING ============================ -->
