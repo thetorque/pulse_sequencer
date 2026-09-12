@@ -1,16 +1,17 @@
 """
-seq_viewer.py -- a pulse-sequence timing-diagram viewer.
+seq_viewer.py -- a pulse-sequence timing-diagram viewer (read-only).
 
 Compile a pulser3.Sequence and *see* it: each TTL channel is a lane whose
 waveform steps high when the channel is on, across a shared time axis. No
-hardware and no LabRAD needed -- it only reads a Sequence (pulser3 imports fine
-without the `ok` module), so you can preview a sequence on any machine before
-running it.
+hardware and no LabRAD needed -- pulser3 imports fine without the `ok` module,
+so you can preview a sequence on any machine before running it.
 
 Sources:
   * Demo -- a small built-in sequence, for an instant look.
-  * Open... -- a .py file that defines `build_sequence()` returning a
+  * Open... -- a .py file that defines build_sequence() returning a
     pulser3.Sequence (or a module-level `sequence`).
+
+The drawing lives in seq_plot.SequencePlot (shared with seq_editor.py).
 
 Needs PyQt5 + pyqtgraph:  pip install PyQt5 pyqtgraph
 Run:  python seq_viewer.py
@@ -21,17 +22,10 @@ import sys
 
 from PyQt5 import QtWidgets
 
-try:
-    import pyqtgraph as pg
-except ImportError:
-    pg = None
-
-# pulser3 lives one level up (Python_files/); import Sequence + hwconfig
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from seq_plot import SequencePlot, pg    # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from pulser3 import Sequence          # noqa: E402
-from pulser3 import hwconfig          # noqa: E402
-
-PENS = ['#2563eb', '#0891b2', '#7c3aed', '#d97706', '#16a34a', '#dc2626', '#db2777']
+from pulser3 import Sequence, hwconfig   # noqa: E402
 
 
 def demo_sequence():
@@ -52,8 +46,7 @@ class SeqViewer(QtWidgets.QWidget):
         self.setObjectName('Root')
         self.setWindowTitle('Sequence Viewer')
         self.resize(760, 460)
-        self._names = {num: name for name, num in
-                       sorted(hwconfig.CHANNELS.items(), key=lambda kv: kv[0])}
+        self._seq = None
         self._build_ui()
         if pg is not None:
             self._set_sequence(demo_sequence(), 'demo')
@@ -77,16 +70,9 @@ class SeqViewer(QtWidgets.QWidget):
         bar.addWidget(self.all_check)
         bar.addWidget(self.info, 1)
         v.addLayout(bar)
-
-        pg.setConfigOptions(antialias=True, background='w', foreground='#1f2328')
-        self.plot = pg.PlotWidget()
-        self.plot.setLabel('bottom', 'time', units='s')
-        self.plot.showGrid(x=True, y=False, alpha=0.2)
-        self.plot.setMouseEnabled(x=True, y=False)     # zoom/pan time only
-        self.plot.hideButtons()
+        self.plot = SequencePlot()
         v.addWidget(self.plot, 1)
 
-    # ---- source ------------------------------------------------------------
     def _open(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Open a sequence .py (defines build_sequence())", filter="Python (*.py)")
@@ -114,41 +100,14 @@ class SeqViewer(QtWidgets.QWidget):
         self._label = label
         self._replot()
 
-    # ---- plotting ----------------------------------------------------------
     def _replot(self):
-        if pg is None or getattr(self, '_seq', None) is None:
+        if pg is None or self._seq is None:
             return
-        self.plot.clear()
         try:
-            rows = self._seq.human_readable()      # [(t_s, channel_int, bits), ...]
+            n, T = self.plot.set_sequence(self._seq, self.all_check.isChecked())
+            self.info.setText("%s  —  %d channels, length %.4g s" % (self._label, n, T))
         except Exception as e:
             self.info.setText("cannot compile: %s" % e)
-            return
-        n_ch = self._seq.channel_total
-        used = [i for i in range(n_ch) if any(r[2][i] == '1' for r in rows)]
-        shown = list(range(n_ch)) if self.all_check.isChecked() else (used or [0])
-        T = rows[-1][0] if rows else 0.0
-
-        left_ticks = []
-        for lane, ch in enumerate(shown):
-            base = -lane                           # lane 0 at top
-            hi = base + 0.72
-            xs, ys = [], []
-            prev = int(rows[0][2][ch])
-            xs.append(rows[0][0]); ys.append(hi if prev else base)
-            for r in rows[1:]:
-                v = int(r[2][ch])
-                xs.append(r[0]); ys.append(hi if prev else base)   # hold
-                xs.append(r[0]); ys.append(hi if v else base)      # transition
-                prev = v
-            pen = pg.mkPen(PENS[ch % len(PENS)], width=2)
-            self.plot.plot(xs, ys, pen=pen)
-            left_ticks.append((base + 0.36, self._names.get(ch, 'ch%d' % ch)))
-
-        self.plot.getAxis('left').setTicks([left_ticks, []])
-        self.plot.setYRange(-(len(shown) - 1) - 0.4, 0.9, padding=0)
-        self.plot.setXRange(0, T if T > 0 else 1.0, padding=0.02)
-        self.info.setText("%s  —  %d channels, length %.4g s" % (self._label, len(shown), T))
 
 
 DASHBOARD_PANEL = {'title': 'Sequence Viewer', 'widget': SeqViewer}

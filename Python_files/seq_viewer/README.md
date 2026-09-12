@@ -1,8 +1,14 @@
-# seq_viewer -- pulse-sequence timing-diagram viewer
+# seq_viewer -- pulse-sequence timing viewer + editor
 
-*See* a pulse sequence before you run it. Each TTL channel is a lane whose
-waveform steps high when the channel is on, across a shared time axis — a
-logic-analyzer view of a `pulser3.Sequence`.
+*See* a pulse sequence before you run it, or *build* one and watch it update
+live. Each TTL channel is a lane whose waveform steps high when the channel is
+on, across a shared time axis — a logic-analyzer view of a `pulser3.Sequence`.
+
+| file | role |
+|---|---|
+| `seq_viewer.py` | read-only viewer (Demo / Open a `.py`) |
+| `seq_editor.py` | interactive editor: pulse table, live diagram, Export, Program+Run |
+| `seq_plot.py` | the shared `SequencePlot` timing-diagram widget |
 
 **No hardware, no LabRAD, no manager.** It only *compiles and reads* a Sequence
 (pulser3 imports fine without the `ok` module), so you can preview a sequence on
@@ -40,10 +46,29 @@ It calls `Sequence.human_readable()` (the per-switching-time state), builds a
 digital step waveform per channel, and plots them as stacked lanes with pyqtgraph.
 Channel names come from `pulser3.hwconfig.CHANNELS`.
 
+## Editor (`seq_editor.py`)
+
+```
+python seq_viewer/seq_editor.py
+```
+
+- A **pulse table** — each row is `channel` (dropdown) / `start (s)` / `duration
+  (s)`, plus `+ Pulse` and a `Length` field (the `extend_length`). The timing
+  diagram **updates live** as you edit; the status line turns green ("ok — N
+  channels, length …") or red with the reason (e.g. "overlapping pulses on
+  channel …"). Editing is validated with `to_lines()`, so an invalid sequence
+  can't be run.
+- **Export .py** — writes a `build_sequence()` file the viewer can open and
+  other tools can import (exact round-trip).
+- **Program + Run** — sends the sequence to the Pulser server (`new_sequence` →
+  `add_ttl_pulse` → `program_sequence` → `start_single`). Needs the manager +
+  Pulser server; prompts for the password, or uses the dashboard's shared
+  connection when embedded. Editing and Export need no hardware.
+
 ## Notes
 
-- It's also a **dashboard panel** (declares `DASHBOARD_PANEL`), so it shows up in
-  `dashboard.py` — handy to keep a sequence preview beside the controls. (It
-  ignores the shared LabRAD connection; it needs none.)
-- Read-only for now. A future v2 could add editing (drag pulses, a pulse table,
-  Program + Run) and a "show the live/last-programmed sequence" source.
+- Both are **dashboard panels** (declare `DASHBOARD_PANEL`), so they show up in
+  `dashboard.py`. The viewer needs no connection; the editor uses the shared one
+  only for Program+Run.
+- Later (v3): drag pulses directly on the diagram, and a "show the live /
+  last-programmed sequence" source.
