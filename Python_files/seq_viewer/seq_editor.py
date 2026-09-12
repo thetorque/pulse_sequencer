@@ -15,6 +15,7 @@ Run:  python seq_editor.py
 """
 import os
 import sys
+import time
 
 from PyQt5 import QtWidgets, QtCore
 
@@ -42,6 +43,11 @@ class SeqEditor(QtWidgets.QWidget):
         self.cxn = cxn
         self._owns_cxn = False
         self._seq = None
+        self._p = None                 # pulser server ref while running
+        self._run_start = None
+        self._total = None             # loop count (None = infinite)
+        self._run_timer = None
+        self._updating = False         # guard while linking duration <-> stop
         self._build_ui()
         if pg is not None:
             self._add_row('sMOT_PROBE', 0.1, 0.5)
@@ -57,15 +63,17 @@ class SeqEditor(QtWidgets.QWidget):
             return
 
         left = QtWidgets.QVBoxLayout()
-        self.table = QtWidgets.QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Channel", "Start (s)", "Duration (s)", ""])
+        self.table = QtWidgets.QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(
+            ["Channel", "Start (s)", "Duration (s)", "Stop (s)", "Del"])
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(1, 90)
-        self.table.setColumnWidth(2, 100)
-        self.table.setColumnWidth(3, 32)
-        self.table.setMinimumWidth(400)
+        self.table.setColumnWidth(0, 148)
+        self.table.setColumnWidth(1, 88)
+        self.table.setColumnWidth(2, 92)
+        self.table.setColumnWidth(3, 92)
+        self.table.setColumnWidth(4, 40)
+        self.table.setMinimumWidth(480)
         left.addWidget(self.table, 1)
 
         row = QtWidgets.QHBoxLayout()
@@ -79,17 +87,37 @@ class SeqEditor(QtWidgets.QWidget):
         row.addStretch(1)
         left.addLayout(row)
 
+        runrow = QtWidgets.QHBoxLayout()
+        runrow.addWidget(QtWidgets.QLabel("Loops:"))
+        self.loops_spin = QtWidgets.QSpinBox()
+        self.loops_spin.setRange(1, 65535)
+        self.loops_spin.setValue(1)
+        runrow.addWidget(self.loops_spin)
+        self.inf_check = QtWidgets.QCheckBox("∞")
+        self.inf_check.setToolTip("Run forever until Stop")
+        self.inf_check.toggled.connect(lambda on: self.loops_spin.setEnabled(not on))
+        runrow.addWidget(self.inf_check)
+        runrow.addStretch(1)
+        left.addLayout(runrow)
+
         actions = QtWidgets.QHBoxLayout()
         exp = QtWidgets.QPushButton("Export .py")
         exp.clicked.connect(self._export)
-        run = QtWidgets.QPushButton("Program + Run")
-        run.setObjectName("primary")
-        run.clicked.connect(self._run)
+        self.run_btn = QtWidgets.QPushButton("Program + Run")
+        self.run_btn.setObjectName("primary")
+        self.run_btn.clicked.connect(self._run)
+        self.stop_btn = QtWidgets.QPushButton("Stop")
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.clicked.connect(self._stop)
         actions.addWidget(exp)
-        actions.addWidget(run)
+        actions.addWidget(self.run_btn)
+        actions.addWidget(self.stop_btn)
         actions.addStretch(1)
         left.addLayout(actions)
 
+        self.progress = QtWidgets.QProgressBar()
+        self.progress.setVisible(False)
+        left.addWidget(self.progress)
         self.status = QtWidgets.QLabel("")
         self.status.setWordWrap(True)
         left.addWidget(self.status)
@@ -126,21 +154,39 @@ class SeqEditor(QtWidgets.QWidget):
             combo.setCurrentIndex(CHANNELS.index(channel))
         combo.currentIndexChanged.connect(self._rebuild)
         start_sp = self._spin(start)
-        start_sp.valueChanged.connect(self._rebuild)
         dur_sp = self._spin(duration)
-        dur_sp.valueChanged.connect(self._rebuild)
+        stop_sp = self._spin(start + duration)      # stop = start + duration
+        # start/duration edits recompute stop; a stop edit recomputes duration.
+        # _updating guards against the setValue() feedback loop.
+        start_sp.valueChanged.connect(lambda: self._link(start_sp, dur_sp, stop_sp, 'start'))
+        dur_sp.valueChanged.connect(lambda: self._link(start_sp, dur_sp, stop_sp, 'dur'))
+        stop_sp.valueChanged.connect(lambda: self._link(start_sp, dur_sp, stop_sp, 'stop'))
         rm = QtWidgets.QPushButton("×")
         rm.setFixedWidth(28)
         rm.clicked.connect(self._remove_clicked)
         self.table.setCellWidget(r, 0, combo)
         self.table.setCellWidget(r, 1, start_sp)
         self.table.setCellWidget(r, 2, dur_sp)
-        self.table.setCellWidget(r, 3, rm)
+        self.table.setCellWidget(r, 3, stop_sp)
+        self.table.setCellWidget(r, 4, rm)
+
+    def _link(self, start_sp, dur_sp, stop_sp, which):
+        """Keep stop = start + duration. Editing start/duration moves stop;
+        editing stop sets duration (= stop - start)."""
+        if self._updating:
+            return
+        self._updating = True
+        if which == 'stop':
+            dur_sp.setValue(max(0.0, stop_sp.value() - start_sp.value()))
+        else:
+            stop_sp.setValue(start_sp.value() + dur_sp.value())
+        self._updating = False
+        self._rebuild()
 
     def _remove_clicked(self):
         btn = self.sender()
         for r in range(self.table.rowCount()):
-            if self.table.cellWidget(r, 3) is btn:
+            if self.table.cellWidget(r, 4) is btn:
                 self.table.removeRow(r)
                 break
         self._rebuild()
@@ -236,13 +282,86 @@ class SeqEditor(QtWidgets.QWidget):
             if L > 0:
                 p.extend_sequence_length(L * _S)
             p.program_sequence()
-            p.start_single()
-            self.status.setStyleSheet("color:#16a34a;")
-            self.status.setText("programmed + started single run")
+            if self.inf_check.isChecked():
+                p.start_infinite(); self._total = None
+            else:
+                loops = self.loops_spin.value()
+                if loops == 1:
+                    p.start_single()
+                else:
+                    p.start_number(loops)
+                self._total = loops
+            self._p = p
+            self._run_start = time.time()
+            self._begin_run_ui()
         except Exception as e:
             QtWidgets.QMessageBox.warning(self, "Program + Run failed", str(e))
+            self._end_run_ui()
+
+    def _begin_run_ui(self):
+        self.run_btn.setEnabled(False)
+        self.stop_btn.setEnabled(True)
+        if self._total is None:
+            self.progress.setRange(0, 0)          # busy/indeterminate
+        else:
+            self.progress.setRange(0, self._total)
+            self.progress.setValue(0)
+        self.progress.setVisible(True)
+        if self._run_timer is None:
+            self._run_timer = QtCore.QTimer(self)
+            self._run_timer.timeout.connect(self._poll_run)
+        self._run_timer.start(200)
+        self._poll_run()
+
+    def _poll_run(self):
+        if self._p is None:
+            return
+        elapsed = time.time() - self._run_start
+        try:
+            completed = int(self._p.repeatitions_completed())
+        except Exception as e:
+            self.status.setStyleSheet("color:#dc2626;")
+            self.status.setText("poll error: %s" % e)
+            return
+        try:
+            done = bool(self._p.is_sequence_done())
+        except Exception:
+            done = self._total is not None and completed >= self._total   # old server
+        self.status.setStyleSheet("color:#16a34a;")
+        if self._total is None:
+            self.status.setText("running ∞ — %d loops · %.1f s" % (completed, elapsed))
+            return
+        self.progress.setValue(self._total if done else min(completed, self._total))
+        if done:
+            self._run_timer.stop()
+            self.status.setText("done — %d loop(s) in %.2f s" % (self._total, elapsed))
+            self._end_run_ui()
+        else:
+            self.status.setText("running — loop %d/%d · %.1f s"
+                                % (min(completed, self._total), self._total, elapsed))
+
+    def _stop(self):
+        try:
+            if self._p is not None:
+                self._p.stop_sequence()
+        except Exception:
+            pass
+        if self._run_timer is not None:
+            self._run_timer.stop()
+        elapsed = (time.time() - self._run_start) if self._run_start else 0.0
+        self.status.setStyleSheet("color:#6b7280;")
+        self.status.setText("stopped after %.1f s" % elapsed)
+        self._end_run_ui()
+
+    def _end_run_ui(self):
+        self.run_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.progress.setVisible(False)
+        self.progress.setRange(0, 1)              # reset out of busy mode
 
     def closeEvent(self, ev):
+        if self._run_timer is not None:
+            self._run_timer.stop()
         try:
             if self.cxn is not None and self._owns_cxn:
                 self.cxn.disconnect()

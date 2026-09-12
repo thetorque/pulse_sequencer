@@ -52,18 +52,27 @@ Channel names come from `pulser3.hwconfig.CHANNELS`.
 python seq_viewer/seq_editor.py
 ```
 
-- A **pulse table** — each row is `channel` (dropdown) / `start (s)` / `duration
-  (s)`, plus `+ Pulse` and a `Length` field (the `extend_length`). The timing
-  diagram **updates live** as you edit; the status line turns green ("ok — N
-  channels, length …") or red with the reason (e.g. "overlapping pulses on
-  channel …"). Editing is validated with `to_lines()`, so an invalid sequence
-  can't be run.
+- A **pulse table** — each row is `channel` (dropdown) / `start (s)` /
+  `duration (s)` / `stop (s)` / delete (`Del`). **Duration and stop are linked**
+  (`stop = start + duration`): edit whichever is convenient and the other is
+  recomputed — set a stop time and the duration follows, or set a duration and
+  the stop follows; changing start keeps the duration and moves the stop. Plus
+  `+ Pulse` and a `Length` field (`extend_length`). The timing diagram **updates
+  live** as you edit; the status line turns green ("ok — N channels, length …")
+  or red with the reason (e.g. "overlapping pulses on channel …"). Editing is
+  validated with `to_lines()`, so an invalid sequence can't be run.
 - **Export .py** — writes a `build_sequence()` file the viewer can open and
   other tools can import (exact round-trip).
-- **Program + Run** — sends the sequence to the Pulser server (`new_sequence` →
-  `add_ttl_pulse` → `program_sequence` → `start_single`). Needs the manager +
-  Pulser server; prompts for the password, or uses the dashboard's shared
-  connection when embedded. Editing and Export need no hardware.
+- **Program + Run** — sends the sequence to the Pulser server and runs it. A
+  **Loops** field sets how many times (1 = single, N = `start_number`); tick
+  **∞** for `start_infinite`. While running, a **progress bar + status** show
+  `loop k/N` and the **elapsed time** (polled from the server's Repeatitions
+  Completed / Is Sequence Done), and **Stop** ends it. Needs the manager +
+  Pulser server (prompts for the password, or uses the dashboard's shared
+  connection). Editing and Export need no hardware.
+
+  Note: the elapsed/progress uses the Pulser server's new `Is Sequence Done`
+  setting — restart the Pulser server after pulling so it's available.
 
 ## Notes
 

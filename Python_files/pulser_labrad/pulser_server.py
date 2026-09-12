@@ -205,6 +205,13 @@ class Pulser(LabradServer):
         n = yield deferToThread(self.driver.seq_count)
         returnValue(int(n))
 
+    @setting(3, 'Is Sequence Done', returns='b')
+    def isSequenceDone(self, c):
+        """Non-blocking: True if the sequence has finished (for progress polls;
+        unlike Wait Sequence Done this returns immediately)."""
+        done = yield deferToThread(self.driver.is_done)
+        returnValue(bool(done))
+
     # ---- PMT photon counting (delegates to pulser3 PMT datapath) -----------
     # Same legacy setting IDs/names as servers/pulser/pulser_ok.py so existing
     # PMT clients work unchanged. Normal mode: the counter windows the input
