@@ -40,7 +40,8 @@ class SwitchWidget(QtWidgets.QFrame):
     def __init__(self, parent=None):
         super(SwitchWidget, self).__init__(parent)
         self.d = {}                       # name -> {'ON','OFF','AUTO': QPushButton}
-        self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
+        self.setObjectName('Root')
+        self.setFrameStyle(QtWidgets.QFrame.NoFrame)
         try:
             self.cxn = labrad.connect()   # env: LABRADHOST/LABRADPASSWORD/LABRAD_TLS
             self.pulser = self.cxn.pulser
@@ -147,6 +148,8 @@ class SwitchWidget(QtWidgets.QFrame):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    import theme
+    theme.apply(app)
     widget = SwitchWidget()
     widget.setWindowTitle('Pulser Switch Control')
     widget.show()

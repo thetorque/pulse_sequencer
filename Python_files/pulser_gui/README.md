@@ -25,7 +25,12 @@ sequence's Auto channels -- changes something (the same effect the legacy
 |---|---|
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
 | `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
+| `theme.py` | shared modern look (Fusion + light QSS); both GUIs call `theme.apply(app)` |
 | `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
+
+Both GUIs use the modern theme in `theme.py` (card panels, rounded accent
+buttons, blue "selected"/green "recording" states, themed inputs) -- edit that
+one file to restyle.
 
 ## Setup
 

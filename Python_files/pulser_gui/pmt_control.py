@@ -31,7 +31,7 @@ COUNT_POLL_MAX_WINDOW = 1.0    # only poll a live count for windows <= this (s)
 class PMTControl(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setObjectName('PMTControl')
+        self.setObjectName('Root')
         self.setWindowTitle('PMT Control')
         self.resize(360, 260)
         self.server = None
@@ -122,6 +122,7 @@ class PMTControl(QtWidgets.QWidget):
         form.addRow("Collection window:", self.window_spin)
 
         self.record_btn = QtWidgets.QPushButton("Record: OFF")
+        self.record_btn.setObjectName("record")
         self.record_btn.setCheckable(True)
         self.record_btn.toggled.connect(self._on_record)
         form.addRow(self.record_btn)
@@ -136,6 +137,7 @@ class PMTControl(QtWidgets.QWidget):
 
         self.count_lcd = QtWidgets.QLCDNumber()
         self.count_lcd.setDigitCount(8)
+        self.count_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
         self.count_lcd.display(0)
         form.addRow("Count (KC/s):", self.count_lcd)
 
@@ -230,7 +232,8 @@ class PMTControl(QtWidgets.QWidget):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('Fusion')
+    import theme
+    theme.apply(app)
     w = PMTControl()
     w.show()
     sys.exit(app.exec_())
