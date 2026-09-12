@@ -42,7 +42,14 @@ QComboBox, QAbstractSpinBox, QLineEdit {
     padding: 5px 8px; min-height: 20px;
 }
 QComboBox:focus, QAbstractSpinBox:focus, QLineEdit:focus { border: 1px solid #2563eb; }
-QComboBox::drop-down { border: none; width: 18px; }
+QComboBox::drop-down { border: none; width: 18px; subcontrol-origin: padding; subcontrol-position: center right; }
+/* draw the dropdown caret (a CSS triangle) -- without this, styling drop-down hides Qt's native arrow */
+QComboBox::down-arrow {
+    width: 0; height: 0; margin-right: 7px;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid #667085;
+}
+QComboBox::down-arrow:hover { border-top-color: #2563eb; }
 QComboBox QAbstractItemView {
     background: #ffffff; border: 1px solid #e4e7ec;
     selection-background-color: #e8f0fe; selection-color: #1f2328; outline: none;
