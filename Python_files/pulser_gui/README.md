@@ -24,7 +24,8 @@ sequence's Auto channels -- changes something (the same effect the legacy
 | file | role |
 |---|---|
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
-| `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by `switch_control.py`) |
+| `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
+| `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
 
 ## Setup
 
@@ -48,10 +49,16 @@ Start the manager and the `Pulser` server first (see
 `../pulser_labrad/README.md`), then:
 
 ```bash
-python switch_control.py
+python switch_control.py     # TTL switch panel
+python pmt_control.py        # PMT mode / window / record panel (talks to NormalPMTFlow)
 ```
 
-Each channel shows **ON** / **OFF** / **Auto**:
+`pmt_control.py` needs the NormalPMTFlow server running (which needs Pulser +
+Data Vault); it prompts for the LabRAD password if the env credentials don't
+work. It shows the counting mode, collection window, a record toggle, and a live
+count (polled only for short windows -- use the Live Grapher for long traces).
+
+Each channel in `switch_control.py` shows **ON** / **OFF** / **Auto**:
 
 - **ON / OFF** -- force that TTL output high/low via the manual override,
   independent of any running sequence (server `Switch Manual`).

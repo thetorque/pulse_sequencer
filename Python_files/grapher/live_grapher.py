@@ -57,6 +57,7 @@ class Grapher(QtWidgets.QWidget):
         self.curves = []
         self.x = []
         self.ys = []
+        self._follow_tick = 0
 
         self.cxn = self._connect()                 # try environment credentials
         if self.cxn is None and labrad is not None and pg is not None:
@@ -147,11 +148,17 @@ class Grapher(QtWidgets.QWidget):
         self.latest_btn.clicked.connect(self._open_latest)
         self.live_check = QtWidgets.QCheckBox("Live")
         self.live_check.setChecked(True)
+        self.follow_check = QtWidgets.QCheckBox("Follow latest")
+        self.follow_check.setToolTip(
+            "Auto-open the newest dataset in this folder and switch to it when a\n"
+            "newer one appears -- start a recording and it shows up live.")
+        self.follow_check.toggled.connect(self._on_follow_toggled)
         self.path_lbl = QtWidgets.QLabel("/")
         top.addWidget(self.up_btn)
         top.addWidget(self.refresh_btn)
         top.addWidget(self.latest_btn)
         top.addWidget(self.live_check)
+        top.addWidget(self.follow_check)
         top.addWidget(self.path_lbl, 1)
         outer.addLayout(top)
 
@@ -204,15 +211,24 @@ class Grapher(QtWidgets.QWidget):
         else:
             self._open_dataset(name)
 
-    def _open_latest(self):
+    def _latest_dataset(self):
         try:
             self.dv.cd(self.path)
             _dirs, datasets = self.dv.dir()
-        except Exception as e:
-            self.status.setText("dir error: %s" % e)
-            return
-        if datasets:
-            self._open_dataset(sorted(datasets)[-1])
+        except Exception:
+            return None
+        return sorted(datasets)[-1] if datasets else None
+
+    def _open_latest(self):
+        name = self._latest_dataset()
+        if name:
+            self._open_dataset(name)
+        else:
+            self.status.setText("no datasets in this folder")
+
+    def _on_follow_toggled(self, on):
+        if on:
+            self._open_latest()
 
     # ---- plotting ----------------------------------------------------------
     def _open_dataset(self, name):
@@ -244,7 +260,17 @@ class Grapher(QtWidgets.QWidget):
         self.status.setText("%s — 0 points" % name)
 
     def _poll(self):
-        if self.plot_ctx is None or not self.live_check.isChecked():
+        if not self.live_check.isChecked():
+            return
+        # follow-latest: ~once a second, switch to a newer dataset if one appeared
+        if self.follow_check.isChecked():
+            self._follow_tick += 1
+            if self._follow_tick >= 4:
+                self._follow_tick = 0
+                latest = self._latest_dataset()
+                if latest and latest != self.dataset:
+                    self._open_dataset(latest)
+        if self.plot_ctx is None:
             return
         try:
             new = self.dv.get(context=self.plot_ctx)
