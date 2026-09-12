@@ -190,7 +190,8 @@ class experiment(experiment_info):
         frac = min(max(fraction, 0.0), 1.0)
         pct = self.min_progress + (self.max_progress - self.min_progress) * frac
         if getattr(self, 'sc', None) is not None and getattr(self, 'ident', None) is not None:
-            self.sc.script_set_progress(self.ident, pct)
+            self.sc.script_set_progress(self.ident, pct)            # overall (scan/repeat bars)
+            self.sc.script_set_local_progress(self.ident, 100.0 * frac)  # this single run (running panel)
 
     # functions to reimplement in the subclass
     def initialize(self, cxn, context, ident):

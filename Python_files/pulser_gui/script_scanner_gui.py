@@ -441,7 +441,11 @@ class ScriptScannerGui(QtWidgets.QWidget):
             ident = int(ident)
             current[ident] = name
             try:
-                status, pct = self.server.get_progress(ident)
+                status, overall = self.server.get_progress(ident)
+                # the Running panel shows the CURRENT single-run progress; fall back
+                # to overall for instant experiments that report no sub-progress
+                local = float(self.server.get_local_progress(ident))
+                pct = local if local >= 0.0 else float(overall)
             except Exception:
                 status, pct = '?', 0.0
             if ident not in self._run_rows:

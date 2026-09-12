@@ -233,6 +233,22 @@ class ScriptScanner(Signals):
             raise Exception("Trying to set progress of script with ID {0} but it was not running".format(script_ID))
         status.set_percentage(progress)
 
+    @setting(37, "Script Set Local Progress", script_ID='w', progress='v[]')
+    def script_set_local_progress(self, c, script_ID, progress):
+        '''Progress of the current single run (0..100); resets each scan/repeat step.'''
+        status = self.scheduler.get_running_status(script_ID)
+        if status is None:
+            raise Exception("Trying to set local progress of script with ID {0} but it was not running".format(script_ID))
+        status.set_local_percentage(progress)
+
+    @setting(38, "Get Local Progress", script_ID='w', returns='v')
+    def get_local_progress(self, c, script_ID):
+        '''Current single-run progress (0..100), or -1 if the script isn't running / hasn't reported one.'''
+        status = self.scheduler.get_running_status(script_ID)
+        if status is None:
+            return -1.0
+        return status.local_percentage
+
     @setting(32, "Launch Confirmed", script_ID='w')
     def launch_confirmed(self, c, script_ID):
         status = self.scheduler.get_running_status(script_ID)

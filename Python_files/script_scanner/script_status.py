@@ -23,7 +23,8 @@ class script_semaphore(object):
         self.continue_requests = []
         self.already_called_continue = False
         self.status = 'Ready'
-        self.percentage_complete = 0.0
+        self.percentage_complete = 0.0    # overall progress (across scan/repeat iterations)
+        self.local_percentage = -1.0      # current single-run progress; -1 = not reported
         self.should_stop = False
         self.ident = ident
         self.signals = signals
@@ -36,6 +37,10 @@ class script_semaphore(object):
             raise Exception("Incorrect Percentage of Completion")
         self.percentage_complete = perc
         self.signals.on_running_new_status((self.ident, self.status, self.percentage_complete))
+
+    def set_local_percentage(self, perc):
+        # progress of the current single run (0..100); resets each scan/repeat step
+        self.local_percentage = min(max(perc, 0.0), 100.0)
 
     def launch_confirmed(self):
         self.status = 'Running'
