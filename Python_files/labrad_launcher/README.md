@@ -54,6 +54,13 @@ one window, every server a click to stop or restart.
   the stack up; quitting stops everything (with a confirm). A "leave running on
   exit" option can be added later.
 
+## Look & feel
+
+Uses Qt's **Fusion** base style plus a light custom theme (card-style panels,
+rounded accent buttons, colour-coded running/stopped status, a dark console for
+the log tabs). It's all in the `STYLESHEET` string at the top of the script —
+edit there to restyle, or swap in a dark theme later.
+
 ## Ideas for later (we'll iterate)
 
 - Per-server environment overrides (not just a shared set).

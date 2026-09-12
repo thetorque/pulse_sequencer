@@ -21,7 +21,7 @@ import re
 import subprocess
 import sys
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 CONFIG_PATH = os.path.expanduser('~/.labrad/launcher_config.json')
 NODE_INFO_RE = re.compile(r'###\s*BEGIN NODE INFO(.*?)###\s*END NODE INFO', re.S)
@@ -47,6 +47,89 @@ DEFAULT_CONFIG = {
 }
 
 MANAGER_KEY = '__manager__'
+
+RUNNING_COLOR = '#16a34a'
+STOPPED_COLOR = '#9198a1'
+
+# A clean, modern light theme layered over the Fusion base style. Cards for the
+# group boxes, rounded/accented buttons, a dark console for the log tabs.
+STYLESHEET = """
+QWidget#Launcher { background-color: #f4f5f7; }
+QWidget { font-family: 'Segoe UI','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+          font-size: 10pt; color: #1f2328; }
+
+QGroupBox {
+    background: #ffffff;
+    border: 1px solid #e4e7ec;
+    border-radius: 10px;
+    margin-top: 16px;
+    padding: 14px 12px 12px 12px;
+    font-weight: 600;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 12px; padding: 0 4px;
+    color: #475467;
+}
+
+QLabel { background: transparent; }
+
+QPushButton {
+    background: #ffffff;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 6px 14px;
+}
+QPushButton:hover { background: #f2f4f7; }
+QPushButton:pressed { background: #e4e7ec; }
+QPushButton:disabled { color: #98a2b3; background: #f2f4f7; }
+QPushButton#primary {
+    background: #2563eb; color: #ffffff; border: none; font-weight: 600;
+}
+QPushButton#primary:hover { background: #1d4ed8; }
+QPushButton#primary:pressed { background: #1e40af; }
+
+QLineEdit {
+    background: #ffffff; border: 1px solid #d0d5dd; border-radius: 8px;
+    padding: 6px 9px; selection-background-color: #2563eb; selection-color: #fff;
+}
+QLineEdit:focus { border: 1px solid #2563eb; }
+QLineEdit::placeholder { color: #98a2b3; }
+
+QCheckBox { spacing: 6px; }
+
+QTableWidget {
+    background: #ffffff; border: 1px solid #e4e7ec; border-radius: 8px;
+    gridline-color: #f0f1f4; outline: none;
+}
+QHeaderView::section {
+    background: #f8fafc; border: none; border-bottom: 1px solid #e4e7ec;
+    padding: 7px 8px; font-weight: 600; color: #667085;
+}
+QTableWidget::item { padding: 5px 6px; }
+QTableWidget::item:selected { background: #e8f0fe; color: #1f2328; }
+
+QSplitter::handle { background: transparent; }
+
+QTabWidget::pane { border: 1px solid #e4e7ec; border-radius: 8px; top: -1px; background: #1e1e1e; }
+QTabBar::tab {
+    background: transparent; padding: 7px 16px; margin-right: 2px; color: #667085;
+    border: 1px solid transparent;
+    border-top-left-radius: 8px; border-top-right-radius: 8px;
+}
+QTabBar::tab:selected {
+    background: #ffffff; color: #1f2328;
+    border: 1px solid #e4e7ec; border-bottom-color: #ffffff;
+}
+QTabBar::tab:hover:!selected { color: #1f2328; }
+
+QPlainTextEdit {
+    background: #1e1e1e; color: #d4d4d4;
+    border: none; border-radius: 8px; padding: 6px;
+    font-family: 'Consolas','Menlo','DejaVu Sans Mono',monospace; font-size: 9.5pt;
+}
+"""
 
 
 def find_servers(folder):
@@ -76,6 +159,7 @@ def find_servers(folder):
 class Launcher(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.setObjectName('Launcher')
         self.setWindowTitle('LabRAD Launcher')
         self.resize(900, 640)
         self.cfg = self._load_config()
@@ -154,8 +238,10 @@ class Launcher(QtWidgets.QWidget):
         self.pw_edit = QtWidgets.QLineEdit(self.cfg['password'])
         self.tls_check = QtWidgets.QCheckBox("Require TLS")
         self.tls_check.setChecked(self.cfg['tls'])
-        self.mgr_status = QtWidgets.QLabel("stopped")
+        self.mgr_status = QtWidgets.QLabel("○ stopped")
+        self.mgr_status.setStyleSheet("color: %s; font-weight: 600;" % STOPPED_COLOR)
         self.mgr_btn = QtWidgets.QPushButton("Start Manager")
+        self.mgr_btn.setObjectName("primary")
         self.mgr_btn.clicked.connect(self._toggle_manager)
 
         form.addWidget(QtWidgets.QLabel("Launcher:"), 0, 0)
@@ -196,6 +282,7 @@ class Launcher(QtWidgets.QWidget):
 
         allrow = QtWidgets.QHBoxLayout()
         start_all = QtWidgets.QPushButton("Start All")
+        start_all.setObjectName("primary")
         start_all.clicked.connect(self._start_all)
         stop_all = QtWidgets.QPushButton("Stop All")
         stop_all.clicked.connect(self._stop_all)
@@ -261,8 +348,9 @@ class Launcher(QtWidgets.QWidget):
             item.setToolTip(path)
             self.table.setItem(r, 0, item)
             running = name in self.procs and self._is_running(name)
-            self.table.setItem(r, 1, QtWidgets.QTableWidgetItem(
-                "running" if running else "stopped"))
+            st = QtWidgets.QTableWidgetItem("● running" if running else "○ stopped")
+            st.setForeground(QtGui.QColor(RUNNING_COLOR if running else STOPPED_COLOR))
+            self.table.setItem(r, 1, st)
             btn = QtWidgets.QPushButton("Stop" if running else "Start")
             btn.clicked.connect(lambda _=False, n=name: self._toggle_server(n))
             self.table.setCellWidget(r, 2, btn)
@@ -338,14 +426,18 @@ class Launcher(QtWidgets.QWidget):
 
     def _on_state(self, key):
         running = self._is_running(key)
-        label = "running" if running else "stopped"
+        text = "● running" if running else "○ stopped"
+        color = RUNNING_COLOR if running else STOPPED_COLOR
         if key == MANAGER_KEY:
-            self.mgr_status.setText(label)
+            self.mgr_status.setText(text)
+            self.mgr_status.setStyleSheet("color: %s; font-weight: 600;" % color)
             self.mgr_btn.setText("Stop Manager" if running else "Start Manager")
         elif key in self.rows:
             r = self.rows[key]
-            if self.table.item(r, 1):
-                self.table.item(r, 1).setText(label)
+            item = self.table.item(r, 1)
+            if item:
+                item.setText(text)
+                item.setForeground(QtGui.QColor(color))
             btn = self.table.cellWidget(r, 2)
             if btn:
                 btn.setText("Stop" if running else "Start")
@@ -410,6 +502,8 @@ class Launcher(QtWidgets.QWidget):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
+    app.setStyle('Fusion')                 # modern cross-platform base style
+    app.setStyleSheet(STYLESHEET)
     w = Launcher()
     w.show()
     sys.exit(app.exec_())
