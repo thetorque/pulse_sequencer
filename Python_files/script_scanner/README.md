@@ -92,6 +92,10 @@ frequency, leaving a lineshape under `['','ScriptScanner', <date>]`.
   pattern the other servers use for async settings.
 - `scheduler.stop_running()` added -- the legacy `stopServer` called it but the
   method was missing (the resulting `AttributeError` was silently swallowed).
+- `class ScriptScanner(Signals)` -- the legacy `(LabradServer, Signals)` is an
+  illegal MRO in py3 (`Signals` already subclasses `LabradServer`, so a base
+  can't precede its own subclass); inheriting from `Signals` alone brings in
+  both.
 
 ## GUI
 

@@ -46,7 +46,10 @@ class script_class_parameters(object):
         self.parameters = parameters
 
 
-class ScriptScanner(LabradServer, Signals):
+# Signals already subclasses LabradServer, so inherit from it alone. Listing
+# (LabradServer, Signals) -- as the legacy py2 code did -- is an illegal MRO in
+# py3 (a base can't precede its own subclass).
+class ScriptScanner(Signals):
 
     name = 'ScriptScanner'
 
