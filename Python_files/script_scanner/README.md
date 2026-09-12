@@ -85,8 +85,11 @@ frequency, leaving a lineshape under `['','ScriptScanner', <date>]`.
   `.keys()` views wrapped in `list()` where a LabRAD list is returned.
 - **ParameterVault is now optional** -- an experiment with no required parameters
   runs without it, so the stack is testable incrementally.
-- The Pause-Or-Stop setting is explicitly `@inlineCallbacks` (it yields on the
-  pause lock; the legacy relied on implicit generator handling).
+- The Pause-Or-Stop setting yields on the pause lock, but a setting can't be
+  decorated with `@inlineCallbacks` directly (it hides the declared parameters
+  from `@setting`, raising "Setting parameter script_ID not accepted"), so it
+  delegates to an `@inlineCallbacks` helper and returns its Deferred -- the same
+  pattern the other servers use for async settings.
 - `scheduler.stop_running()` added -- the legacy `stopServer` called it but the
   method was missing (the resulting `AttributeError` was silently swallowed).
 

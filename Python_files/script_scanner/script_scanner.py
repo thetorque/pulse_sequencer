@@ -253,7 +253,6 @@ class ScriptScanner(LabradServer, Signals):
         status.stop_confirmed()
 
     @setting(35, "Pause Or Stop", script_ID='w', returns='b')
-    @inlineCallbacks
     def pause_or_stop(self, c, script_ID):
         '''
         Returns whether the script should be stopped. This request blocks while the script is to be paused.
@@ -261,6 +260,12 @@ class ScriptScanner(LabradServer, Signals):
         status = self.scheduler.get_running_status(script_ID)
         if status is None:
             raise Exception("Trying to confirm Pause/Stop of script with ID {0} but it was not running".format(script_ID))
+        # delegate to an inlineCallbacks helper and return its Deferred: applying
+        # @inlineCallbacks directly to the setting hides script_ID from @setting.
+        return self._pause_or_stop(status)
+
+    @inlineCallbacks
+    def _pause_or_stop(self, status):
         yield status.pause()
         returnValue(status.should_stop)
 
