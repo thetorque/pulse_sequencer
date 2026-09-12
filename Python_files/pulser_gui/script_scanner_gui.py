@@ -39,6 +39,7 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self.setWindowTitle('Script Scanner')
         self.resize(760, 520)
         self.server = None
+        self.pv = None                    # ParameterVault handle for the scan dropdowns
         self._run_rows = {}               # ident -> dict of row widgets
         self._scan_ident = None           # the scan we launched, tracked by its own bar
         self._repeat_ident = None         # the repeat we launched, tracked by its own bar
@@ -56,7 +57,12 @@ class ScriptScannerGui(QtWidgets.QWidget):
             except Exception as e:
                 self._fatal("ScriptScanner not available:\n%s" % e)
                 return
+            try:
+                self.pv = self.cxn.parametervault      # optional: for the scan dropdowns
+            except Exception:
+                self.pv = None
             self._populate_experiments()
+            self._populate_scan_collections()
             self.timer = QtCore.QTimer(self)
             self.timer.timeout.connect(self._poll)
             self.timer.start(POLL_MS)
@@ -204,9 +210,17 @@ class ScriptScannerGui(QtWidgets.QWidget):
         form = QtWidgets.QFormLayout(scan_box)
         self.measure_combo = QtWidgets.QComboBox()          # filled with (same) + experiments
         form.addRow("Measure with", self.measure_combo)
-        self.collection_edit = QtWidgets.QLineEdit("Spectrum")
+        # editable combos populated from the ParameterVault; still typeable so
+        # injected-only params (e.g. the PMT Point demo) and new names work
+        self.collection_edit = QtWidgets.QComboBox()
+        self.collection_edit.setEditable(True)
+        self.collection_edit.setCurrentText("Spectrum")
+        self.collection_edit.activated.connect(lambda _=0: self._scan_collection_picked())
         form.addRow("Collection", self.collection_edit)
-        self.param_edit = QtWidgets.QLineEdit("frequency")
+        self.param_edit = QtWidgets.QComboBox()
+        self.param_edit.setEditable(True)
+        self.param_edit.setCurrentText("frequency")
+        self.param_edit.activated.connect(lambda _=0: self._scan_param_picked())
         form.addRow("Parameter", self.param_edit)
         mm = QtWidgets.QHBoxLayout()
         self.min_spin = QtWidgets.QDoubleSpinBox()
@@ -318,6 +332,53 @@ class ScriptScannerGui(QtWidgets.QWidget):
     def _selected_experiment(self):
         return self.experiment_combo.currentText().strip()
 
+    # ---- scan-parameter dropdowns (from the ParameterVault) ---------------
+    def _populate_scan_collections(self):
+        if self.pv is None:
+            return
+        try:
+            collections = sorted(self.pv.get_collections())
+        except Exception:
+            return
+        cur = self.collection_edit.currentText()
+        self.collection_edit.blockSignals(True)
+        self.collection_edit.clear()
+        self.collection_edit.addItems(collections)
+        self.collection_edit.setCurrentText(cur)      # keep the typed default
+        self.collection_edit.blockSignals(False)
+        self._scan_collection_picked()                # fill parameter list for it
+
+    def _scan_collection_picked(self):
+        if self.pv is None:
+            return
+        collection = self.collection_edit.currentText().strip()
+        try:
+            names = sorted(self.pv.get_parameter_names(collection))
+        except Exception:
+            names = []
+        cur = self.param_edit.currentText()
+        self.param_edit.blockSignals(True)
+        self.param_edit.clear()
+        self.param_edit.addItems(names)
+        self.param_edit.setCurrentText(cur)
+        self.param_edit.blockSignals(False)
+
+    def _scan_param_picked(self):
+        # auto-fill units from the parameter's stored value, if it has one
+        if self.pv is None:
+            return
+        collection = self.collection_edit.currentText().strip()
+        parameter = self.param_edit.currentText().strip()
+        try:
+            record = self.pv.get_parameter(collection, parameter, False)   # (type, item)
+            kind, item = record[0], record[1]
+            value = item[2] if kind in ('parameter', 'duration_bandwidth') else None
+            unit = getattr(value, 'units', None)
+            if unit:
+                self.units_edit.setText(unit)
+        except Exception:
+            pass
+
     # ---- launch actions ---------------------------------------------------
     def _on_run(self):
         name = self._selected_experiment()
@@ -357,8 +418,8 @@ class ScriptScannerGui(QtWidgets.QWidget):
         measure = self.measure_combo.currentText()
         if measure.startswith("(same"):
             measure = name
-        collection = self.collection_edit.text().strip()
-        parameter = self.param_edit.text().strip()
+        collection = self.collection_edit.currentText().strip()
+        parameter = self.param_edit.currentText().strip()
         units = self.units_edit.text().strip()
         if not (collection and parameter and units):
             self._warn("Scan failed", ValueError("collection, parameter and units are required"))
