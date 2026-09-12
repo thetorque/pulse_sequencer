@@ -619,6 +619,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><td><b>Live Grapher</b></td><td>Live Data Vault plotter (pyqtgraph)</td><td><code>grapher/</code></td></tr>
     <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">above</a>)</td><td><code>labrad_launcher/</code></td></tr>
     <tr><td><b>Dashboard</b></td><td>Dockable host for the client GUIs (one login, arrangeable panels)</td><td><code>dashboard/</code></td></tr>
+    <tr><td><b>Experiment Workbench</b></td><td>Script Scanner + Sequence Editor + Viewer as tabs sharing one connection</td><td><code>pulser_gui/workbench.py</code></td></tr>
   </table>
   <p>Each server registers with the manager and shows up in the Launcher's connected view; each ported component carries its own <code>README.md</code>. See the <a href="#roadmap">Roadmap</a> for what's next.</p>
 </section>
@@ -626,10 +627,10 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
 <!-- ============================ ROADMAP ============================ -->
 <section id="roadmap">
   <h2 class="sec">Roadmap</h2>
-  <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot) plus the operator GUIs. What's next, in dependency order:</p>
+  <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot), experiment orchestration (ScriptScanner: run / repeat / scan / schedule), and the operator GUIs. What's next, in dependency order:</p>
 
   <div class="box ok"><b class="tag">Done &amp; hardware-verified</b>
-    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow, ScriptScanner (run / repeat / scan / schedule); the GUIs — switch control, PMT control, script scanner, live grapher, sequence viewer + editor, launcher, dashboard.</p>
+    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow, ScriptScanner (run / repeat / scan / schedule); the GUIs — switch control, PMT control, script scanner, live grapher, sequence viewer + editor, launcher, dashboard, and the Experiment Workbench (script scanner + sequence editor/viewer in one tabbed window).</p>
   </div>
   <div class="box tip"><b class="tag">Cross-platform</b>
     <p>The whole stack is cross-platform Python (scalabrad/JVM + pylabrad + PyQt5/pyqtgraph). It has been <em>run</em> on Windows so far; on Mac/Linux everything should run natively — see <a href="#platforms">Running on Mac / Linux</a>. The hardware-free tools (sequence viewer/editor) run anywhere with just <code>PyQt5</code> + <code>pyqtgraph</code>.</p>
@@ -667,7 +668,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <li><code>returnValue → return</code> sweep on <code>pulser_server.py</code> / <code>parameter_vault.py</code> (Twisted 24.7 deprecation).</li>
     <li>Grapher: curve fitting, multi-dataset overlays.</li>
     <li>Sequence editor v3: drag pulses on the diagram; a "show the live / last-programmed sequence" source.</li>
-    <li>Merge launcher + dashboard into one tabbed "mission control"; launcher autostart list; per-server env rows.</li>
+    <li>Merge launcher + dashboard into one tabbed "mission control" (the <b>Experiment Workbench</b> already tabs the script scanner + sequence editor/viewer); launcher autostart list; per-server env rows.</li>
     <li>Wire real-866 <code>866DP</code> / <code>Internal866</code> channels for a physically-meaningful differential.</li>
   </ul>
 </section>
