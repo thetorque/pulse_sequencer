@@ -490,7 +490,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
         <span class="c"># ... program the pulser / take data ...</span>
         <span class="k">if</span> self.pause_or_stop():        <span class="c"># blocks while paused; True = should stop</span>
             <span class="k">return</span> <span class="k">None</span>
-        self.sc.script_set_progress(self.ident, 50.0)   <span class="c"># 0..100</span>
+        self.set_progress(0.5)          <span class="c"># fraction of this run (0..1)</span>
         result = 123.0                  <span class="c"># a number -> saved by scan/repeat</span>
         <span class="k">return</span> result
 
@@ -505,7 +505,9 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
         as <code>self.parameters.Collection.name</code> or
         <code>self.parameters['Collection.name']</code>. Leave the list empty and no
         ParameterVault is needed.</li>
-      <li><b>Report progress</b> with <code>self.sc.script_set_progress(self.ident, pct)</code> (0–100).</li>
+      <li><b>Report progress</b> with <code>self.set_progress(fraction)</code>
+        (0–1). It maps into this run's slice of the overall job, so progress stays
+        smooth and monotonic even inside a <em>scan</em> or <em>repeat</em>.</li>
       <li><b>Be interruptible</b>: call <code>self.pause_or_stop()</code> regularly in
         any long loop — it blocks while the operator has paused you and returns
         <code>True</code> when they've asked to stop (then just <code>return</code>).</li>

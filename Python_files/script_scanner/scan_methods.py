@@ -177,6 +177,21 @@ class experiment(experiment_info):
         self.min_progress = min_progress
         self.max_progress = max_progress
 
+    def set_progress(self, fraction):
+        '''Report progress as a 0..1 fraction of THIS experiment's slice.
+
+        Maps the fraction into [min_progress, max_progress] (which the scan/
+        repeat wrappers set per iteration) and pushes it to ScriptScanner. This
+        is what keeps the progress bar smooth and monotonic inside a scan/repeat:
+        an experiment must report within its slice, not absolute 0..100. For a
+        single run the slice is the whole 0..100, so it behaves as expected.
+        Safe to call from run(); a no-op if not launched through ScriptScanner.
+        '''
+        frac = min(max(fraction, 0.0), 1.0)
+        pct = self.min_progress + (self.max_progress - self.min_progress) * frac
+        if getattr(self, 'sc', None) is not None and getattr(self, 'ident', None) is not None:
+            self.sc.script_set_progress(self.ident, pct)
+
     # functions to reimplement in the subclass
     def initialize(self, cxn, context, ident):
         '''implemented by the subclass'''

@@ -33,7 +33,8 @@ they are loaded from the **ParameterVault** into `self.parameters` (a `TreeDict`
 so `self.parameters.Collection.name` or `self.parameters['Collection.name']`).
 Inside a long `run`, call `self.pause_or_stop()` regularly -- it blocks while the
 script is paused and returns `True` when it should stop -- and
-`self.sc.script_set_progress(self.ident, pct)` to move the progress bar.
+`self.set_progress(fraction)` (0..1) to move the progress bar -- it maps into
+this run's slice, so scan/repeat progress stays smooth.
 
 Register a class by adding `(import_path, class_name)` to
 `configuration.scripts`.

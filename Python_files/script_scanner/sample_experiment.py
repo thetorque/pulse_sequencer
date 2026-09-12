@@ -62,7 +62,8 @@ class sleep_experiment(experiment):
             if self.pause_or_stop():   # blocks while paused; True if we should stop
                 return None
             time.sleep(self.step_duration)
-            self.sc.script_set_progress(self.ident, 100.0 * (i + 1) / self.steps)
+            # report within this run's slice so scan/repeat progress stays smooth
+            self.set_progress((i + 1) / self.steps)
         # a noisy reading, so repeat/scan wrappers have something to save
         return 100.0 + random.gauss(0.0, 5.0)
 
