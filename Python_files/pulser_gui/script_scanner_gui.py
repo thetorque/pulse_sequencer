@@ -40,6 +40,8 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self.resize(760, 520)
         self.server = None
         self._run_rows = {}               # ident -> dict of row widgets
+        self._scan_ident = None           # the scan we launched, tracked by its own bar
+        self._repeat_ident = None         # the repeat we launched, tracked by its own bar
         self._owns_cxn = cxn is None      # only disconnect a connection we opened
         self.cxn = cxn or self._connect() or self._login_loop()
         self._build_ui()
@@ -184,6 +186,13 @@ class ScriptScannerGui(QtWidgets.QWidget):
         pri.addWidget(self.priority_combo, 1)
         v.addLayout(pri)
 
+        # progress of the repeat we launched (overall, across repetitions)
+        self.repeat_progress = self._make_progress_bar()
+        rp = QtWidgets.QHBoxLayout()
+        rp.addWidget(QtWidgets.QLabel("Repeat progress"))
+        rp.addWidget(self.repeat_progress, 1)
+        v.addLayout(rp)
+
         # --- scan ---
         v.addWidget(self._hline())
         scan_box = QtWidgets.QGroupBox("Scan a parameter")
@@ -218,10 +227,21 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self.scan_btn.setObjectName('primary')
         self.scan_btn.clicked.connect(self._on_scan)
         form.addRow(self.scan_btn)
+        # progress of the scan we launched (overall, across scan points)
+        self.scan_progress = self._make_progress_bar()
+        form.addRow("Progress", self.scan_progress)
         v.addWidget(scan_box)
 
         v.addStretch(1)
         return box
+
+    @staticmethod
+    def _make_progress_bar():
+        bar = QtWidgets.QProgressBar()
+        bar.setRange(0, 100)
+        bar.setValue(0)
+        bar.setFormat("idle")          # replaced with "Running 45%" etc. while active
+        return bar
 
     def _build_status_panel(self):
         box = QtWidgets.QWidget()
@@ -233,6 +253,12 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self.running_table = QtWidgets.QTableWidget(0, 5)
         self.running_table.setHorizontalHeaderLabels(["ID", "Experiment", "Status", "Progress", ""])
         self._stretch_table(self.running_table, stretch_col=1)
+        # fixed widths for the progress + action columns so the buttons never clip
+        hh = self.running_table.horizontalHeader()
+        hh.setSectionResizeMode(3, QtWidgets.QHeaderView.Fixed)
+        hh.setSectionResizeMode(4, QtWidgets.QHeaderView.Fixed)
+        self.running_table.setColumnWidth(3, 100)
+        self.running_table.setColumnWidth(4, 160)
         rl.addWidget(self.running_table)
         v.addWidget(run_box, 2)
 
@@ -302,8 +328,9 @@ class ScriptScannerGui(QtWidgets.QWidget):
         if not name:
             return
         try:
-            self.server.new_script_repeat(name, int(self.repeat_spin.value()),
-                                          bool(self.save_check.isChecked()))
+            ident = self.server.new_script_repeat(name, int(self.repeat_spin.value()),
+                                                  bool(self.save_check.isChecked()))
+            self._start_tracking('_repeat_ident', self.repeat_progress, ident)
         except Exception as e:
             self._warn("Repeat failed", e)
 
@@ -332,11 +359,37 @@ class ScriptScannerGui(QtWidgets.QWidget):
             self._warn("Scan failed", ValueError("collection, parameter and units are required"))
             return
         try:
-            self.server.new_script_scan(name, measure, collection, parameter,
-                                        float(self.min_spin.value()), float(self.max_spin.value()),
-                                        int(self.steps_spin.value()), units)
+            ident = self.server.new_script_scan(name, measure, collection, parameter,
+                                                float(self.min_spin.value()), float(self.max_spin.value()),
+                                                int(self.steps_spin.value()), units)
+            self._start_tracking('_scan_ident', self.scan_progress, ident)
         except Exception as e:
             self._warn("Scan failed", e)
+
+    # ---- tracked (launch-panel) progress bars -----------------------------
+    def _start_tracking(self, attr, bar, ident):
+        setattr(self, attr, int(ident))
+        bar.setValue(0)
+        bar.setFormat("starting")
+
+    def _update_tracked(self, attr, bar, run_map, queued_ids):
+        ident = getattr(self, attr)
+        if ident is None:
+            return
+        if ident in run_map:
+            try:
+                status, pct = self.server.get_progress(ident)
+            except Exception:
+                return
+            bar.setValue(int(round(float(pct))))
+            bar.setFormat("%s %%p%%" % status)      # e.g. "Running 45%"
+        elif ident in queued_ids:
+            bar.setValue(0)
+            bar.setFormat("queued")
+        else:
+            bar.setValue(100)                       # finished: leave it full + "done"
+            bar.setFormat("done")
+            setattr(self, attr, None)
 
     # ---- table actions ----------------------------------------------------
     def _cancel_queued(self, ident):
@@ -376,6 +429,11 @@ class ScriptScannerGui(QtWidgets.QWidget):
         self._update_running(running)
         self._update_queue(queue)
         self._update_scheduled(scheduled)
+        # dedicated launch-panel bars for the scan / repeat we started
+        run_map = {int(i): n for i, n in running}
+        queued_ids = {int(i) for i, n, o in queue}
+        self._update_tracked('_scan_ident', self.scan_progress, run_map, queued_ids)
+        self._update_tracked('_repeat_ident', self.repeat_progress, run_map, queued_ids)
 
     def _update_running(self, running):
         current = {}
@@ -413,7 +471,7 @@ class ScriptScannerGui(QtWidgets.QWidget):
         pause_btn = QtWidgets.QPushButton("Pause")
         pause_btn.setMinimumWidth(78)     # fits the wider "Resume" label too
         stop_btn = QtWidgets.QPushButton("Stop")
-        stop_btn.setMinimumWidth(56)
+        stop_btn.setMinimumWidth(60)
         pause_btn.clicked.connect(lambda _, i=ident: self._on_pause_clicked(i))
         stop_btn.clicked.connect(lambda _, i=ident: self._stop_running(i))
         h.addWidget(pause_btn)

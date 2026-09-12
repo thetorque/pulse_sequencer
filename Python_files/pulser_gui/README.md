@@ -66,7 +66,8 @@ panel launches the selected experiment **once**, **repeated** N times (optionall
 saving), on a **schedule** (every N seconds, with a priority), or as a
 **parameter scan** (type a collection / parameter / units and a min–max–steps
 range — e.g. the bundled *PMT Point* scans `Spectrum` / `frequency` / `kHz` into
-a lineshape). The right panel polls the server ~2.5×/s and shows the **running**
+a lineshape). The **Repeat** and **Scan** controls each have their own progress
+bar for the run you launched. The right panel polls the server ~2.5×/s and shows the **running**
 scripts (status + progress bar, with Pause/Resume and Stop), the **queue**, and
 **scheduled** scans, each with a Cancel button. The parameter-editing tree from
 the old GUI is left out for now — a dedicated ParameterVault editor can come
