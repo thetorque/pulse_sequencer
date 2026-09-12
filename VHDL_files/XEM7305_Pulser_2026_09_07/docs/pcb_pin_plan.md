@@ -46,8 +46,28 @@ are inputs); `step_to_next_value`/`ram_reset` are driven by the running pulse
 sequence (`master_logic` bits 18/19), so they're timing-relevant.
 
 **Total user I/O (excluding DDS/i2c):** 32 out + 1 PMT + 4 in + 1 clk = **38 pins**.
-With DDS + i2c: ~66. Check this against the XEM7305's available expansion I/O
-count and per-bank VCCIO before committing.
+With DDS + i2c: ~66.
+
+### XEM7305 expansion capacity (from Opal Kelly docs)
+
+Two 80-pin connectors (**MC1**, **MC2**; Samtec BSE-040-01-F-D-A) carry **108
+usable FPGA I/O** — plenty for the 38 core pins, and even the full ~66 with DDS.
+
+| FPGA bank | Connector | I/O | VCCIO |
+|---|---|---:|---|
+| Bank 15 | MC1 | 50 | `VCCO_MC1` (MC1-12/13) |
+| Bank 34 | MC2 | 48 | `VCCO_MC2` (MC2-41/42) |
+| Bank 16 | MC2 | 10 | `VCCO_MC2` |
+
+- **Set VCCIO to 3.3 V** for the LVCMOS33 pulser I/O by powering `VCCO_MC1` /
+  `VCCO_MC2` at 3.3 V (bank 15 alone = 50 pins, enough for all 32 TTL on one
+  connector).
+- **MRCC clock-capable pins** (use for PMT-in, aux-clk-in, DDS `fifo_rd_clk`):
+  bank 15 → D14/D15 (MC1-49/51), F14/F15 (MC1-67/69); bank 34 → R3/T2 (MC2-75/77).
+- MC2 also carries **JTAG** (TCK/TMS/TDI/TDO) and **XADC** (VP/VN) — avoid those.
+- **Authoritative per-pin table + XDC generator:** the *Opal Kelly Pins* interactive
+  reference for the XEM7305 (docs.opalkelly.com → XEM7305 → Expansion Connectors).
+  Export/screenshot that table (MCx ↔ FPGA pin ↔ bank) to fill the columns below.
 
 ## 2. XEM7305 pins already committed — DO NOT reuse
 
