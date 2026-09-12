@@ -18,7 +18,7 @@ REG_PATH = ['', 'Servers', 'Parameter Vault', COLLECTION]
 def main():
     cxn = labrad.connect()
     reg = cxn.registry
-    pv = cxn.parameter_vault
+    pv = cxn.parametervault    # pylabrad lowercases the name; no camelCase split
 
     # seed two typed parameters straight into the registry
     reg.cd(REG_PATH, True)
