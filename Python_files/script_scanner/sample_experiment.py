@@ -26,6 +26,8 @@ import math
 import random
 import time
 
+from labrad.units import s
+
 from scan_methods import experiment
 
 
@@ -98,6 +100,65 @@ class pmt_point(experiment):
         counts += random.gauss(0.0, math.sqrt(max(counts, 1.0)))
         time.sleep(0.05)              # pretend a measurement takes a moment
         return counts
+
+    def finalize(self, cxn, context):
+        pass
+
+
+class led_staircase(experiment):
+    """Light the switchable TTL outputs (the LEDs) in a rising staircase.
+
+    A real pulse-sequence experiment: it drives the Pulser. Each LED turns on one
+    step later than the previous and stays on, so the bar fills up like a
+    staircase, holds at the top, then all turn off -- looped a few times for a
+    visible animation. Needs the Pulser server (and its FPGA/board).
+
+    It uses whatever channels are wired to numbers 0..11 (the override outputs the
+    switch panel controls), sorted by number, up to `max_leds`.
+    """
+
+    name = 'LED Staircase'
+    required_parameters = []
+
+    step_duration = 0.3       # s between successive LEDs turning on
+    hold = 0.6                # s all LEDs stay lit at the top
+    cycles = 5                # how many times to run the staircase
+    max_leds = 8              # cap on how many LEDs to use
+
+    def initialize(self, cxn, context, ident):
+        self.ident = ident
+        self.sc = cxn.servers['ScriptScanner']
+        self.pulser = cxn.pulser
+        # the switchable override outputs (number < 12) are the LEDs; sort by number
+        chans = sorted((num, name) for (name, num) in self.pulser.get_channels() if num < 12)
+        self.channels = [name for (num, name) in chans][:self.max_leds]
+        if not self.channels:
+            raise Exception("No switchable TTL channels (number < 12) found for the LEDs")
+        self._program_staircase()
+
+    def _program_staircase(self):
+        p = self.pulser
+        n = len(self.channels)
+        # LED i turns on at i*step and stays on until the end -> a rising staircase
+        self.total_time = n * self.step_duration + self.hold
+        p.new_sequence()
+        for i, ch in enumerate(self.channels):
+            start = i * self.step_duration
+            duration = self.total_time - start
+            p.add_ttl_pulse(ch, start * s, duration * s)
+        p.extend_sequence_length(self.total_time * s)
+        p.program_sequence()
+
+    def run(self, cxn, context):
+        p = self.pulser
+        for cycle in range(self.cycles):
+            if self.pause_or_stop():      # blocks while paused; True if we should stop
+                p.stop_sequence()
+                return None
+            p.start_single()              # replay the programmed staircase
+            p.wait_sequence_done(self.total_time + 1.0)
+            self.set_progress((cycle + 1) / self.cycles)
+        return None
 
     def finalize(self, cxn, context):
         pass

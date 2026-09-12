@@ -461,6 +461,16 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     steps) and open the result in the <a href="#stack">Live Grapher</a> — a
     lineshape appears under <code>['','ScriptScanner', &lt;date&gt;]</code>.</p>
   </div>
+  <div class="box tip"><b class="tag">A real pulse-sequence example</b>
+    <p><b>LED Staircase</b> drives the Pulser: it lights the switchable TTL outputs
+    (the LEDs, channels 0–11) in a rising staircase — each LED turns on one step
+    later and stays on, holds at the top, then all off, looped a few times. It's a
+    compact template for an experiment that builds a sequence
+    (<code>new_sequence</code> / <code>add_ttl_pulse</code> /
+    <code>program_sequence</code> / <code>start_single</code> /
+    <code>wait_sequence_done</code>) and stays interruptible. Needs the Pulser
+    server + its board.</p>
+  </div>
 
   <h3>Writing an experiment script</h3>
   <p>An experiment is a subclass of <code>scan_methods.experiment</code> with a

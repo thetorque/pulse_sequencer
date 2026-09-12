@@ -20,6 +20,7 @@ class config(object):
     scripts = [
         ('sample_experiment', 'sleep_experiment'),
         ('sample_experiment', 'pmt_point'),
+        ('sample_experiment', 'led_staircase'),
         ('sample_experiment', 'crashing_example'),
     ]
 

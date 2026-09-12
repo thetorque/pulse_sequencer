@@ -53,6 +53,15 @@ So the orchestrator is testable on any laptop, before the real experiment layer
   that the live grapher plots -- no detector, no Pulser needed.
 - **crashing_example** -- raises in `initialize`, to exercise the error path.
 
+And one that **does** drive hardware, as a real pulse-sequence example:
+
+- **LED Staircase** -- programs the Pulser so the switchable TTL outputs (the
+  LEDs, channels 0..11) light in a rising staircase: each LED turns on one step
+  later and stays on, holds at the top, then all turn off -- looped a few times.
+  Shows how an experiment builds a sequence (`new_sequence` / `add_ttl_pulse` /
+  `program_sequence` / `start_single` / `wait_sequence_done`) and stays
+  interruptible. Needs the Pulser server + its board.
+
 ## Test
 
 Start the manager + ScriptScanner (and the Data Vault for the scan step), then:
