@@ -335,14 +335,14 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
     <tr><td><b>ON</b> / <b>OFF</b></td><td>Force that TTL output high/low via the manual override, independent of any running sequence.</td></tr>
     <tr><td><b>Auto</b></td><td>Return the channel to sequence control.</td></tr>
   </table>
-  <p>Buttons reflect the live state and stay in sync across multiple clients via the server's <em>switch toggled</em> signal. Only channels wired for override (number <b>0–11</b>) appear.</p>
+  <p>Buttons reflect the live state; a twice-a-second poll of <code>Get State</code> keeps them in sync when another client (or a running sequence's Auto channels) changes something. Only channels wired for override (number <b>0–11</b>) appear.</p>
   <h3>Run it</h3>
-  <pre><code>pip install PyQt5 qt5reactor
-# manager + Pulser server already running (see above)
+  <pre><code>pip install PyQt5
+# manager + Pulser server already running (see above), same LabRAD env
 cd Python_files/pulser_gui
 python switch_control.py</code></pre>
-  <div class="box tip"><b class="tag">qt5reactor</b>
-    <p><code>qt5reactor</code> marries Twisted's reactor to the Qt event loop — the PyQt5 equivalent of the legacy <code>qt4reactor</code>. It reads the same <code>LABRADHOST</code> / <code>LABRADPASSWORD</code> / <code>LABRAD_TLS</code> environment as the server and test clients.</p>
+  <div class="box tip"><b class="tag">No qt5reactor</b>
+    <p>The GUI uses pylabrad's <b>blocking</b> client and a plain Qt event loop — <em>not</em> Twisted/<code>qt5reactor</code>, which conflicts with modern PyQt5 on Windows (it floods <code>QCoreApplication::exec: The event loop is already running</code> and the window comes up empty). It reads the same <code>LABRADHOST</code> / <code>LABRADPASSWORD</code> / <code>LABRAD_TLS</code> environment as the server and test clients.</p>
   </div>
 </section>
 
@@ -429,12 +429,16 @@ d.start_single()
       <td>Run from an environment where the Opal Kelly FrontPanel <code>ok</code> module imports (the same one the FPGA test scripts use), and set <code>PULSER_BIT_PATH</code>.</td>
     </tr>
     <tr>
-      <td>GUI: <code>No module named 'qt5reactor'</code> / <code>PyQt5</code></td>
-      <td><code>pip install PyQt5 qt5reactor</code> in the same interpreter you launch the GUI with. See <a href="#gui">Switch Control GUI</a>.</td>
+      <td>GUI: <code>No module named 'PyQt5'</code></td>
+      <td><code>pip install PyQt5</code> in the same interpreter you launch the GUI with. See <a href="#gui">Switch Control GUI</a>.</td>
     </tr>
     <tr>
-      <td>GUI shows <code>SWITCH CONTROL: Pulser not available</code></td>
-      <td>The GUI's window doesn't have the LabRAD env set, or the manager/server isn't up. Set <code>LABRADHOST</code>/<code>LABRADPASSWORD</code>/<code>LABRAD_TLS</code>, then relaunch.</td>
+      <td>GUI window empty + console floods <code>QCoreApplication::exec: The event loop is already running</code></td>
+      <td>An old <code>qt5reactor</code>-based GUI on modern PyQt5. The current <code>switch_control.py</code> doesn't use qt5reactor — <code>git pull</code> and rerun. (If you wrote your own async client, drop qt5reactor and use the blocking <code>labrad.connect()</code> pattern.)</td>
+    </tr>
+    <tr>
+      <td>GUI window shows <code>Cannot reach LabRAD / Pulser</code> or <code>Pulser not available</code> instead of buttons</td>
+      <td>The GUI's window doesn't have the LabRAD env set, or the manager/server isn't up. Set <code>LABRADHOST</code>/<code>LABRADPASSWORD</code>/<code>LABRAD_TLS</code>, confirm both are running, then relaunch.</td>
     </tr>
     <tr>
       <td><code>Unknown channel …</code></td>

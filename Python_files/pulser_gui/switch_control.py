@@ -3,8 +3,16 @@ switch_control.py -- PyQt5 Switch Control GUI for the Pulser's TTL channels.
 
 Python-3 / PyQt5 port of the legacy clients/SWITCH_CONTROL.py (py2 / PyQt4).
 Each switchable channel gets an ON / OFF / Auto button group: ON/OFF force the
-TTL output via the manual override, Auto returns it to sequence control. The
-buttons stay in sync across clients via the server's 'switch toggled' signal.
+TTL output via the manual override, Auto returns it to sequence control.
+
+This uses pylabrad's *blocking* client and a plain Qt event loop -- NOT the
+Twisted/qt5reactor integration the legacy client used. qt5reactor conflicts
+with modern PyQt5 on Windows (floods "QCoreApplication::exec: The event loop is
+already running"), and a switch panel is a single-operator tool that doesn't
+need the async machinery: button clicks call the server directly, and a light
+QTimer poll of Get State keeps the buttons in sync when another client (or a
+running sequence's Auto channels) changes something -- the same effect the
+legacy 'switch toggled' signal gave, without the reactor.
 
 Only channels wired for hardware override (number < 12) are shown -- the 2026
 logic_out mux (photon.vhd) overrides channels 0..11; higher channels are a
@@ -14,95 +22,70 @@ Run the manager and the Pulser server first (see pulser_labrad/README.md), then:
 
     python switch_control.py
 
-Needs PyQt5 and qt5reactor:  pip install PyQt5 qt5reactor
+Needs PyQt5 (LabRAD env from LABRADHOST/LABRADPASSWORD/LABRAD_TLS):
+
+    pip install PyQt5
 """
-from PyQt5 import QtWidgets
-from twisted.internet.defer import inlineCallbacks, returnValue
+import sys
 
-from connection import connection
+from PyQt5 import QtWidgets, QtCore
 
-SIGNALID = 378902
-SWITCHABLE_BELOW = 12   # hardware override is wired for channel numbers 0..11
+import labrad
+
+SWITCHABLE_BELOW = 12    # hardware override is wired for channel numbers 0..11
+POLL_MS = 500            # how often to re-read switch state for cross-client sync
 
 
-class switchWidget(QtWidgets.QFrame):
-    def __init__(self, reactor, cxn=None, parent=None):
-        super(switchWidget, self).__init__(parent)
-        self.initialized = False
-        self.reactor = reactor
-        self.cxn = cxn
-        self.connect()
-
-    @inlineCallbacks
-    def connect(self):
-        if self.cxn is None:
-            self.cxn = connection()
-            yield self.cxn.connect()
-        from labrad.types import Error
-        self.Error = Error
-        self.context = yield self.cxn.context()
-        try:
-            displayed_channels = yield self.get_displayed_channels()
-            yield self.initializeGUI(displayed_channels)
-            yield self.setupListeners()
-        except Exception as e:
-            print(e)
-            print('SWITCH CONTROL: Pulser not available')
-            self.setDisabled(True)
-        yield self.cxn.add_on_connect('Pulser', self.reinitialize)
-        yield self.cxn.add_on_disconnect('Pulser', self.disable)
-
-    @inlineCallbacks
-    def get_displayed_channels(self):
-        """Switchable channel names (number < 12), optionally narrowed by the
-        registry 'display_channels' list if one is set."""
-        server = yield self.cxn.get_server('Pulser')
-        all_channels = yield server.get_channels(context=self.context)
-        switchable = [name for name, number in all_channels
-                      if number < SWITCHABLE_BELOW]
-        wanted = yield self.registry_load_displayed(switchable)
-        if wanted is None:
-            returnValue(switchable)
-        returnValue([name for name in wanted if name in switchable])
-
-    @inlineCallbacks
-    def registry_load_displayed(self, all_names):
-        """Registry-configured subset to show, or None to show all switchable.
-        A missing Registry server (or key) just falls back to all."""
-        try:
-            reg = yield self.cxn.get_server('Registry')
-        except Exception:
-            returnValue(None)
-        yield reg.cd(['Clients', 'Switch Control'], True, context=self.context)
-        try:
-            displayed = yield reg.get('display_channels', context=self.context)
-        except self.Error as e:
-            if e.code == 21:                       # key error -> seed and use all
-                yield reg.set('display_channels', all_names, context=self.context)
-                displayed = None
-            else:
-                raise
-        returnValue(displayed)
-
-    @inlineCallbacks
-    def reinitialize(self):
-        self.setDisabled(False)
-        server = yield self.cxn.get_server('Pulser')
-        if self.initialized:
-            yield server.signal__switch_toggled(SIGNALID, context=self.context)
-            for name in self.d.keys():
-                yield self.setStateNoSignals(name, server)
-        else:
-            displayed_channels = yield self.get_displayed_channels()
-            yield self.initializeGUI(displayed_channels)
-            yield self.setupListeners()
-
-    @inlineCallbacks
-    def initializeGUI(self, channels):
-        server = yield self.cxn.get_server('Pulser')
-        self.d = {}
-        layout = QtWidgets.QGridLayout()
+class SwitchWidget(QtWidgets.QFrame):
+    def __init__(self, parent=None):
+        super(SwitchWidget, self).__init__(parent)
+        self.d = {}                       # name -> {'ON','OFF','AUTO': QPushButton}
         self.setFrameStyle(QtWidgets.QFrame.Panel | QtWidgets.QFrame.Sunken)
+        try:
+            self.cxn = labrad.connect()   # env: LABRADHOST/LABRADPASSWORD/LABRAD_TLS
+            self.pulser = self.cxn.pulser
+        except Exception as e:
+            self._show_error("Cannot reach LabRAD / Pulser:\n%s" % e)
+            return
+        try:
+            channels = self._switchable_channels()
+        except Exception as e:
+            self._show_error("Pulser not available:\n%s" % e)
+            return
+        if not channels:
+            self._show_error("No switchable channels (numbers 0..%d) in the "
+                             "channel map." % (SWITCHABLE_BELOW - 1))
+            return
+        self._build_ui(channels)
+        # poll for external changes (other clients, Auto channels in a sequence)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.refresh_states)
+        self.timer.start(POLL_MS)
+
+    # ---- LabRAD helpers ----------------------------------------------------
+    def _switchable_channels(self):
+        """Channel names whose hardware number is overridable (< 12), in order."""
+        chans = self.pulser.get_channels()          # [(name, number), ...]
+        switchable = [(name, int(number)) for name, number in chans
+                      if int(number) < SWITCHABLE_BELOW]
+        switchable.sort(key=lambda nn: (nn[1], nn[0]))
+        return [name for name, _ in switchable]
+
+    def _get_state(self, name):
+        """(ismanual, manualstate) for a channel."""
+        ismanual, manstate, _maninv, _autoinv = self.pulser.get_state(name)
+        return bool(ismanual), bool(manstate)
+
+    # ---- UI ----------------------------------------------------------------
+    def _show_error(self, msg):
+        layout = QtWidgets.QVBoxLayout()
+        label = QtWidgets.QLabel(msg)
+        label.setWordWrap(True)
+        layout.addWidget(label)
+        self.setLayout(layout)
+
+    def _build_ui(self, channels):
+        layout = QtWidgets.QGridLayout()
         self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                            QtWidgets.QSizePolicy.Fixed)
         layout.addWidget(QtWidgets.QLabel('Switches'), 0, 0)
@@ -110,97 +93,65 @@ class switchWidget(QtWidgets.QFrame):
             groupBox = QtWidgets.QGroupBox(name)
             groupBoxLayout = QtWidgets.QVBoxLayout()
             buttonOn = QtWidgets.QPushButton('ON')
-            buttonOn.setAutoExclusive(True)
-            buttonOn.setCheckable(True)
             buttonOff = QtWidgets.QPushButton('OFF')
-            buttonOff.setCheckable(True)
-            buttonOff.setAutoExclusive(True)
             buttonAuto = QtWidgets.QPushButton('Auto')
-            buttonAuto.setCheckable(True)
-            buttonAuto.setAutoExclusive(True)
-            groupBoxLayout.addWidget(buttonOn)
-            groupBoxLayout.addWidget(buttonOff)
-            groupBoxLayout.addWidget(buttonAuto)
+            for b in (buttonOn, buttonOff, buttonAuto):
+                b.setCheckable(True)
+                b.setAutoExclusive(True)
+                groupBoxLayout.addWidget(b)
             groupBox.setLayout(groupBoxLayout)
             self.d[name] = {'ON': buttonOn, 'OFF': buttonOff, 'AUTO': buttonAuto}
-            yield self.setStateNoSignals(name, server)
-            buttonOn.clicked.connect(self.buttonConnectionManualOn(name, server))
-            buttonOff.clicked.connect(self.buttonConnectionManualOff(name, server))
-            buttonAuto.clicked.connect(self.buttonConnectionAuto(name, server))
+            buttonOn.clicked.connect(self._make_manual(name, True))
+            buttonOff.clicked.connect(self._make_manual(name, False))
+            buttonAuto.clicked.connect(self._make_auto(name))
             layout.addWidget(groupBox, 0, 1 + order)
         self.setLayout(layout)
-        self.initialized = True
+        self.refresh_states()
 
-    @inlineCallbacks
-    def setStateNoSignals(self, name, server):
-        ismanual, manstate, _maninv, _autoinv = yield server.get_state(
-            name, context=self.context)
-        if not ismanual:
-            button = self.d[name]['AUTO']
-        elif manstate:
-            button = self.d[name]['ON']
-        else:
-            button = self.d[name]['OFF']
+    def _set_checked_silently(self, button):
         button.blockSignals(True)
         button.setChecked(True)
         button.blockSignals(False)
 
-    def buttonConnectionManualOn(self, name, server):
-        @inlineCallbacks
-        def func(state):
-            yield server.switch_manual(name, True, context=self.context)
+    def refresh_states(self):
+        """Re-read every channel's state and reflect it on the buttons."""
+        for name, buttons in self.d.items():
+            try:
+                ismanual, manstate = self._get_state(name)
+            except Exception:
+                return                       # server hiccup; try again next tick
+            if not ismanual:
+                self._set_checked_silently(buttons['AUTO'])
+            elif manstate:
+                self._set_checked_silently(buttons['ON'])
+            else:
+                self._set_checked_silently(buttons['OFF'])
+
+    # ---- button actions (blocking LabRAD calls) ----------------------------
+    def _make_manual(self, name, level):
+        def func(_checked):
+            try:
+                self.pulser.switch_manual(name, level)
+            except Exception as e:
+                print("switch_manual(%s, %s) failed: %s" % (name, level, e))
         return func
 
-    def buttonConnectionManualOff(self, name, server):
-        @inlineCallbacks
-        def func(state):
-            yield server.switch_manual(name, False, context=self.context)
+    def _make_auto(self, name):
+        def func(_checked):
+            try:
+                self.pulser.switch_auto(name)
+            except Exception as e:
+                print("switch_auto(%s) failed: %s" % (name, e))
         return func
 
-    def buttonConnectionAuto(self, name, server):
-        @inlineCallbacks
-        def func(state):
-            yield server.switch_auto(name, context=self.context)
-        return func
 
-    @inlineCallbacks
-    def setupListeners(self):
-        server = yield self.cxn.get_server('Pulser')
-        yield server.signal__switch_toggled(SIGNALID, context=self.context)
-        yield server.addListener(listener=self.followSignal, source=None,
-                                 ID=SIGNALID, context=self.context)
-
-    def followSignal(self, x, data):
-        switchName, state = data
-        if switchName not in self.d.keys():
-            return None
-        if state == 'Auto':
-            button = self.d[switchName]['AUTO']
-        elif state == 'ManualOn':
-            button = self.d[switchName]['ON']
-        elif state == 'ManualOff':
-            button = self.d[switchName]['OFF']
-        else:
-            return None
-        button.blockSignals(True)
-        button.setChecked(True)
-        button.blockSignals(False)
-
-    def closeEvent(self, x):
-        self.reactor.stop()
-
-    @inlineCallbacks
-    def disable(self):
-        self.setDisabled(True)
-        yield None
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    widget = SwitchWidget()
+    widget.setWindowTitle('Pulser Switch Control')
+    widget.show()
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":
-    a = QtWidgets.QApplication([])
-    import qt5reactor
-    qt5reactor.install()
-    from twisted.internet import reactor
-    widget = switchWidget(reactor)
-    widget.setWindowTitle('Pulser Switch Control')
-    widget.show()
-    reactor.run()
+    main()
