@@ -25,7 +25,6 @@ import labrad
 from labrad.units import s
 
 POLL_MS = 500
-COUNT_POLL_MAX_WINDOW = 1.0    # only poll a live count for windows <= this (s)
 
 
 class PMTControl(QtWidgets.QWidget):
@@ -136,11 +135,10 @@ class PMTControl(QtWidgets.QWidget):
         self.dataset_lbl.setWordWrap(True)
         form.addRow("Dataset:", self.dataset_lbl)
 
-        self.count_lcd = QtWidgets.QLCDNumber()
-        self.count_lcd.setDigitCount(8)
-        self.count_lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-        self.count_lcd.display(0)
-        form.addRow("Count (KC/s):", self.count_lcd)
+        hint = QtWidgets.QLabel("Live counts: open this dataset in the Live Grapher.")
+        hint.setStyleSheet("color:#98a2b3;")
+        hint.setWordWrap(True)
+        form.addRow(hint)
 
     # ---- server sync ------------------------------------------------------
     def _init_from_server(self):
@@ -175,14 +173,12 @@ class PMTControl(QtWidgets.QWidget):
     def _poll(self):
         if self.server is None:
             return
+        # Only cheap, bounded state calls here. We deliberately do NOT poll
+        # get_next_counts: it blocks until a count of that kind arrives, which
+        # in differential mode (no 866 -> no ON counts) never happens and would
+        # freeze the shared connection / whole dashboard. The Live Grapher reads
+        # counts from the Data Vault non-blockingly instead.
         self._sync()
-        # live count: only for short windows (a long-window blocking read hangs UI)
-        if self.record_btn.isChecked() and self.window_spin.value() <= COUNT_POLL_MAX_WINDOW:
-            try:
-                val = self.server.get_next_counts('ON', 1, True)
-                self.count_lcd.display(float(val))
-            except Exception:
-                pass
 
     # ---- handlers ---------------------------------------------------------
     @staticmethod
@@ -226,9 +222,8 @@ class PMTControl(QtWidgets.QWidget):
                 self.dataset_lbl.setText(self.server.currentdataset() or "—")
             else:
                 self.server.stoprecording()
-                self.count_lcd.display(0)
         except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Record toggle failed", str(e))
+            QtWidgets.QMessageBox.warning(self, "Record toggle failed", self._short_err(e))
         self.record_btn.setText("Record: ON" if self.record_btn.isChecked() else "Record: OFF")
 
     def _on_newset(self):
