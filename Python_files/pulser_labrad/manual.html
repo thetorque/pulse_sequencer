@@ -138,11 +138,14 @@
   <h3>1. Java (for scalabrad)</h3>
   <p>Install a JDK <b>8 or 11</b> — use <a href="https://adoptium.net/temurin/releases/?version=11&os=windows&package=jdk&arch=x64">Eclipse Temurin 11</a> (free OpenJDK, no Oracle account). Tick <em>“Set JAVA_HOME”</em> and <em>“Add to PATH”</em> in the installer. Verify with <code>java -version</code>.</p>
   <div class="box warn"><b class="tag">Windows gotcha — spaces in the path</b>
-    <p>If Java lives in <code>C:\Program&nbsp;Files\…</code>, the <code>labrad.bat</code> launcher breaks on the space (<code>'C:\Program' is not recognized</code>). Fix by pointing <code>JAVA_HOME</code> at the short (8.3) form. In PowerShell:</p>
-    <pre>$javaExe = (Get-Command java).Source
-$jdk = Split-Path (Split-Path $javaExe)
-$env:JAVA_HOME = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($jdk).ShortPath</pre>
-    <p>Prints something like <code>C:\PROGRA~1\ECLIPS~1\JDK-11~1.29</code>. Set that permanently in System → Environment Variables, or reinstall the JDK to a no-space folder like <code>C:\Temurin\jdk-11</code>.</p>
+    <p>If Java lives in <code>C:\Program&nbsp;Files\…</code>, the <code>labrad.bat</code> launcher breaks on the space (<code>'C:\Program' is not recognized</code>). Fix by pointing <code>JAVA_HOME</code> at the short (8.3) form <b>and persisting it</b>. In PowerShell — this auto-finds a Temurin JDK:</p>
+    <pre>$jdk = (Get-ChildItem <span class="s">'C:\Program Files\Eclipse Adoptium'</span> -Directory | Where-Object Name -like <span class="s">'jdk*'</span> | Select-Object -First 1).FullName
+$short = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($jdk).ShortPath
+$env:JAVA_HOME = $short
+[Environment]::SetEnvironmentVariable(<span class="s">'JAVA_HOME'</span>, $short, <span class="s">'User'</span>)   <span class="c"># persist for future windows</span>
+&amp; <span class="s">"$env:JAVA_HOME\bin\java.exe"</span> -version</pre>
+    <p>Prints a short path like <code>C:\PROGRA~1\ECLIPS~1\JDK-11~1.101</code> and the OpenJDK version banner.</p>
+    <p><b>Why it comes back:</b> <code>$env:JAVA_HOME = …</code> alone lasts only for that one window — open a fresh PowerShell and the <code>'C:\Program'</code> error returns. The <code>[Environment]::SetEnvironmentVariable(…, 'User')</code> line writes it to your account permanently, so it survives new windows. (Alternatively reinstall the JDK to a no-space folder like <code>C:\Temurin\jdk-11</code>.)</p>
   </div>
 
   <h3>2. scalabrad manager</h3>
@@ -167,7 +170,12 @@ python -m pip install "numpy&lt;2"    <span class="c"># pylabrad uses np.bool8, 
 mkdir C:\Users\thanedp\.labrad</pre>
   <p>Then, from <code>scalabrad-&lt;ver&gt;\bin\</code> (with <code>JAVA_HOME</code> set — see setup):</p>
   <pre>.\labrad.bat --registry <span class="s">"file:///C:/labrad-registry?format=binary"</span> --password test --tls-required false</pre>
-  <p>It should log <code>now accepting labrad connections: port=7682</code> and stay running. <b>Leave this window open.</b></p>
+  <p>It should log <code>now accepting labrad connections: port=7682</code> and stay running. <b>Leave this window open.</b> (Any <code>netty</code> "illegal reflective access" WARNINGs on JDK&nbsp;11 are harmless — ignore them.)</p>
+  <div class="box warn"><b class="tag">Point <code>--registry</code> at an EMPTY directory</b>
+    <p>Always use <code>format=binary</code> (not <code>delphi</code>), and give it a clean folder. If the manager crashes on startup with an <code>IndexOutOfBoundsException … BinaryFileStore.decodeData … Registry.&lt;init&gt;</code> stack trace, the registry folder holds a corrupt/half-written entry (typically a leftover from an earlier failed <code>format=delphi</code> run). The fix is to <b>wipe the folder</b> — never to switch formats:</p>
+    <pre>Remove-Item -Recurse -Force C:\labrad-registry; mkdir C:\labrad-registry</pre>
+    <p>then relaunch. Safe as long as you have no real settings stored yet (a fresh setup doesn't).</p>
+  </div>
   <div class="box warn"><b class="tag">Not a web page</b>
     <p>Port 7682 speaks LabRAD's binary protocol, <b>not HTTP</b> — don't open it in a browser (that spams the log with harmless <code>Invalid login packet</code> errors). You talk to it only through LabRAD clients.</p>
   </div>
@@ -385,12 +393,16 @@ d.start_single()
   <table>
     <tr><th>Symptom</th><th>Cause &amp; fix</th></tr>
     <tr>
-      <td><code>'C:\Program' is not recognized</code> when starting <code>labrad.bat</code></td>
-      <td>Space in the Java path. Set <code>JAVA_HOME</code> to the 8.3 short path, or reinstall the JDK to a no-space folder. See <a href="#setup">setup</a>.</td>
+      <td><code>'C:\Program' is not recognized</code> when starting <code>labrad.bat</code> — <b>especially if it worked before and came back</b></td>
+      <td>Space in the Java path, and <code>JAVA_HOME</code> is unset in this window. A session-only <code>$env:JAVA_HOME = …</code> is lost when you open a fresh PowerShell. Set the 8.3 short path <b>permanently</b> with <code>[Environment]::SetEnvironmentVariable('JAVA_HOME', $short, 'User')</code>. See <a href="#setup">setup</a>.</td>
     </tr>
     <tr>
       <td><code>invalid format for registry file</code></td>
       <td>The registry directory doesn't exist yet. <code>mkdir C:\labrad-registry</code> first, then use <code>?format=binary</code>.</td>
+    </tr>
+    <tr>
+      <td>Manager crashes at startup: <code>IndexOutOfBoundsException … BinaryFileStore.decodeData … Registry.&lt;init&gt;</code></td>
+      <td>A corrupt/half-written entry in the registry folder (often a leftover from a failed <code>format=delphi</code> run). Wipe it: <code>Remove-Item -Recurse -Force C:\labrad-registry; mkdir C:\labrad-registry</code>, then relaunch with <code>?format=binary</code>. Don't switch formats.</td>
     </tr>
     <tr>
       <td><code>'…\.labrad' does not exist</code> (SQLite)</td>
@@ -415,6 +427,14 @@ d.start_single()
     <tr>
       <td>Server: <code>FPGA not connected</code> / can't find <code>ok</code></td>
       <td>Run from an environment where the Opal Kelly FrontPanel <code>ok</code> module imports (the same one the FPGA test scripts use), and set <code>PULSER_BIT_PATH</code>.</td>
+    </tr>
+    <tr>
+      <td>GUI: <code>No module named 'qt5reactor'</code> / <code>PyQt5</code></td>
+      <td><code>pip install PyQt5 qt5reactor</code> in the same interpreter you launch the GUI with. See <a href="#gui">Switch Control GUI</a>.</td>
+    </tr>
+    <tr>
+      <td>GUI shows <code>SWITCH CONTROL: Pulser not available</code></td>
+      <td>The GUI's window doesn't have the LabRAD env set, or the manager/server isn't up. Set <code>LABRADHOST</code>/<code>LABRADPASSWORD</code>/<code>LABRAD_TLS</code>, then relaunch.</td>
     </tr>
     <tr>
       <td><code>Unknown channel …</code></td>
