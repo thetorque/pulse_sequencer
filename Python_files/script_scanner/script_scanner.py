@@ -27,7 +27,7 @@ timeout = 20
 # (it yields on the pause lock); the local py3 treedict/scan_methods package.
 from labrad.server import LabradServer, setting
 from labrad.units import WithUnit
-from twisted.internet.defer import inlineCallbacks, DeferredList, returnValue
+from twisted.internet.defer import inlineCallbacks, DeferredList
 import sys
 
 from signals import Signals
@@ -270,7 +270,7 @@ class ScriptScanner(Signals):
     @inlineCallbacks
     def _pause_or_stop(self, status):
         yield status.pause()
-        returnValue(status.should_stop)
+        return status.should_stop
 
     @setting(36, "Error Finish Confirmed", script_ID='w', error_message='s')
     def error_finish_confirmed(self, c, script_ID, error_message):

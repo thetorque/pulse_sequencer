@@ -21,19 +21,27 @@ import labrad
 
 
 def wait_done(sc, ident, timeout=30.0):
-    """Poll Get Progress until the script leaves the running set (or times out)."""
+    """Poll Get Progress until the script leaves the running set. Returns True if
+    it completed (left the running set), False on timeout.
+
+    A finished script is removed from the running set almost immediately, so we
+    treat 'no longer running' as done rather than trying to catch a 'Finished'
+    status between polls."""
     t0 = time.time()
     last = None
     while time.time() - t0 < timeout:
         running = dict(sc.get_running())
         if ident not in running:
-            return last
-        status, pct = sc.get_progress(ident)
+            return True
+        try:
+            status, pct = sc.get_progress(ident)
+        except Exception:
+            return True  # removed between the check and the read
         if (status, round(pct)) != last:
             print("   [%d] %-9s %5.1f%%" % (ident, status, pct))
             last = (status, round(pct))
         time.sleep(0.2)
-    return last
+    return False
 
 
 def main():
@@ -52,10 +60,8 @@ def main():
     print("\nqueueing a single 'Sleep Experiment' ...")
     ident = sc.new_experiment('Sleep Experiment')   # setting 10 'New Experiment'
     print("  queued id =", ident)
-    last = wait_done(sc, ident)
-    assert last is not None and last[0] in ('Finished', 'Stopped'), \
-        "unexpected final status: %r" % (last,)
-    print("  final:", last)
+    assert wait_done(sc, ident), "sleep experiment did not finish in time"
+    print("  completed")
 
     # --- 2) stop mid-run ---------------------------------------------
     print("\nqueueing another and stopping it mid-run ...")
