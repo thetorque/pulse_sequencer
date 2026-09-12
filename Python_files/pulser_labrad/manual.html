@@ -80,6 +80,7 @@
   <a href="#overview">Overview</a>
   <a href="#setup">One-time setup</a>
   <a href="#start">Starting the system</a>
+  <a href="#launcher">The Launcher</a>
   <h2>Using it</h2>
   <a href="#sequences">Writing a sequence</a>
   <a href="#settings">Server settings</a>
@@ -201,11 +202,26 @@ python pulser_labrad\pulser_server.py</pre>
   <pre class="ok" style="color:#1c5c34;background:var(--ok-bg)">sequence done: True
 PASS -- scalabrad -&gt; Pulser server -&gt; pulser3 -&gt; FPGA works end to end</pre>
 
-  <h3>Step 4 — See what's connected (Manager Monitor)</h3>
-  <p>scalabrad is headless, so there's no built-in window showing which servers are up. <code>manager_monitor.py</code> is our small PyQt5 panel for exactly that — a live table of connected servers plus a connect/disconnect event log. Handy to confirm the Pulser server actually registered.</p>
+  <div class="box tip"><b class="tag">Easier: the Launcher</b>
+    <p>Steps 1–3 can all be done from one GUI instead of separate PowerShell windows. <b>The LabRAD Launcher</b> (<code>labrad_launcher/labrad_launcher.py</code>) starts the manager, discovers the servers in a folder, and starts/stops each with a button — capturing every log in its own tab. It also connects to the manager and shows, per server, whether it's actually <em>registered</em> (not just running), plus a live list of all connected servers (the built-in <code>Manager</code> / <code>Registry</code> / <code>Auth</code> and everything you started). See <a href="#launcher">The Launcher</a>.</p>
+  </div>
+</section>
+
+<!-- ============================ LAUNCHER ============================ -->
+<section id="launcher">
+  <h2 class="sec">The Launcher (one-window control center)</h2>
+  <p>Instead of a PowerShell window per server, <code>labrad_launcher/labrad_launcher.py</code> brings the whole stack up from one GUI. It spawns and supervises every process itself (no LabRAD-node config), and it also connects to the manager so it doubles as the live "what's connected" view.</p>
   <pre>pip install PyQt5
-python manager_monitor\manager_monitor.py</pre>
-  <p>You'll see the built-in <code>Manager</code> / <code>Registry</code> / <code>Auth</code> servers (scalabrad ships these), plus <code>Pulser</code> and any other servers you've started. Double-click a row to copy its name. See <a href="#stack">The wider server stack</a>.</p>
+python labrad_launcher\labrad_launcher.py</pre>
+  <ol>
+    <li><b>Manager</b> — set the path to your scalabrad <code>labrad.bat</code>, then <b>Start Manager</b>. Its log appears in the <em>Manager</em> tab. (<code>JAVA_HOME</code> must be set, as for running it by hand.)</li>
+    <li><b>Servers</b> — <b>Browse</b> to a folder (e.g. <code>Python_files</code>) and it lists every server it finds (files with a <code>### NODE INFO</code> block), skipping the legacy py2 trees. <b>Start</b> a row or <b>Start All</b>; each server's output gets its own tab.</li>
+    <li><b>Environment</b> — the key/value table is applied to every server it launches (pre-seeded with the <code>LABRAD*</code> vars and <code>PULSER_BIT_PATH</code>). <b>Save config</b> to remember it all.</li>
+  </ol>
+  <p>Each server row shows two states: <b>Process</b> (is the OS process alive?) and <b>Manager</b> (is it actually registered with the manager?) — the gap between them catches "running but failed to connect". The <b>Connected to manager</b> panel lists every registered server, built-ins included, and it reconnects on its own if the manager restarts. Config is saved to <code>~/.labrad/launcher_config.json</code>.</p>
+  <div class="box tip"><b class="tag">Data Vault first run</b>
+    <p>Data Vault prompts once (on stdin) for its storage directory. Start it from a terminal the first time to answer the prompt; afterwards the path is saved in the registry and it starts silently under the launcher.</p>
+  </div>
 </section>
 
 <!-- ============================ SEQUENCES ============================ -->
@@ -403,9 +419,9 @@ d.start_single()
     <tr><td><b>Pulser</b> + <code>pulser3</code></td><td>Sequencer, TTL, PMT counting, manual switching (this manual)</td><td><code>pulser_labrad/</code>, <code>pulser3/</code></td></tr>
     <tr><td><b>Switch Control GUI</b></td><td>ON/OFF/Auto per TTL channel (<a href="#gui">above</a>)</td><td><code>pulser_gui/</code></td></tr>
     <tr><td><b>ParameterVault</b></td><td>Central store of experiment parameters (registry-backed, typed values). Run it like the Pulser server: <code>python parameter_vault\parameter_vault.py</code>.</td><td><code>parameter_vault/</code></td></tr>
-    <tr><td><b>Manager Monitor</b></td><td>Live "what's connected" panel (<a href="#start">Step 4</a>)</td><td><code>manager_monitor/</code></td></tr>
+    <tr><td><b>LabRAD Launcher</b></td><td>One-window control center: start the manager + servers, live registered view (<a href="#launcher">below</a>)</td><td><code>labrad_launcher/</code></td></tr>
   </table>
-  <p>Each server registers with the manager and shows up in the Manager Monitor. Still to port (dependency order): <b>Data Vault</b> (data storage), <b>NormalPMTFlow</b> (higher-level PMT server on top of the Pulser), <b>ScriptScanner</b> (experiment orchestrator), the hardware servers (NI DAC, Andor camera) and the trackers. DDS is hardware-blocked. Each ported server carries its own <code>README.md</code>.</p>
+  <p>Each server registers with the manager and shows up in the Launcher's connected view. Still to port (dependency order): <b>Data Vault</b> (data storage), <b>NormalPMTFlow</b> (higher-level PMT server on top of the Pulser), <b>ScriptScanner</b> (experiment orchestrator), the hardware servers (NI DAC, Andor camera) and the trackers. DDS is hardware-blocked. Each ported server carries its own <code>README.md</code>.</p>
 </section>
 
 <!-- ============================ TROUBLESHOOTING ============================ -->
@@ -479,7 +495,7 @@ d.start_single()
     <tr><td><code>pulser_labrad/README.md</code></td><td>Setup notes for scalabrad + pylabrad.</td></tr>
     <tr><td><code>pulser_gui/switch_control.py</code></td><td>PyQt5 Switch Control GUI (manual TTL override).</td></tr>
     <tr><td><code>pulser_gui/connection.py</code></td><td>Shared async LabRAD connection (kept for a future async client).</td></tr>
-    <tr><td><code>manager_monitor/manager_monitor.py</code></td><td>PyQt5 "what's connected" panel for the manager.</td></tr>
+    <tr><td><code>labrad_launcher/labrad_launcher.py</code></td><td>PyQt5 control center: start manager + servers, live registered view.</td></tr>
     <tr><td><code>parameter_vault/parameter_vault.py</code></td><td>ParameterVault server (experiment parameter store).</td></tr>
     <tr><td><code>pulser3/hwconfig.py</code></td><td><b>Channel map</b> (<code>CHANNELS</code>) + timing constants.</td></tr>
     <tr><td><code>pulser3/sequence.py</code></td><td>Sequence builder / compiler (seconds → 64-bit lines).</td></tr>

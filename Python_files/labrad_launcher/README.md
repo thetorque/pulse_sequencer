@@ -39,6 +39,24 @@ python labrad_launcher/labrad_launcher.py
 Typical flow: **Start Manager** → **Start All** → whole stack up, all logs in
 one window, every server a click to stop or restart.
 
+### Manager view (built in)
+
+The launcher also connects to the manager as a client and shows, live, what's
+*actually registered* -- so it's the manager monitor too, not just a process
+launcher:
+
+- Each server row has a **Process** column (is the OS process alive?) *and* a
+  **Manager** column (is it registered with the manager?). The gap between them
+  is exactly the "process is up but it failed to connect" case you want to see.
+- The **Connected to manager** panel lists every registered server, including
+  the built-in `Manager` / `Registry` / `Auth` and anything started elsewhere.
+- Connect/disconnect events are logged into the *Manager* tab (`[monitor] …`).
+- It reconnects on its own if the manager restarts.
+
+This needs `pylabrad` importable (it already is, since the servers use it); if
+not, the launcher still works as a pure process manager, just without the
+registered view.
+
 ## Notes & knobs
 
 - **Config** is saved to `~/.labrad/launcher_config.json` (manager settings,
@@ -66,5 +84,7 @@ edit there to restyle, or swap in a dark theme later.
 - Per-server environment overrides (not just a shared set).
 - Autostart list (bring named servers up when the launcher opens).
 - Start ordering / dependency hints.
-- Fold in the Manager Monitor's live connected-servers view.
 - Optional "detach" so processes survive closing the launcher.
+
+(The old standalone `manager_monitor.py` has been folded into this launcher --
+the Manager column + Connected-to-manager panel replace it.)

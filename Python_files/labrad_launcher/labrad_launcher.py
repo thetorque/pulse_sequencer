@@ -23,6 +23,11 @@ import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+try:
+    import labrad                       # optional: enables the "registered?" view
+except Exception:
+    labrad = None
+
 CONFIG_PATH = os.path.expanduser('~/.labrad/launcher_config.json')
 NODE_INFO_RE = re.compile(r'###\s*BEGIN NODE INFO(.*?)###\s*END NODE INFO', re.S)
 NAME_RE = re.compile(r'^\s*name\s*=\s*(.+?)\s*$', re.M)
@@ -50,6 +55,8 @@ MANAGER_KEY = '__manager__'
 
 RUNNING_COLOR = '#16a34a'
 STOPPED_COLOR = '#9198a1'
+REGISTERED_COLOR = '#2563eb'
+POLL_MS = 2000
 
 # A clean, modern light theme layered over the Fusion base style. Cards for the
 # group boxes, rounded/accented buttons, a dark console for the log tabs.
@@ -166,9 +173,15 @@ class Launcher(QtWidgets.QWidget):
         self.procs = {}       # key -> QProcess  (key = server name or MANAGER_KEY)
         self.logs = {}        # key -> QPlainTextEdit
         self.rows = {}        # server name -> row index in the table
+        self.cxn = None       # pylabrad client connection to the manager (lazy)
+        self._registered = set()   # server names currently registered w/ manager
         self._build_ui()
         if self.cfg['scan_folder'] and os.path.isdir(self.cfg['scan_folder']):
             self._rescan()
+        # poll the manager for the live registered-servers view
+        self.poll_timer = QtCore.QTimer(self)
+        self.poll_timer.timeout.connect(self._poll_manager)
+        self.poll_timer.start(POLL_MS)
 
     # ---- config -----------------------------------------------------------
     def _load_config(self):
@@ -216,7 +229,10 @@ class Launcher(QtWidgets.QWidget):
         top_l.addWidget(self._manager_group())
         body = QtWidgets.QHBoxLayout()
         body.addWidget(self._servers_group(), 2)
-        body.addWidget(self._env_group(), 1)
+        right = QtWidgets.QVBoxLayout()
+        right.addWidget(self._env_group())
+        right.addWidget(self._connected_group())
+        body.addLayout(right, 1)
         top_l.addLayout(body)
         splitter.addWidget(top)
 
@@ -254,6 +270,9 @@ class Launcher(QtWidgets.QWidget):
         form.addWidget(self.tls_check, 2, 2)
         form.addWidget(self.mgr_btn, 3, 0)
         form.addWidget(self.mgr_status, 3, 1, 1, 2)
+        self.conn_status = QtWidgets.QLabel("manager: not connected")
+        self.conn_status.setStyleSheet("color: %s;" % STOPPED_COLOR)
+        form.addWidget(self.conn_status, 4, 0, 1, 3)
         return g
 
     def _servers_group(self):
@@ -271,8 +290,9 @@ class Launcher(QtWidgets.QWidget):
         row.addWidget(rescan)
         v.addLayout(row)
 
-        self.table = QtWidgets.QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Server", "Status", "Action"])
+        self.table = QtWidgets.QTableWidget(0, 4)
+        self.table.setHorizontalHeaderLabels(
+            ["Server", "Process", "Manager", "Action"])
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -313,6 +333,16 @@ class Launcher(QtWidgets.QWidget):
         v.addLayout(addrow)
         return g
 
+    def _connected_group(self):
+        g = QtWidgets.QGroupBox("Connected to manager")
+        v = QtWidgets.QVBoxLayout(g)
+        self.connected_list = QtWidgets.QListWidget()
+        self.connected_list.setToolTip(
+            "All servers currently registered with the manager, including the\n"
+            "built-in Manager / Registry / Auth and anything started elsewhere.")
+        v.addWidget(self.connected_list)
+        return g
+
     def _add_env_row(self, k, val):
         r = self.env_table.rowCount()
         self.env_table.insertRow(r)
@@ -351,9 +381,13 @@ class Launcher(QtWidgets.QWidget):
             st = QtWidgets.QTableWidgetItem("● running" if running else "○ stopped")
             st.setForeground(QtGui.QColor(RUNNING_COLOR if running else STOPPED_COLOR))
             self.table.setItem(r, 1, st)
+            reg = name in self._registered
+            rg = QtWidgets.QTableWidgetItem("● registered" if reg else "○ —")
+            rg.setForeground(QtGui.QColor(REGISTERED_COLOR if reg else STOPPED_COLOR))
+            self.table.setItem(r, 2, rg)
             btn = QtWidgets.QPushButton("Stop" if running else "Start")
             btn.clicked.connect(lambda _=False, n=name: self._toggle_server(n))
-            self.table.setCellWidget(r, 2, btn)
+            self.table.setCellWidget(r, 3, btn)
             self.rows[name] = r
 
     # ---- process helpers --------------------------------------------------
@@ -438,9 +472,84 @@ class Launcher(QtWidgets.QWidget):
             if item:
                 item.setText(text)
                 item.setForeground(QtGui.QColor(color))
-            btn = self.table.cellWidget(r, 2)
+            btn = self.table.cellWidget(r, 3)
             if btn:
                 btn.setText("Stop" if running else "Start")
+
+    # ---- manager client (live "registered?" view) -------------------------
+    def _ensure_cxn(self):
+        """Lazily open a pylabrad client to the manager. Credentials are passed
+        explicitly (never via a stdin prompt, which would hang the GUI)."""
+        if self.cxn is not None:
+            return self.cxn
+        if labrad is None:
+            return None
+        self._pull_config_from_ui()
+        env = self.cfg['env']
+        host = env.get('LABRADHOST', 'localhost') or 'localhost'
+        pw = env.get('LABRADPASSWORD', self.cfg.get('password', '')) or ''
+        tls = 'on' if self.cfg.get('tls') else 'off'
+        try:
+            self.cxn = labrad.connect(host=host, username='', password=pw,
+                                      tls_mode=tls)
+        except Exception:
+            self.cxn = None
+        return self.cxn
+
+    def _drop_cxn(self):
+        if self.cxn is not None:
+            try:
+                self.cxn.disconnect()
+            except Exception:
+                pass
+            self.cxn = None
+
+    def _manager_server_names(self):
+        """Set of server names registered with the manager, or None if we can't
+        reach it (also drops the stale connection so the next poll reconnects)."""
+        cxn = self._ensure_cxn()
+        if cxn is None:
+            return None
+        try:
+            return {str(name) for _id, name in cxn.manager.servers()}
+        except Exception:
+            self._drop_cxn()
+            return None
+
+    def _poll_manager(self):
+        names = self._manager_server_names()
+        if names is None:
+            if self._registered:
+                self._registered = set()
+                self._apply_registered()
+            self.connected_list.clear()
+            self.conn_status.setText("manager: not connected")
+            self.conn_status.setStyleSheet("color: %s;" % STOPPED_COLOR)
+            return
+        host = self.cfg['env'].get('LABRADHOST', 'localhost') or 'localhost'
+        self.conn_status.setText(
+            "manager: connected @ %s  —  %d servers" % (host, len(names)))
+        self.conn_status.setStyleSheet("color: %s;" % RUNNING_COLOR)
+        # log connect/disconnect since the last poll into the Manager tab
+        for n in sorted(names - self._registered):
+            self._log(MANAGER_KEY, "[monitor] + %s registered\n" % n)
+        for n in sorted(self._registered - names):
+            self._log(MANAGER_KEY, "[monitor] - %s disconnected\n" % n)
+        self._registered = names
+        self.connected_list.clear()
+        self.connected_list.addItems(sorted(names, key=str.lower))
+        self._apply_registered()
+
+    def _apply_registered(self):
+        """Reflect the registered set onto each server row's Manager column."""
+        for name, r in self.rows.items():
+            item = self.table.item(r, 2)
+            if not item:
+                continue
+            reg = name in self._registered
+            item.setText("● registered" if reg else "○ —")
+            item.setForeground(QtGui.QColor(
+                REGISTERED_COLOR if reg else STOPPED_COLOR))
 
     # ---- manager ----------------------------------------------------------
     def _toggle_manager(self):
@@ -496,6 +605,7 @@ class Launcher(QtWidgets.QWidget):
                 return
         for k in list(self.procs):
             self._stop_process(k)
+        self._drop_cxn()
         self._save_config()
         ev.accept()
 
