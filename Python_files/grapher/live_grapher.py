@@ -45,8 +45,8 @@ QCheckBox { spacing:6px; }
 
 
 class Grapher(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None, cxn=None):
+        super().__init__(parent)
         self.setObjectName('Grapher')
         self.setWindowTitle('LabRAD Data Vault — Live Grapher')
         self.resize(960, 600)
@@ -58,10 +58,19 @@ class Grapher(QtWidgets.QWidget):
         self.x = []
         self.ys = []
         self._follow_tick = 0
+        self._owns_cxn = cxn is None               # only disconnect one we opened
 
-        self.cxn = self._connect()                 # try environment credentials
-        if self.cxn is None and labrad is not None and pg is not None:
-            self.cxn = self._login_loop()          # else prompt for host/password
+        if cxn is not None:                        # embedded: use the shared cxn
+            self.cxn = cxn
+            try:
+                self.dv = cxn.data_vault
+            except Exception as e:
+                self._err = str(e)
+                self.cxn = None
+        else:
+            self.cxn = self._connect()             # try environment credentials
+            if self.cxn is None and labrad is not None and pg is not None:
+                self.cxn = self._login_loop()      # else prompt for host/password
         self._build_ui()
         if self.cxn is not None:
             self._refresh_dir()
@@ -289,11 +298,15 @@ class Grapher(QtWidgets.QWidget):
 
     def closeEvent(self, ev):
         try:
-            if self.cxn is not None:
+            if self.cxn is not None and self._owns_cxn:
                 self.cxn.disconnect()
         except Exception:
             pass
         ev.accept()
+
+
+# dashboard.py discovers panels by this manifest
+DASHBOARD_PANEL = {'title': 'Live Grapher', 'widget': Grapher}
 
 
 def main():

@@ -29,14 +29,15 @@ COUNT_POLL_MAX_WINDOW = 1.0    # only poll a live count for windows <= this (s)
 
 
 class PMTControl(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None, cxn=None):
+        super().__init__(parent)
         self.setObjectName('Root')
         self.setWindowTitle('PMT Control')
         self.resize(360, 260)
         self.server = None
         self._syncing = False
-        self.cxn = self._connect() or self._login_loop()
+        self._owns_cxn = cxn is None      # only disconnect a connection we opened
+        self.cxn = cxn or self._connect() or self._login_loop()
         self._build_ui()
         if self.cxn is not None:
             try:
@@ -223,11 +224,15 @@ class PMTControl(QtWidgets.QWidget):
 
     def closeEvent(self, ev):
         try:
-            if self.cxn is not None:
+            if self.cxn is not None and self._owns_cxn:
                 self.cxn.disconnect()
         except Exception:
             pass
         ev.accept()
+
+
+# dashboard.py discovers panels by this manifest
+DASHBOARD_PANEL = {'title': 'PMT Control', 'widget': PMTControl}
 
 
 def main():

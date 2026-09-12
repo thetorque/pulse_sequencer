@@ -37,13 +37,15 @@ POLL_MS = 500            # how often to re-read switch state for cross-client sy
 
 
 class SwitchWidget(QtWidgets.QFrame):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, cxn=None):
         super(SwitchWidget, self).__init__(parent)
         self.d = {}                       # name -> {'ON','OFF','AUTO': QPushButton}
         self.setObjectName('Root')
         self.setFrameStyle(QtWidgets.QFrame.NoFrame)
+        self._owns_cxn = cxn is None      # only disconnect a connection we opened
         try:
-            self.cxn = labrad.connect()   # env: LABRADHOST/LABRADPASSWORD/LABRAD_TLS
+            # env: LABRADHOST/LABRADPASSWORD/LABRAD_TLS (or a shared cxn if embedded)
+            self.cxn = cxn or labrad.connect()
             self.pulser = self.cxn.pulser
         except Exception as e:
             self._show_error("Cannot reach LabRAD / Pulser:\n%s" % e)
@@ -144,6 +146,10 @@ class SwitchWidget(QtWidgets.QFrame):
             except Exception as e:
                 print("switch_auto(%s) failed: %s" % (name, e))
         return func
+
+
+# dashboard.py discovers panels by this manifest
+DASHBOARD_PANEL = {'title': 'Switch Control', 'widget': SwitchWidget}
 
 
 def main():
