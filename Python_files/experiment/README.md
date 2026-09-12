@@ -92,15 +92,13 @@ server puts `Python_files` on `sys.path`, so `experiment.*` imports resolve.
 ### Run it
 
 1. Start the manager, Pulser, ParameterVault, and ScriptScanner (via the Launcher).
-2. Seed the parameter:
+2. In the Script Scanner GUI, pick **LED Blink (from ParameterVault)** and **Run once**.
 
-   ```
-   python experiment/seed_parameters.py
-   ```
-3. In the Script Scanner GUI, pick **LED Blink (from ParameterVault)** and **Run once**.
-
-The LEDs blink in two alternating banks; the ON time is whatever
-`LedBlink.on_time` holds in the vault (edit it there to change the speed).
+The LEDs blink in two alternating banks. The ON time is whatever
+`LedBlink.on_time` holds in the vault; **the experiment seeds a default
+(0.25 s) the first time if it's missing**, so it works out of the box. Edit
+`LedBlink.on_time` in the ParameterVault (or run `python experiment/seed_parameters.py`)
+to change the speed, then run again -- that's the ParameterVault-driven pattern.
 
 ## Status / next
 
