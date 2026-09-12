@@ -57,6 +57,7 @@ class NormalPMTFlow(LabradServer):
         self.currentMode = 'Normal'
         self.dv = None
         self.pulser = None
+        self.channel_names = set()     # valid TTL names (for optional diff channels)
         self.collectTimeRange = None
         self.openDataSet = None
         self.recordingInterrupted = False
@@ -115,6 +116,11 @@ class NormalPMTFlow(LabradServer):
         try:
             self.pulser = yield self.client.pulser
             self.collectTimeRange = yield self.pulser.get_collection_time()
+            try:
+                chans = yield self.pulser.get_channels()
+                self.channel_names = {name for name, _num in chans}
+            except Exception:
+                self.channel_names = set()
             if self.recordingInterrupted:
                 yield self.dorecordData()
                 self.onNewSetting(('state', 'on'))
@@ -305,11 +311,20 @@ class NormalPMTFlow(LabradServer):
 
     @inlineCallbacks
     def _programPulserDiff(self):
+        # DiffCountTrigger (FPGA channel 16) defines the differential windows and
+        # is required. 866DP / Internal866 drive the real 866 repump ON during
+        # collection -- add them only if this lab's channel map has them (they
+        # aren't present on a synthetic-source bench).
+        if 'DiffCountTrigger' not in self.channel_names:
+            raise Exception(
+                "Differential mode needs a 'DiffCountTrigger' channel in "
+                "pulser3.hwconfig (FPGA CH_DIFF_TRIGGER = 16).")
         yield self.pulser.new_sequence()
         yield self.pulser.add_ttl_pulse('DiffCountTrigger', T.Value(0.0, 'us'), T.Value(10.0, 'us'))
         yield self.pulser.add_ttl_pulse('DiffCountTrigger', self.collection_period, T.Value(10.0, 'us'))
-        yield self.pulser.add_ttl_pulse('866DP', T.Value(0.0, 'us'), self.collection_period)
-        yield self.pulser.add_ttl_pulse('Internal866', T.Value(0.0, 'us'), self.collection_period)
+        for name in ('866DP', 'Internal866'):
+            if name in self.channel_names:
+                yield self.pulser.add_ttl_pulse(name, T.Value(0.0, 'us'), self.collection_period)
         yield self.pulser.extend_sequence_length(2 * self.collection_period)
         yield self.pulser.program_sequence()
         yield self.pulser.start_infinite()

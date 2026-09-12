@@ -35,6 +35,7 @@ CHANNELS = {
     '266_SB':           9,
     'SP1':              10,
     'SP2':              11,
+    'DiffCountTrigger': 16,   # differential PMT window trigger (FPGA CH_DIFF_TRIGGER)
     'AdvanceDDS':       18,
     'ResetDDS':         19,
     'AO1':              20,   # analog-board trigger

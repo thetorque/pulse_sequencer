@@ -23,10 +23,12 @@ the manager's Server Connect/Disconnect messages).
 - **Normal** -- works end-to-end today with the Pulser's on-FPGA **synthetic
   source** (no detector needed). Each collection window's count rate is streamed
   into the Data Vault as `[t, count, 0, 0]`.
-- **Differential** -- ported faithfully, but **not runnable yet**: it programs a
-  pulse sequence using channels `DiffCountTrigger`, `866DP`, `Internal866` that
-  aren't in `pulser3.hwconfig` (and it needs the real 866 repump). Add those
-  channels to the map when you bring differential up on hardware.
+- **Differential** -- runs on the FPGA differential counter, gated by
+  `DiffCountTrigger` (channel 16, now in `pulser3.hwconfig`). The 866 repump
+  channels `866DP` / `Internal866` are added to the sequence **only if present**
+  in the channel map -- so it works on a synthetic-source bench (trigger only),
+  and drives the real repump once you add those channels for your hardware. A
+  meaningful ON/OFF differential needs the real 866 laser.
 
 ## Settings (unchanged from legacy)
 

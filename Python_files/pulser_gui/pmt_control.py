@@ -185,13 +185,29 @@ class PMTControl(QtWidgets.QWidget):
                 pass
 
     # ---- handlers ---------------------------------------------------------
+    @staticmethod
+    def _short_err(e):
+        """The final line of an exception/remote-traceback string, for a tidy
+        message box instead of the whole stack."""
+        lines = [ln for ln in str(e).strip().splitlines() if ln.strip()]
+        return lines[-1] if lines else str(e)
+
     def _on_mode(self, _idx):
         if self._syncing:
             return
+        mode = self.mode_combo.currentText()
         try:
-            self.server.set_mode(self.mode_combo.currentText())
+            self.server.set_mode(mode)
         except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Set mode failed", str(e))
+            self._sync()      # revert the combo to the server's actual mode
+            extra = ""
+            if mode == 'Differential':
+                extra = ("\n\nDifferential mode needs a 'DiffCountTrigger' channel "
+                         "(and the 866 repump channels for a real measurement) in "
+                         "pulser3.hwconfig.")
+            QtWidgets.QMessageBox.warning(
+                self, "Could not set %s mode" % mode,
+                "%s%s" % (self._short_err(e), extra))
 
     def _on_window(self, value):
         if self._syncing:
@@ -199,7 +215,7 @@ class PMTControl(QtWidgets.QWidget):
         try:
             self.server.set_time_length(value * s)
         except Exception as e:
-            QtWidgets.QMessageBox.warning(self, "Set window failed", str(e))
+            QtWidgets.QMessageBox.warning(self, "Set window failed", self._short_err(e))
 
     def _on_record(self, state):
         if self._syncing:
