@@ -1,9 +1,9 @@
-import ConfigParser as cp
+import configparser as cp
 
 import numpy as np
 
 
-class DVSafeConfigParser(cp.SafeConfigParser):
+class DVSafeConfigParser(cp.ConfigParser):
     """.ini-style config parser with improved handling of line-endings.
 
     By default, SafeConfigParser uses the platform-default line ending, and
