@@ -21,6 +21,7 @@ class config(object):
         ('sample_experiment', 'sleep_experiment'),
         ('sample_experiment', 'pmt_point'),
         ('sample_experiment', 'led_staircase'),
+        ('sample_experiment', 'led_blink'),
         ('sample_experiment', 'crashing_example'),
     ]
 

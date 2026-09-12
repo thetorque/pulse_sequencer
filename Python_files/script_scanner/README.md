@@ -22,7 +22,8 @@ python script_scanner/script_scanner.py     # needs the manager running
 | `signals.py` | LabRAD signals (queued / running / scheduled changes) |
 | `configuration.py` | which experiment classes are offered + concurrency rules |
 | `treedict.py` | tiny py3 stand-in for the py2 `treedict` (dotted parameter dict) |
-| `sample_experiment.py` | hardware-free example experiments (see below) |
+| `sample_experiment.py` | example experiments (see below) |
+| `pulse_sequences.py` | reusable pulse-sequence builders imported by experiments |
 | `test_client.py` | smoke test |
 
 ## What an experiment is
@@ -53,14 +54,23 @@ So the orchestrator is testable on any laptop, before the real experiment layer
   that the live grapher plots -- no detector, no Pulser needed.
 - **crashing_example** -- raises in `initialize`, to exercise the error path.
 
-And one that **does** drive hardware, as a real pulse-sequence example:
+And two that **do** drive hardware, as real pulse-sequence examples:
 
 - **LED Staircase** -- programs the Pulser so the switchable TTL outputs (the
   LEDs, channels 0..11) light in a rising staircase: each LED turns on one step
   later and stays on, holds at the top, then all turn off -- looped a few times.
-  Shows how an experiment builds a sequence (`new_sequence` / `add_ttl_pulse` /
-  `program_sequence` / `start_single` / `wait_sequence_done`) and stays
-  interruptible. Needs the Pulser server + its board.
+  Shows how an experiment builds a sequence *inline* (`new_sequence` /
+  `add_ttl_pulse` / `program_sequence` / `start_single` / `wait_sequence_done`)
+  and stays interruptible. Needs the Pulser server + its board.
+- **LED Blink** -- same idea, but the pulse pattern is **imported** from a
+  separate module (`from pulse_sequences import alternating_blink`) instead of
+  built inline. This is the pattern for complex experiments: keep the sequence in
+  `pulse_sequences.py` (shared, testable, plottable on its own) and just program
+  it in the experiment. Needs the Pulser server + its board.
+
+`pulse_sequences.py` holds the reusable sequence builders (each returns a list of
+`(channel, start_s, duration_s)` pulses); it's the py3 stand-in for the lab's
+legacy `experiment/pulser_sequences/`.
 
 ## Test
 

@@ -543,6 +543,65 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     allowed_concurrent = {}     <span class="c"># name -> [experiments allowed to run alongside]</span></pre>
   <p>Restart the ScriptScanner server and your experiment shows up in the GUI
   dropdown. See <code>script_scanner/README.md</code> for the full settings list.</p>
+
+  <h3>The bundled experiments, explained</h3>
+  <p>All five live in <code>script_scanner/sample_experiment.py</code> (with one
+  sequence factored out into <code>script_scanner/pulse_sequences.py</code>).
+  They're worth reading in order — each one adds a concept.</p>
+
+  <div class="box tip"><b class="tag">Sleep Experiment</b> <span style="color:#6b7280">— no hardware</span>
+    <p>The simplest complete experiment. <code>initialize</code> just stores the
+    run <code>ident</code> and a handle to ScriptScanner. <code>run</code> loops a
+    fixed number of steps: each step it calls <code>self.pause_or_stop()</code>
+    (which blocks while paused and returns <code>True</code> to stop), sleeps
+    briefly, and calls <code>self.set_progress((i+1)/steps)</code>. It
+    <code>return</code>s a noisy number, so a <em>repeat</em> (with save) or a
+    <em>scan</em> has something to store. Teaches the lifecycle, progress
+    reporting, and being interruptible — with nothing to plug in.</p>
+  </div>
+
+  <div class="box tip"><b class="tag">PMT Point</b> <span style="color:#6b7280">— no hardware</span>
+    <p>Shows how a <em>scannable</em> experiment works. It declares no required
+    parameters; instead a scan injects the swept value into
+    <code>self.parameters</code> under the chosen <code>(collection, parameter)</code>.
+    <code>run</code> reads that value (<code>self.parameters['Spectrum.frequency']</code>),
+    computes a Gaussian line shape plus noise, and returns it. Point <em>Scan</em>
+    at it and each returned value is saved against the swept value → a lineshape
+    dataset in the Data Vault. Teaches reading a scanned parameter and returning a
+    measurement.</p>
+  </div>
+
+  <div class="box tip"><b class="tag">LED Staircase</b> <span style="color:#b45309">— drives the Pulser</span>
+    <p>The first <em>real</em> pulse-sequence experiment. <code>initialize</code>
+    asks the Pulser for its channels (<code>get_channels</code>), keeps the
+    switchable LED outputs (number&nbsp;&lt;&nbsp;12), and builds a rising staircase
+    <em>inline</em>: <code>new_sequence</code>, then one
+    <code>add_ttl_pulse(channel, start, duration)</code> per LED (LED&nbsp;<em>i</em>
+    on at <em>i</em>·step, staying on to the end), then
+    <code>program_sequence</code> — done <b>once</b>. <code>run</code> replays it a
+    few times with <code>start_single</code> + <code>wait_sequence_done</code>,
+    reporting progress and checking pause/stop between cycles. Teaches building and
+    programming a sequence, and the program-once / run-many pattern.</p>
+  </div>
+
+  <div class="box tip"><b class="tag">LED Blink</b> <span style="color:#b45309">— drives the Pulser; imports its sequence</span>
+    <p>Same shape as the staircase, but the pulse pattern is <b>not built in the
+    experiment</b> — it's imported: <code>from pulse_sequences import
+    alternating_blink</code>. That builder returns a list of
+    <code>(channel, start, duration)</code> tuples (a two-bank even/odd blinker);
+    the experiment just loops <code>add_ttl_pulse</code> over them and programs it.
+    This is the pattern for anything non-trivial: keep the sequence — “what pulses,
+    when” — in <code>pulse_sequences.py</code>, so it can be shared between
+    experiments, tested, or plotted on its own, while the experiment file stays
+    about <em>running</em> it. (This mirrors the lab's legacy
+    <code>experiment/pulser_sequences/</code>.)</p>
+  </div>
+
+  <div class="box tip"><b class="tag">crashing_example</b>
+    <p>Raises in <code>initialize</code> on purpose. Run it to see the error path:
+    ScriptScanner catches the exception, marks the run <em>Error</em>, and reports
+    the traceback — nothing else is disturbed.</p>
+  </div>
 </section>
 
 <!-- ============================ STACK ============================ -->

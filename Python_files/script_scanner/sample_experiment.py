@@ -29,6 +29,7 @@ import time
 from labrad.units import s
 
 from scan_methods import experiment
+from pulse_sequences import alternating_blink   # sequence defined in its own module
 
 
 def _magnitude(value, default=0.0):
@@ -158,6 +159,60 @@ class led_staircase(experiment):
             p.start_single()              # replay the programmed staircase
             p.wait_sequence_done(self.total_time + 1.0)
             self.set_progress((cycle + 1) / self.cycles)
+        return None
+
+    def finalize(self, cxn, context):
+        pass
+
+
+class led_blink(experiment):
+    """Blink the LEDs using a sequence defined in a SEPARATE module.
+
+    Same idea as led_staircase (drives the Pulser), but the pulse pattern is not
+    built here -- it's imported from pulse_sequences.py. This is how you build up
+    more complex experiments: keep the sequence ("what pulses, when") in its own
+    file and just import + program it in the experiment. Needs the Pulser server.
+    """
+
+    name = 'LED Blink'
+    required_parameters = []
+
+    on_time = 0.25            # s each bank stays lit
+    blink_cycles = 3          # even/odd alternations per run of the sequence
+    repeats = 4               # how many times to replay the sequence
+    max_leds = 8              # cap on how many LEDs to use
+
+    def initialize(self, cxn, context, ident):
+        self.ident = ident
+        self.sc = cxn.servers['ScriptScanner']
+        self.pulser = cxn.pulser
+        chans = sorted((num, name) for (name, num) in self.pulser.get_channels() if num < 12)
+        self.channels = [name for (num, name) in chans][:self.max_leds]
+        if not self.channels:
+            raise Exception("No switchable TTL channels (number < 12) found for the LEDs")
+        # the sequence lives in pulse_sequences.py -- we just import + program it
+        self.pulses, self.total_time = alternating_blink(self.channels,
+                                                         on_time=self.on_time,
+                                                         cycles=self.blink_cycles)
+        self._program()
+
+    def _program(self):
+        p = self.pulser
+        p.new_sequence()
+        for ch, start, duration in self.pulses:
+            p.add_ttl_pulse(ch, start * s, duration * s)
+        p.extend_sequence_length(self.total_time * s)
+        p.program_sequence()
+
+    def run(self, cxn, context):
+        p = self.pulser
+        for r in range(self.repeats):
+            if self.pause_or_stop():
+                p.stop_sequence()
+                return None
+            p.start_single()
+            p.wait_sequence_done(self.total_time + 1.0)
+            self.set_progress((r + 1) / self.repeats)
         return None
 
     def finalize(self, cxn, context):
