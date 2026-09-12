@@ -90,6 +90,7 @@
   <a href="#pmt">PMT counting</a>
   <a href="#stack">Wider server stack</a>
   <a href="#roadmap">Roadmap</a>
+  <a href="#platforms">Mac / Linux</a>
   <h2>Reference</h2>
   <a href="#troubleshoot">Troubleshooting</a>
   <a href="#files">Files &amp; layout</a>
@@ -435,7 +436,10 @@ d.start_single()
   <p>The port so far covers the full PMT measurement loop (FPGA → Pulser → NormalPMTFlow → Data Vault → live plot) plus the operator GUIs. What's next, in dependency order:</p>
 
   <div class="box ok"><b class="tag">Done &amp; hardware-verified</b>
-    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow; the GUIs (switch control, PMT control, live grapher, launcher, dashboard).</p>
+    <p>pulser3 + Pulser server, ParameterVault, Data Vault, NormalPMTFlow; the GUIs — switch control, PMT control, live grapher, sequence viewer + editor, launcher, dashboard.</p>
+  </div>
+  <div class="box tip"><b class="tag">Cross-platform</b>
+    <p>The whole stack is cross-platform Python (scalabrad/JVM + pylabrad + PyQt5/pyqtgraph). It has been <em>run</em> on Windows so far; on Mac/Linux everything should run natively — see <a href="#platforms">Running on Mac / Linux</a>. The hardware-free tools (sequence viewer/editor) run anywhere with just <code>PyQt5</code> + <code>pyqtgraph</code>.</p>
   </div>
 
   <h3>Phase A — Experiment orchestration <span style="color:#16a34a">(next; not hardware-blocked)</span></h3>
@@ -466,11 +470,31 @@ d.start_single()
 
   <h3>Phase E — Polish &amp; infra <span style="color:#6b7280">(anytime, small)</span></h3>
   <ul>
+    <li>First run of the GUIs on <b>Mac / Linux</b> to confirm (cross-platform by design; only exercised on Windows so far).</li>
     <li><code>returnValue → return</code> sweep on <code>pulser_server.py</code> / <code>parameter_vault.py</code> (Twisted 24.7 deprecation).</li>
     <li>Grapher: curve fitting, multi-dataset overlays.</li>
+    <li>Sequence editor v3: drag pulses on the diagram; a "show the live / last-programmed sequence" source.</li>
     <li>Merge launcher + dashboard into one tabbed "mission control"; launcher autostart list; per-server env rows.</li>
     <li>Wire real-866 <code>866DP</code> / <code>Internal866</code> channels for a physically-meaningful differential.</li>
   </ul>
+</section>
+
+<!-- ============================ PLATFORMS ============================ -->
+<section id="platforms">
+  <h2 class="sec">Running on Mac / Linux</h2>
+  <p>The whole stack is cross-platform Python, so it runs natively on Mac and Linux — the differences from the Windows instructions above are small:</p>
+  <ul>
+    <li><b>Manager</b> — use the extension-less <code>bin/labrad</code> script instead of <code>labrad.bat</code>:
+      <pre>mkdir -p ~/labrad-registry ~/.labrad
+./bin/labrad --registry "file://$HOME/labrad-registry?format=binary" --password test --tls-required false</pre>
+      In the Launcher, point the <b>Launcher</b> field at that <code>bin/labrad</code> script; it runs and stops it natively (no <code>cmd</code>/<code>taskkill</code>).</li>
+    <li>No <code>JAVA_HOME</code> short-path dance — the <code>C:\Program Files</code> space problem is Windows-only. Just have a JDK 8/11 on the path.</li>
+    <li><b>Python deps are identical:</b> <code>pip install pylabrad twisted "numpy&lt;2" pyopenssl PyQt5 pyqtgraph h5py</code>.</li>
+    <li><b>Hardware access</b> — the Pulser server needs the Opal Kelly <b>FrontPanel</b> SDK + USB driver for your OS (Opal Kelly ships Mac and Linux builds); the FPGA and bitstream are the same. Without FrontPanel, everything hardware-free still runs — notably the <a href="#launcher">sequence viewer/editor</a>, which import <code>pulser3</code> without the <code>ok</code> module.</li>
+  </ul>
+  <div class="box tip"><b class="tag">Status</b>
+    <p>Cross-platform <em>by design</em> (the only OS-specific code is in the Launcher, and it's guarded). Exercised on Windows so far; a first run on Mac/Linux is the remaining confirmation (see <a href="#roadmap">Roadmap</a> Phase E).</p>
+  </div>
 </section>
 
 <!-- ============================ TROUBLESHOOTING ============================ -->
