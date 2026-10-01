@@ -1,0 +1,51 @@
+Designator,Quantity,Comment,Footprint,Manufacturer,Manufacturer Part,LCSC Part #,Unit Price 1+ (USD),Unit Price 10+ (USD),Notes
+U1,1,Wide-VIN sync buck controller 6-75V,VQFN-20-EP(3.5x4.5),TI,LM5145RGYR,C485912,3.25,2.87,"2,210 in stock on 2026-10-01. Pin- and parameter-identical 75V sibling of LM25145RGYR (C2876740, 42V, LCSC stock 0) - all component values unchanged"
+Q1,1,N-MOSFET 40V 3.7mOhm (buck high side),VSON-8(5x6),TI,CSD18503Q5A,C129942,1.33,1.18,Only 28 in stock on 2026-10-01
+Q2,1,N-MOSFET 40V 2mOhm (buck low side),VSON-8(5x6),TI,CSD18511Q5A,C701747,0.81,0.65,Rds(on) sets the LM5145 current limit with R6
+U2,1,eFuse 4.5-60V 6A with OVP,HTSSOP-20,TI,TPS16630PWPR,C1849461,2.80,2.35,Must be TPS16630 (only variant with OVP pin); HTSSOP for hand soldering
+U5,1,USB-PD sink trigger (set to 20V),ESSOP-10,WCH,CH224A,C42459160,0.46,0.36,USB build only. Replaces discontinued CH224K; confirm voltage-config resistor scheme in CH224A datasheet
+L1,1,Power inductor 2.2uH Isat 37A Irms 22A 4.2mOhm,SMD 13.5x12.5mm,Bourns,SRP1265A-2R2M,C2831487,1.41,1.15,Premium low-DCR option: Coilcraft XAL1010-222MED (C5125746) $8.77
+"C1,C2,C3,C4,C5,C6",6,10uF 50V X7R ±10%,1210,Murata,GRM32ER71H106KA12L,C77102,0.33,0.27,Buck input MLCCs; place tight to Q1 drain / Q2 source; MOQ 5
+C7,1,100uF 35V hybrid polymer,SMD D8xL10.2mm,Panasonic,EEHZA1V101P,C454289,0.94,0.76,Input bulk / damping; only 8 in stock on 2026-10-01
+"C8,C9,C10,C11,C12,C13",6,47uF 10V X7R ±10%,1210,Murata,GRM32ER71A476KE15L,C84494,0.49,0.38,Output MLCCs
+"C14,C15,C16,C17",4,220uF 6.3V polymer tantalum ESR 18mOhm,SMD 7.3x4.3mm (D case),Panasonic,6TPE220MI,C129173,0.84,0.69,Output bulk; ESR matches loop-compensation assumption
+D1,1,TVS 28V standoff unidirectional,SMB (DO-214AA),Littelfuse,SMBJ28A,C178227,0.11,0.11,Input surge clamp on eFuse IN (after Q3 in DC build); MOQ 5
+D2,1,TVS 5V standoff unidirectional,SMB (DO-214AA),Littelfuse,SMBJ5.0A,C83333,0.11,0.11,5V output clamp; MOQ 5
+J1,1,USB-C receptacle 6-pin power-only,SMD right angle,SHOU HAN,TYPE-C 6PIN,C7507406,0.05,0.05,USB build only. VERIFY datasheet rating >= 5A before ordering; MOQ 10
+J2,1,XT30 female right-angle PCB (20-24V DC in),THT right angle,Amass,XT30PW-F20.G.Y,C2913282,0.33,0.32,DC build only.
+Q3,1,P-MOSFET -40V ~15mOhm (DC input reverse-polarity protection),TO-252 (DPAK),AOS,AOD4185,C400894,0.46,0.37,"DC build only. Drain to J2+, source to eFuse IN, gate via R23 to GND; check Rds(on) at Vgs=-12V in datasheet"
+D7,1,Zener 12V 500mW (Q3 gate clamp),SOD-123,MCC,BZT52C12-TP,C668891,0.03,0.03,"DC build only. Cathode to Q3 source, anode to Q3 gate: limits Vgs to -12V; MOQ 20"
+R23,1,10k 1%,0805,,,,,,DC build only. Q3 gate pull-down to GND (~1.5 mA at 26.7 V)
+J3,1,DIN 41612 type C 96-pin right-angle,THT right angle 3x32 P2.54,WingTAT,9001-11961C00A,C5173361,1.09,0.89,VERIFY male/card-side type C; 5V on 16 pins + GND on 16 pins; brand alt TE 5650473-5 (C305950) $6.19
+SW1,1,Slide switch SPDT (eFuse 3A/5A current-limit select),THT,XKB Connection,SS-12D10L5,C319012,0.32,0.26,Default position = 3A; MOQ 5
+R1,1,24.9k 1%,0603,,,,,,LM25145 RT: 400 kHz
+R2,1,23.2k 1%,0603,,,,,,LM25145 RFB1 (top)
+R3,1,4.42k 1%,0603,,,,,,LM25145 RFB2 (bottom): Vout = 5.00 V
+R4,1,200k 1%,0603,,,,,,LM25145 RUV1 (top): on 15.0 V / off 13.0 V
+R5,1,17.4k 1%,0603,,,,,,LM25145 RUV2 (bottom)
+R6,1,249R 1%,0603,,,,,,LM25145 RILIM (RDS-on mode): ~27 A typ output limit
+R7,1,18.2k 1%,0603,,,,,,LM25145 compensation RC1
+R8,1,1.62k 1%,0603,,,,,,LM25145 compensation RC2
+R9,1,49.9k 1%,0603,,,,,,LM25145 PGOOD pull-up to 5V
+R10,1,4.7R 1%,0805,,,,,,LM25145 VIN RC filter
+R11,1,412k 1%,0603,,,,,,TPS16630 UVLO/OVP divider top: UVLO 16.2 V rising
+R12,1,13.0k 1%,0603,,,,,,TPS16630 UVLO/OVP divider middle
+R13,1,20.0k 1%,0603,,,,,,TPS16630 UVLO/OVP divider bottom: OVP 26.7 V
+R14,1,6.04k 1%,0603,,,,,,TPS16630 RILIM base: 2.98 A (switch in 3A position)
+R15,1,7.68k 1%,0603,,,,,,TPS16630 RILIM parallel via SW1: 3.38k total = 5.32 A
+R16,1,TBD,0603,,,,,,USB build only. CH224A voltage-config resistor for 20 V (value per CH224A datasheet)
+"R17,R18,R19,R20",4,TBD (~1k-4.7k),0603,,,,,,LED current-limit resistors
+R21,1,10k 1%,0805,,,,,,Input bleed resistor (after eFuse)
+R22,1,1k 1%,0805,,,,,,5V output bleed resistor
+C18,1,47nF X7R,0603,,,,,,LM25145 soft-start: 3.8 ms
+C19,1,22pF C0G,0603,,,,,,LM25145 CILIM (RILIM x CILIM ~ 6 ns)
+C20,1,4.7nF C0G,0603,,,,,,LM25145 compensation CC1
+C21,1,47pF C0G,0603,,,,,,LM25145 compensation CC2
+C22,1,2.2nF C0G,0603,,,,,,LM25145 compensation CC3
+C23,1,100nF 25V X7R,0603,,,,,,LM25145 bootstrap CBST
+C24,1,2.2uF 16V X7R,0805,,,,,,LM25145 VCC decoupling
+C25,1,100nF 50V X7R,0603,,,,,,LM25145 VIN RC filter
+C26,1,12nF X7R,0603,,,,,,TPS16630 dVdT: ~5 ms ramp to 20 V
+C27,1,1uF 50V X7R,0805,,,,,,USB build only. USB VBUS local cap (keep total <=10 uF before eFuse)
+C28,1,1uF X7R,0603,,,,,,USB build only. CH224A supply decoupling (check datasheet)
+"D3,D4,D5,D6",4,LED,0603,,,,,,Status: input OK / 20V negotiated / 5V PGOOD / fault
