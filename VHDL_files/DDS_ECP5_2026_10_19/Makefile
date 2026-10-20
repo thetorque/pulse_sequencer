@@ -17,11 +17,13 @@ PROBE   ?= dirtyJtag
 
 # Per-design source lists (multi-file designs: leaf modules first, top last) and
 # constraint files. Anything not listed falls back to single-file + dds_leds.lpf.
-SRC_dds_top   := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
-SRC_dac_test  := dac_spi.vhd dac_test.vhd
-LPF_dds_top   := dds_ecp5.lpf
-LPF_dac_test  := dac_test.lpf
-LPF_led_chase := dds_chase.lpf
+SRC_dds_top       := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
+SRC_dac_test      := dac_spi.vhd dac_test.vhd
+SRC_sideband_test := sideband_spi.vhd sideband_test.vhd
+LPF_dds_top       := dds_ecp5.lpf
+LPF_dac_test      := dac_test.lpf
+LPF_sideband_test := sideband_test.lpf
+LPF_led_chase     := dds_chase.lpf
 
 SRC := $(if $(SRC_$(TOP)),$(SRC_$(TOP)),$(TOP).vhd)
 LPF ?= $(if $(LPF_$(TOP)),$(LPF_$(TOP)),dds_leds.lpf)
@@ -49,6 +51,17 @@ compress: $(TOP).config
 	ecppack --compress $(TOP).config $(TOP)_c.bit
 	@ls -l $(TOP)_c.bit
 
+# Simulate a testbench with GHDL (artifacts kept out of the tree, in /tmp).
+#   make sim TB=tb_sideband_spi
+SIM_SRC_tb_sideband_spi := sideband_spi.vhd tb_sideband_spi.vhd
+SIM_SRC  := $(SIM_SRC_$(TB))
+SIMDIR   := /tmp/ghdl_$(TB)
+sim:
+	@mkdir -p $(SIMDIR)
+	ghdl -a --std=08 --workdir=$(SIMDIR) $(SIM_SRC)
+	cd $(SIMDIR) && ghdl -e --std=08 --workdir=$(SIMDIR) $(TB)
+	cd $(SIMDIR) && ghdl -r --std=08 --workdir=$(SIMDIR) $(TB) --stop-time=1ms
+
 # Load to volatile config SRAM -- fast, non-destructive, lost on power cycle.
 prog: $(TOP).bit
 	openFPGALoader -c $(PROBE) $(TOP).bit
@@ -60,4 +73,4 @@ flash: $(TOP).bit
 clean:
 	rm -f *.json *.config *.bit *_c.bit
 
-.PHONY: all prog flash compress clean
+.PHONY: all prog flash compress sim clean

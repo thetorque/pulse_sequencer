@@ -131,7 +131,8 @@ begin
   u_sb : entity work.sideband_spi
     port map ( clk => clk, rst => rst,
                sck => pico_w_sck_aux, mosi => pico_w_tx_aux, cs => pico_w_cs_aux,
-               miso => pico_w_rx_aux, attn => pico_w_attn );
+               miso => pico_w_rx_aux, attn => pico_w_attn,
+               rx_byte => open, rx_valid => open );
 
   -- ============ top-driven control / safe defaults ============
   dds_reset  <= rst;    -- hold AD9912 in reset during POR, then release

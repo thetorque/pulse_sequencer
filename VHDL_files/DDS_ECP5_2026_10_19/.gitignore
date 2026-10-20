@@ -2,3 +2,9 @@
 *.json
 *.config
 *.bit
+
+# GHDL simulation artifacts (the `make sim` target keeps these in /tmp)
+*.o
+*.cf
+e~*
+work-obj*.cf

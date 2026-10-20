@@ -1,0 +1,44 @@
+# sideband_test.lpf -- pins for the Pico sideband SPI1 loopback test
+LOCATE COMP "pico_w_sck_aux" SITE "J13";  # I  SPI1 clock (Pico GP10)
+LOCATE COMP "pico_w_tx_aux"  SITE "K14";  # I  Pico->ECP5 (GP11)
+LOCATE COMP "pico_w_rx_aux"  SITE "K13";  # O  ECP5->Pico (GP12)
+LOCATE COMP "pico_w_cs_aux"  SITE "L14";  # I  chip select (GP13)
+LOCATE COMP "pico_w_attn"    SITE "J14";  # O  attention (GP9)
+LOCATE COMP "dds_reset"      SITE "B16";
+LOCATE COMP "dds_pwrdwn"     SITE "C14";
+LOCATE COMP "rf_main_sw"     SITE "E16";
+LOCATE COMP "vga_shdn"       SITE "A13";
+LOCATE COMP "led_g1" SITE "L16";
+LOCATE COMP "led_g2" SITE "K16";
+LOCATE COMP "led_g3" SITE "J16";
+LOCATE COMP "led_g4" SITE "M16";
+LOCATE COMP "led_g5" SITE "N16";
+LOCATE COMP "led_g6" SITE "G15";
+LOCATE COMP "led_r1" SITE "K15";
+LOCATE COMP "led_r2" SITE "J15";
+LOCATE COMP "led_r3" SITE "H15";
+LOCATE COMP "led_r4" SITE "L15";
+LOCATE COMP "led_r5" SITE "M15";
+LOCATE COMP "led_r6" SITE "G16";
+
+IOBUF PORT "pico_w_sck_aux" IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_tx_aux"  IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_rx_aux"  IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_cs_aux"  IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_attn"    IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_reset"      IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_pwrdwn"     IO_TYPE=LVCMOS33;
+IOBUF PORT "rf_main_sw"     IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_shdn"       IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r6" IO_TYPE=LVCMOS33;
