@@ -10,13 +10,18 @@
 # Override the JTAG probe if not using a Pico/DirtyJTAG:  make PROBE=ft2232 prog
 
 TOP     ?= led_static
-SRC     := $(TOP).vhd
 DEVICE  := --25k
 PACKAGE := CABGA256
 SPEED   := 6
-# led_chase uses physical-position ports (dds_chase.lpf); others use designator ports
-LPF     ?= $(if $(filter led_chase,$(TOP)),dds_chase.lpf,dds_leds.lpf)
 PROBE   ?= dirtyJtag
+
+# Source files: dds_top is multi-file (leaf modules first, top last); others single-file.
+DDS_TOP_SRC := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
+SRC := $(if $(filter dds_top,$(TOP)),$(DDS_TOP_SRC),$(TOP).vhd)
+
+# Constraints: dds_top -> master pin file; led_chase -> physical ports; others -> designator.
+LPF ?= $(if $(filter dds_top,$(TOP)),dds_ecp5.lpf,\
+         $(if $(filter led_chase,$(TOP)),dds_chase.lpf,dds_leds.lpf))
 
 # GHDL (inside yosys) needs its library prefix. Derived from the ghdl binary
 # location: <oss-cad-suite>/bin/ghdl -> <oss-cad-suite>/lib/ghdl. Override if needed.
