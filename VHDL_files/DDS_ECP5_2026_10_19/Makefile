@@ -60,6 +60,7 @@ compress: $(TOP).config
 SIM_SRC_tb_sideband_spi := sideband_spi.vhd tb_sideband_spi.vhd
 SIM_SRC_tb_config_ram   := config_ram.vhd tb_config_ram.vhd
 SIM_SRC_tb_ebr_test     := sim_oscg.vhd config_ram.vhd ebr_test.vhd tb_ebr_test.vhd
+SIM_SRC_tb_ad9912_spi   := ad9912_spi.vhd tb_ad9912_spi.vhd
 SIM_SRC  := $(SIM_SRC_$(TB))
 SIMDIR   := /tmp/ghdl_$(TB)
 sim:
