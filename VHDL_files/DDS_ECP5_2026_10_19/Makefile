@@ -15,13 +15,16 @@ PACKAGE := CABGA256
 SPEED   := 6
 PROBE   ?= dirtyJtag
 
-# Source files: dds_top is multi-file (leaf modules first, top last); others single-file.
-DDS_TOP_SRC := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
-SRC := $(if $(filter dds_top,$(TOP)),$(DDS_TOP_SRC),$(TOP).vhd)
+# Per-design source lists (multi-file designs: leaf modules first, top last) and
+# constraint files. Anything not listed falls back to single-file + dds_leds.lpf.
+SRC_dds_top   := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
+SRC_dac_test  := dac_spi.vhd dac_test.vhd
+LPF_dds_top   := dds_ecp5.lpf
+LPF_dac_test  := dac_test.lpf
+LPF_led_chase := dds_chase.lpf
 
-# Constraints: dds_top -> master pin file; led_chase -> physical ports; others -> designator.
-LPF ?= $(if $(filter dds_top,$(TOP)),dds_ecp5.lpf,\
-         $(if $(filter led_chase,$(TOP)),dds_chase.lpf,dds_leds.lpf))
+SRC := $(if $(SRC_$(TOP)),$(SRC_$(TOP)),$(TOP).vhd)
+LPF ?= $(if $(LPF_$(TOP)),$(LPF_$(TOP)),dds_leds.lpf)
 
 # GHDL (inside yosys) needs its library prefix. Derived from the ghdl binary
 # location: <oss-cad-suite>/bin/ghdl -> <oss-cad-suite>/lib/ghdl. Override if needed.

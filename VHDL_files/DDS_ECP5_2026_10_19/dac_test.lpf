@@ -1,0 +1,43 @@
+# dac_test.lpf -- pins for the MCP4821 DAC triangle-sweep test (subset of dds_ecp5.lpf)
+LOCATE COMP "vga_sck"   SITE "A12";  # O  DAC SPI clock
+LOCATE COMP "vga_sci"   SITE "B13";  # O  DAC SPI data (SDI)
+LOCATE COMP "vga_cs"    SITE "B12";  # O  DAC chip select
+LOCATE COMP "vga_ldac"  SITE "A14";  # O  DAC LDAC strobe
+LOCATE COMP "vga_shdn"  SITE "A13";  # O  DAC shutdown (held high = active)
+LOCATE COMP "dds_reset" SITE "B16";  # O  AD9912 reset (held asserted = safe)
+LOCATE COMP "dds_pwrdwn" SITE "C14"; # O  AD9912 power-down
+LOCATE COMP "rf_main_sw" SITE "E16"; # O  RF switch (off)
+# all 12 LED cathodes (driven so none float)
+LOCATE COMP "led_g1"    SITE "L16";  # ramp-direction LED
+LOCATE COMP "led_g2"    SITE "K16";
+LOCATE COMP "led_g3"    SITE "J16";
+LOCATE COMP "led_g4"    SITE "M16";
+LOCATE COMP "led_g5"    SITE "N16";
+LOCATE COMP "led_g6"    SITE "G15";  # heartbeat LED
+LOCATE COMP "led_r1"    SITE "K15";
+LOCATE COMP "led_r2"    SITE "J15";
+LOCATE COMP "led_r3"    SITE "H15";
+LOCATE COMP "led_r4"    SITE "L15";
+LOCATE COMP "led_r5"    SITE "M15";
+LOCATE COMP "led_r6"    SITE "G16";
+
+IOBUF PORT "vga_sck"    IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_sci"    IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_cs"     IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_ldac"   IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_shdn"   IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_reset"  IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_pwrdwn" IO_TYPE=LVCMOS33;
+IOBUF PORT "rf_main_sw" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g1"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g2"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g3"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g4"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g5"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g6"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r1"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r2"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r3"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r4"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r5"     IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r6"     IO_TYPE=LVCMOS33;
