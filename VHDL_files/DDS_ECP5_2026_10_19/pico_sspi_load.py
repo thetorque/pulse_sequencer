@@ -88,7 +88,16 @@ def program():
 
 
 if __name__ == "__main__":
-    try:
-        program()
-    except Exception as e:
-        print("ERROR:", e)
+    # Runs automatically at power-up when installed as main.py.
+    time.sleep_ms(250)                 # let ECP5 rails settle on cold power-up
+    ok = False
+    for attempt in range(3):           # retry a few times for a reliable boot
+        try:
+            if program():
+                ok = True
+                break
+        except Exception as e:
+            print("ERROR:", e)
+        time.sleep_ms(200)
+    if not ok:
+        print("CONFIG FAILED after retries")

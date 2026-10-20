@@ -56,6 +56,9 @@ Designs available:
 - `led_static` — all 12 LED elements ON (amber).
 - `led_half`   — **only D1–D3 green** (distinctive config-verification pattern).
 - `led_blink`  — OSCG-clocked green↔red flip (~0.6 Hz), proves fabric clock.
+- `led_chase`  — running light sweeping left→right (physical order D5 D4 D1 D2 D3 D6),
+  cycling colour each pass: green → red → amber → repeat. Exercises OSCG + both
+  LED colours; uses physical-position ports (`led_pgN`/`led_prN`, see `dds_chase.lpf`).
 
 Build chain (in the Makefile): `yosys -m ghdl` (VHDL via GHDL plugin) →
 `synth_ecp5` → `nextpnr-ecp5 --25k --package CABGA256 --speed 6 --lpf dds_leds.lpf`
@@ -86,6 +89,31 @@ To load a different design, edit `BITFILE` at the top of `pico_sspi_load.py`
 > Config SRAM is **volatile** — it is re-loaded every power cycle. In production
 > the Pico firmware runs this sequence automatically at boot (config FIRST, bring
 > up WiFi AFTER, so the FPGA is live within a few hundred ms).
+
+---
+
+## 3b. Persistent auto-config at power-up (main.py)
+
+MicroPython runs **`main.py`** from the Pico filesystem at every boot. Install the
+loader as `main.py` and the Pico re-configures the ECP5 automatically on every
+power cycle (no host, no commands):
+```bash
+mpremote cp led_chase_c.bit :led_chase_c.bit   # bitstream must be on the Pico FS
+mpremote cp pico_sspi_load.py :main.py          # loader runs at boot
+mpremote fs ls                                  # verify: main.py + *_c.bit present
+```
+The loader's `__main__` adds a ~250 ms rail-settle delay + 3 retries for a reliable
+cold boot. **Verified 2026-10-20:** USB disconnected, cycle the backplane 5 V →
+LEDs start running in **< 1 s** from a blank FPGA.
+
+**Power topology note (Q4 P-FET, USB-priority):** whichever is higher — USB VBUS or
+backplane 5 V — powers the Pico. So to see an auto-config, the **Pico** must reboot:
+cycle the **backplane 5 V with USB disconnected** (both Pico+ECP5 reboot), or
+unplug/replug USB. Cycling the backplane while USB stays connected keeps the Pico
+powered, so `main.py` does not re-run.
+
+To change the boot bitstream, edit `BITFILE` in `pico_sspi_load.py`, re-`cp` it as
+`main.py`, and `cp` the new `*_c.bit`. To stop auto-config, `mpremote fs rm :main.py`.
 
 ---
 

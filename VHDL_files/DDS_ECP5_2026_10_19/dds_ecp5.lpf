@@ -1,0 +1,143 @@
+# dds_ecp5.lpf -- MASTER pin definition for the DDS board ECP5 (LFE5U-25F-6BG256C)
+# Generated from DDS_ECP5_pcb/DDS.kicad_sch netlist, 2026-10-20.
+# All I/O banks are 3.3 V (VCCIO0/1/2/3/6/7/8 = P3.3V; banks 4/5 not bonded) -> LVCMOS33.
+# Port names = schematic net names (lowercased); match your HDL top-level ports to these.
+# Direction is the ECP5 perspective: O=output, I=input, IO=bidir, ?=TBD.
+# Clock: the ECP5 uses its INTERNAL oscillator (OSCG primitive) -- no external clock pin.
+#
+# NOT listed below (dedicated, handled by config/JTAG logic, do NOT add as fabric ports):
+#   Config: CCLK=N9, D0/MOSI=T8, D1/MISO=T7, SN/CSN=R8, PROGRAMN=R9, INITN=T9, DONE=P9
+#   JTAG:   TCK=T10, TMS=T11, TDI=R11, TDO=M10
+#   Mode straps: CFG0=N10(->3V3 R18), CFG1=P10(GND), CFG2=R10(GND) = 001 Slave-SPI
+
+# ===== AD9912 DDS  (ECP5 = SPI master) =====
+LOCATE COMP "dds_sclk" SITE "E15"; # O   SPI clock
+LOCATE COMP "dds_sdio" SITE "D16"; # O   SPI data to AD9912 (MOSI)
+LOCATE COMP "dds_sdo" SITE "C15"; # I   SPI readback from AD9912 (MISO)
+LOCATE COMP "dds_csb" SITE "C16"; # O   chip select, active low
+LOCATE COMP "dds_ioupdate" SITE "B15"; # O   IO_UPDATE strobe
+LOCATE COMP "dds_reset" SITE "B16"; # O   hard reset
+LOCATE COMP "dds_pwrdwn" SITE "C14"; # O   power-down
+IOBUF PORT "dds_sclk" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_sdio" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_sdo" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_csb" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_ioupdate" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_reset" IO_TYPE=LVCMOS33;
+IOBUF PORT "dds_pwrdwn" IO_TYPE=LVCMOS33;
+
+# ===== Amplitude DAC / VGA  (MCP4821 -> ADL5330) =====
+LOCATE COMP "vga_sck" SITE "A12"; # O   DAC SPI clock
+LOCATE COMP "vga_sci" SITE "B13"; # O   DAC SPI data in (SDI)
+LOCATE COMP "vga_cs" SITE "B12"; # O   DAC chip select
+LOCATE COMP "vga_ldac" SITE "A14"; # O   DAC LDAC strobe
+LOCATE COMP "vga_shdn" SITE "A13"; # O   DAC shutdown (tie high in use)
+IOBUF PORT "vga_sck" IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_sci" IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_cs" IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_ldac" IO_TYPE=LVCMOS33;
+IOBUF PORT "vga_shdn" IO_TYPE=LVCMOS33;
+
+# ===== RF switch =====
+LOCATE COMP "rf_main_sw" SITE "E16"; # O   PE4251 main RF switch control
+IOBUF PORT "rf_main_sw" IO_TYPE=LVCMOS33;
+
+# ===== Backplane / DDS bus  (from pulser via DS90LV048A LVDS RX -> single-ended) =====   [ECP5 inputs]
+LOCATE COMP "backplane_sck" SITE "N1"; # I   bus SPI clock
+LOCATE COMP "backplane_mosi" SITE "P1"; # I   bus SPI data
+LOCATE COMP "backplane_cs" SITE "P2"; # I   bus chip select / frame
+LOCATE COMP "backplane_stepnext" SITE "R1"; # I   broadcast step trigger (low-jitter)
+LOCATE COMP "backplane_ramreset" SITE "L1"; # I   broadcast RAM reset
+LOCATE COMP "backplane_aux1" SITE "L2"; # I   spare backplane line
+LOCATE COMP "backplane_aux2" SITE "M1"; # I   spare backplane line
+LOCATE COMP "backplane_aux3" SITE "M2"; # I   spare backplane line
+IOBUF PORT "backplane_sck" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_mosi" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_cs" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_stepnext" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_ramreset" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux1" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux2" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux3" IO_TYPE=LVCMOS33;
+
+# ===== Pico W sideband  (SPI1: Pico master, ECP5 slave) =====
+LOCATE COMP "pico_w_sck_aux" SITE "J13"; # I   SPI1 clock from Pico (GP10)
+LOCATE COMP "pico_w_tx_aux" SITE "K14"; # I   Pico->ECP5 command (Pico GP11 TX = slave MOSI)
+LOCATE COMP "pico_w_rx_aux" SITE "K13"; # O   ECP5->Pico status (Pico GP12 RX = slave MISO)
+LOCATE COMP "pico_w_cs_aux" SITE "L14"; # I   SPI1 chip select from Pico (GP13)
+LOCATE COMP "pico_w_attn" SITE "J14"; # O   ECP5->Pico attention/IRQ (Pico GP9)
+IOBUF PORT "pico_w_sck_aux" IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_tx_aux" IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_rx_aux" IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_cs_aux" IO_TYPE=LVCMOS33;
+IOBUF PORT "pico_w_attn" IO_TYPE=LVCMOS33;
+
+# ===== Board address straps (geographic/DIP) =====   [ECP5 inputs]
+LOCATE COMP "add0" SITE "F1"; # I
+LOCATE COMP "add1" SITE "E1"; # I
+LOCATE COMP "add2" SITE "D1"; # I
+LOCATE COMP "add3" SITE "C1"; # I
+LOCATE COMP "add4" SITE "C2"; # I
+IOBUF PORT "add0" IO_TYPE=LVCMOS33;
+IOBUF PORT "add1" IO_TYPE=LVCMOS33;
+IOBUF PORT "add2" IO_TYPE=LVCMOS33;
+IOBUF PORT "add3" IO_TYPE=LVCMOS33;
+IOBUF PORT "add4" IO_TYPE=LVCMOS33;
+
+# ===== PSRAM  (APS6404L / ISSI, QSPI, DNP) =====
+LOCATE COMP "psram_sclk" SITE "A3"; # O   QSPI clock
+LOCATE COMP "psram_si" SITE "A4"; # IO  QSPI D0 / SI
+LOCATE COMP "psram_so" SITE "B2"; # IO  QSPI D1 / SO
+LOCATE COMP "psram_sio2" SITE "A2"; # IO  QSPI D2
+LOCATE COMP "psram_sio3" SITE "A5"; # IO  QSPI D3
+LOCATE COMP "psram_cen" SITE "B1"; # O   chip enable, active low
+IOBUF PORT "psram_sclk" IO_TYPE=LVCMOS33;
+IOBUF PORT "psram_si" IO_TYPE=LVCMOS33;
+IOBUF PORT "psram_so" IO_TYPE=LVCMOS33;
+IOBUF PORT "psram_sio2" IO_TYPE=LVCMOS33;
+IOBUF PORT "psram_sio3" IO_TYPE=LVCMOS33;
+IOBUF PORT "psram_cen" IO_TYPE=LVCMOS33;
+
+# ===== Aux / expansion  (spare I/O, direction TBD) =====
+LOCATE COMP "aux0" SITE "K1"; # ?
+LOCATE COMP "aux1" SITE "K2"; # ?
+LOCATE COMP "aux2" SITE "K3"; # ?
+LOCATE COMP "aux3" SITE "J3"; # ?
+LOCATE COMP "aux4" SITE "H2"; # ?
+LOCATE COMP "aux5" SITE "G1"; # ?
+LOCATE COMP "aux6" SITE "F2"; # ?
+IOBUF PORT "aux0" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux1" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux2" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux3" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux4" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux5" IO_TYPE=LVCMOS33;
+IOBUF PORT "aux6" IO_TYPE=LVCMOS33;
+
+# ===== Status LEDs  (6 bicolor D1-D6, common-anode -> ACTIVE-LOW) =====   [ECP5 outputs]
+LOCATE COMP "led_g1" SITE "L16"; # O   D1 green
+LOCATE COMP "led_r1" SITE "K15"; # O   D1 red
+LOCATE COMP "led_g2" SITE "K16"; # O   D2 green
+LOCATE COMP "led_r2" SITE "J15"; # O   D2 red
+LOCATE COMP "led_g3" SITE "J16"; # O   D3 green
+LOCATE COMP "led_r3" SITE "H15"; # O   D3 red
+LOCATE COMP "led_g4" SITE "M16"; # O   D4 green
+LOCATE COMP "led_r4" SITE "L15"; # O   D4 red
+LOCATE COMP "led_g5" SITE "N16"; # O   D5 green
+LOCATE COMP "led_r5" SITE "M15"; # O   D5 red
+LOCATE COMP "led_g6" SITE "G15"; # O   D6 green
+LOCATE COMP "led_r6" SITE "G16"; # O   D6 red
+IOBUF PORT "led_g1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r6" IO_TYPE=LVCMOS33;
+
+# 56 functional I/O constrained.

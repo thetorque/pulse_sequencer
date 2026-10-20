@@ -1,22 +1,37 @@
-# dds_chase.lpf -- PHYSICAL left-to-right green LED positions for led_chase.
-# LEDs are mounted (left -> right): D5 D4 D1 D2 D3 D6.  Green cathodes, active-low.
-#   led_p1 leftmost = D5 green  N16
-#   led_p2          = D4 green  M16
-#   led_p3          = D1 green  L16
-#   led_p4          = D2 green  K16
-#   led_p5          = D3 green  J16
-#   led_p6 rightmost= D6 green  G15
+# dds_chase.lpf -- PHYSICAL left-to-right LED positions for led_chase (green+red).
+# LEDs are mounted (left -> right): D5 D4 D1 D2 D3 D6. Common-anode, active-low.
+#   pos   physical  green  red
+#   led_p1 = D5      N16    M15   (leftmost)
+#   led_p2 = D4      M16    L15
+#   led_p3 = D1      L16    K15
+#   led_p4 = D2      K16    J15
+#   led_p5 = D3      J16    H15
+#   led_p6 = D6      G15    G16   (rightmost)
 
-LOCATE COMP "led_p1" SITE "N16";
-LOCATE COMP "led_p2" SITE "M16";
-LOCATE COMP "led_p3" SITE "L16";
-LOCATE COMP "led_p4" SITE "K16";
-LOCATE COMP "led_p5" SITE "J16";
-LOCATE COMP "led_p6" SITE "G15";
+# green cathodes
+LOCATE COMP "led_pg1" SITE "N16";
+LOCATE COMP "led_pg2" SITE "M16";
+LOCATE COMP "led_pg3" SITE "L16";
+LOCATE COMP "led_pg4" SITE "K16";
+LOCATE COMP "led_pg5" SITE "J16";
+LOCATE COMP "led_pg6" SITE "G15";
+# red cathodes
+LOCATE COMP "led_pr1" SITE "M15";
+LOCATE COMP "led_pr2" SITE "L15";
+LOCATE COMP "led_pr3" SITE "K15";
+LOCATE COMP "led_pr4" SITE "J15";
+LOCATE COMP "led_pr5" SITE "H15";
+LOCATE COMP "led_pr6" SITE "G16";
 
-IOBUF PORT "led_p1" IO_TYPE=LVCMOS33;
-IOBUF PORT "led_p2" IO_TYPE=LVCMOS33;
-IOBUF PORT "led_p3" IO_TYPE=LVCMOS33;
-IOBUF PORT "led_p4" IO_TYPE=LVCMOS33;
-IOBUF PORT "led_p5" IO_TYPE=LVCMOS33;
-IOBUF PORT "led_p6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pg6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_pr6" IO_TYPE=LVCMOS33;
