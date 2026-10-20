@@ -1,0 +1,22 @@
+# dds_chase.lpf -- PHYSICAL left-to-right green LED positions for led_chase.
+# LEDs are mounted (left -> right): D5 D4 D1 D2 D3 D6.  Green cathodes, active-low.
+#   led_p1 leftmost = D5 green  N16
+#   led_p2          = D4 green  M16
+#   led_p3          = D1 green  L16
+#   led_p4          = D2 green  K16
+#   led_p5          = D3 green  J16
+#   led_p6 rightmost= D6 green  G15
+
+LOCATE COMP "led_p1" SITE "N16";
+LOCATE COMP "led_p2" SITE "M16";
+LOCATE COMP "led_p3" SITE "L16";
+LOCATE COMP "led_p4" SITE "K16";
+LOCATE COMP "led_p5" SITE "J16";
+LOCATE COMP "led_p6" SITE "G15";
+
+IOBUF PORT "led_p1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_p2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_p3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_p4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_p5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_p6" IO_TYPE=LVCMOS33;

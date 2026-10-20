@@ -1,0 +1,4 @@
+# Generated FPGA build artifacts (rebuild with `make TOP=<name> [compress]`)
+*.json
+*.config
+*.bit

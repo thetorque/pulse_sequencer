@@ -1,0 +1,34 @@
+# dds_leds.lpf -- ECP5 LFE5U-25F-6BG256C, DDS board status LEDs
+# 6 bicolor LEDs (D1..D6), LTST-S326KGJRKT, common-anode to P3.3V -> ACTIVE-LOW.
+# Ball assignments read from DDS.kicad_sch (U1C / U1D), 2026-10-19.
+# Same pin map serves both led_static and led_blink (identical port names).
+
+# --- Green cathodes ---
+LOCATE COMP "led_g1" SITE "L16";
+LOCATE COMP "led_g2" SITE "K16";
+LOCATE COMP "led_g3" SITE "J16";
+LOCATE COMP "led_g4" SITE "M16";
+LOCATE COMP "led_g5" SITE "N16";
+LOCATE COMP "led_g6" SITE "G15";
+
+# --- Red cathodes ---
+LOCATE COMP "led_r1" SITE "K15";
+LOCATE COMP "led_r2" SITE "J15";
+LOCATE COMP "led_r3" SITE "H15";
+LOCATE COMP "led_r4" SITE "L15";
+LOCATE COMP "led_r5" SITE "M15";
+LOCATE COMP "led_r6" SITE "G16";
+
+# --- I/O standard: all LED banks powered at 3.3 V (VCCIO2=H11, VCCIO3=K11) ---
+IOBUF PORT "led_g1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r6" IO_TYPE=LVCMOS33;
