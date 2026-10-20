@@ -19,7 +19,7 @@
 #   mpremote run pico_sspi_load.py
 
 from machine import Pin, SPI
-import time, os
+import time
 
 BITFILE = "led_chase_c.bit"    # compressed bitstream (ecppack --compress); set to led_half_c.bit etc. to swap patterns
 SPI_HZ  = 2_000_000
@@ -32,18 +32,16 @@ spi = SPI(0, baudrate=SPI_HZ, polarity=0, phase=0, bits=8, firstbit=SPI.MSB,
           sck=Pin(2), mosi=Pin(3), miso=Pin(4))
 
 
-def _load_buffer():
-    sz = os.stat(BITFILE)[6]
-    buf = bytearray(sz)                 # single buffer (Pico RAM is tight)
+def _preamble_offset():
+    # find where the real bitstream starts (0xFF padding + 0xBDB3 preamble),
+    # skipping the ecppack ASCII comment header
     with open(BITFILE, "rb") as f:
-        f.readinto(buf)
-    sync = buf.find(b"\xbd\xb3")        # locate 0xBDB3 preamble
+        head = f.read(64)
+    sync = head.find(b"\xbd\xb3")
     start = sync
-    while start > 0 and buf[start - 1] == 0xFF:
-        start -= 1                      # back up over the 0xFF padding
-    cmd = start - 4
-    buf[cmd:start] = b"\x7A\x00\x00\x00"   # LSC_BITSTREAM_BURST, immediately before preamble
-    return buf, cmd
+    while start > 0 and head[start - 1] == 0xFF:
+        start -= 1
+    return start
 
 
 def _reset():
@@ -65,7 +63,7 @@ def _rd(opcode):
 
 
 def program():
-    buf, cmd = _load_buffer()
+    start = _preamble_offset()
     _reset()
     idc = _rd(0xE0)
     print("READ_ID = 0x%08X %s" % (idc, "(LFE5U-25 OK)" if idc == 0x41111043 else "(??)"))
@@ -73,8 +71,16 @@ def program():
     _cmd(0xC6); time.sleep_ms(1)          # ISC_ENABLE
     _cmd(0x0E); time.sleep_ms(10)         # ISC_ERASE (clear config SRAM)
 
-    csn(0)                                 # BITSTREAM_BURST + bitstream, continuous
-    spi.write(memoryview(buf)[cmd:])
+    csn(0)                                 # BITSTREAM_BURST + bitstream, CS low throughout
+    spi.write(b"\x7A\x00\x00\x00")         # LSC_BITSTREAM_BURST
+    buf = bytearray(4096)                  # stream from file (handles any size, low RAM)
+    with open(BITFILE, "rb") as f:
+        f.seek(start)                      # skip comment header -> start at preamble
+        while True:
+            n = f.readinto(buf)
+            if not n:
+                break
+            spi.write(buf if n == len(buf) else memoryview(buf)[:n])
     spi.write(b"\xFF" * 512)               # wake-up clocks
     csn(1)
     time.sleep_ms(5)

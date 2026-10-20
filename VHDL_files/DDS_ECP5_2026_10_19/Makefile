@@ -20,9 +20,13 @@ PROBE   ?= dirtyJtag
 SRC_dds_top       := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
 SRC_dac_test      := dac_spi.vhd dac_test.vhd
 SRC_sideband_test := sideband_spi.vhd sideband_test.vhd
+SRC_ram_test      := config_ram.vhd ram_test.vhd
+SRC_ebr_test      := config_ram.vhd ebr_test.vhd
 LPF_dds_top       := dds_ecp5.lpf
 LPF_dac_test      := dac_test.lpf
 LPF_sideband_test := sideband_test.lpf
+LPF_ram_test      := ram_test.lpf
+LPF_ebr_test      := ram_test.lpf
 LPF_led_chase     := dds_chase.lpf
 
 SRC := $(if $(SRC_$(TOP)),$(SRC_$(TOP)),$(TOP).vhd)
@@ -54,6 +58,8 @@ compress: $(TOP).config
 # Simulate a testbench with GHDL (artifacts kept out of the tree, in /tmp).
 #   make sim TB=tb_sideband_spi
 SIM_SRC_tb_sideband_spi := sideband_spi.vhd tb_sideband_spi.vhd
+SIM_SRC_tb_config_ram   := config_ram.vhd tb_config_ram.vhd
+SIM_SRC_tb_ebr_test     := sim_oscg.vhd config_ram.vhd ebr_test.vhd tb_ebr_test.vhd
 SIM_SRC  := $(SIM_SRC_$(TB))
 SIMDIR   := /tmp/ghdl_$(TB)
 sim:
