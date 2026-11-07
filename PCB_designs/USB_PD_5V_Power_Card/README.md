@@ -134,6 +134,83 @@ Use 2 oz copper, dense thermal vias under Q1/Q2/L1; a small fan above ~15 A cont
 **Front panel (8 HP suggested):** USB-C (6-pin power-only, 5 A) or XT30 DC input, depending on build; SW1
 3 A / 5 A slide switch (default 3 A), LEDs: input OK / 20 V negotiated / 5 V power-good / fault.
 
+## PCB layout checklist
+
+Main template: **TI LM5145EVM-HD-20A** (user guide [SNVU545](https://www.ti.com/lit/ug/snvu545/snvu545.pdf))
+— 5 V / 20 A from an LM5145, 4 layers, 2 oz copper, 50 × 30 mm, with an output-capacitor set
+almost identical to ours (7 × 47 µF 1210 + 220 µF polymer). Its four copper layers are shown in
+SNVU545 Figures 20–23; the LM25145 datasheet §11 (Figures 75–77) explains the rules below.
+Differences from the EVM: our input is 20–24 V (40 V MOSFETs instead of 80 V) and we switch at
+400 kHz instead of 220 kHz (smaller 2.2 µH inductor).
+
+The RoboMaster LM5145 board (github.com/hkustenterprize/RM2025-LM5145-48to24) is only useful as
+a KiCad example of LM5145 small-signal placement: it is 48 → 24 V, 2-layer, through-hole
+inductor/caps, and has **no license** (study only, do not copy files).
+
+### Stackup (4 layers, 1.6 mm)
+
+| Layer | Use |
+|---|---|
+| L1 top, 2 oz | Power stage (Q1, Q2, L1, input + output caps) and wide VIN / SW / 5 V / GND pours |
+| L2, close to L1 (TI: 0.15 mm / 6 mil) | **Solid GND plane, unbroken under the power stage** |
+| L3 | GND plane + 5 V pour paralleling L1 for the 18 A run to the DIN connector |
+| L4 bottom, 2 oz | LM5145 and its small parts on a local AGND copper island (as the EVM does) |
+
+Check the fab's 4-layer options for 2 oz outer copper and a thin L1–L2 prepreg.
+
+### Power stage (most important)
+
+- [ ] **Hot loop (#1) as small as possible:** input MLCCs C1–C6 right beside Q1/Q2 — cap +
+      next to the Q1 drain, cap − next to the Q2 source — on the same layer, with the L2 plane
+      directly underneath as the return path.
+- [ ] Second loop: Q2 source → L1 → output caps → back to Q2 source; join Q2 source and the
+      output-cap grounds with short, wide copper.
+- [ ] **SW node** (Q1 source / Q2 drain / L1): short and wide but no larger than needed (it is
+      the main EMI source). Keep it away from FB, COMP, RT, ILIM, SS/TRK.
+- [ ] Follow the MOSFET makers' pad and stencil recommendations for the 5×6 packages.
+- [ ] **Add footprints, fit later if needed:** RC snubber SW → GND (fit if SW ringing exceeds
+      the SW pin's abs-max), and a resistor in series with C_BST (EVM uses 2.2 Ω; start with 0 Ω)
+      to slow the high-side turn-on if ringing is high.
+
+### Gate drive
+
+- [ ] HO / LO traces short, **≥ 0.65 mm (25 mil)** wide; vias on them ≥ 0.5 mm.
+- [ ] Route **HO and SW as a pair** from the LM5145 to Q1 (flux cancellation).
+- [ ] C_BST (C23) right at the BST and SW pins; C_VCC (C24) right at the VCC and PGND pins
+      (these loops carry up to 3.5 A peaks).
+
+### Controller and small signals
+
+- [ ] LM5145 close to Q1/Q2 (short gate traces), small parts on L4 over the AGND island.
+- [ ] **Join AGND and PGND at one point, at the LM5145 thermal pad.**
+- [ ] FB, COMP, RT, SS/TRK, ILIM traces away from SW / HO / LO / BST, shielded by an inner
+      GND plane; take particular care with FB.
+- [ ] Top feedback resistor R2 senses at the output bulk caps (optionally add a 0 Ω option to
+      sense at the DIN connector instead).
+- [ ] Current-limit resistor R6 connects to the **Q2 drain (SW)** and sits close to the ILIM pin;
+      keep the ILIM trace away from switching nodes. C19 from ILIM to PGND, close to the pin.
+- [ ] VIN and VCC decoupling caps as close to the LM5145 as possible.
+
+### Thermal
+
+- [ ] LM5145 thermal pad: array of **0.3 mm vias** to the inner and bottom GND planes; tie
+      no-connect pins 9 and 16 into that copper.
+- [ ] Q1 drain pad into a large VIN pour; Q2 drain pad on the (deliberately small) SW pour;
+      via arrays from the MOSFET and inductor ground/power pads into L2/L3.
+- [ ] TPS16630 (HTSSOP) exposed pad: via array to GND (also allows soldering from the back).
+- [ ] Expect ~5 W total at 18 A; leave room for a small heatsink or airflow over Q1/Q2/L1.
+
+### Eurocard-specific
+
+- [ ] **Put the buck output close to the DIN 41612 connector (rear of the card)** and run the
+      5 A input from the front panel back to it. Copper loss scales with current squared, so a
+      long run is far cheaper at 5 A than at 18 A.
+- [ ] 5 V and GND from the output caps to the 16 + 16 DIN pins as pours on L1 + L3, stitched
+      with many vias; size the width with an IPC-2152 calculator for 18 A and the copper used.
+- [ ] Keep the USB-C CC lines (to the CH224A) and the SW1 → TPS16630 ILIM wiring short and away
+      from the SW node.
+- [ ] Silkscreen "fit J1 OR J2".
+
 ## Open items
 
 - [ ] CH224A 20 V configuration resistor (R16) — check the CH224A datasheet.
@@ -148,4 +225,5 @@ Use 2 oz copper, dense thermal vias under Q1/Q2/L1; a small fan above ~15 A cont
 
 - [TI LM25145 datasheet](https://www.ti.com/lit/ds/symlink/lm25145.pdf) — Design 1: 24 V → 5 V, 20 A
 - [TI LM5145 datasheet](https://www.ti.com/lit/ds/symlink/lm5145.pdf)
+- [TI LM5145EVM-HD-20A user guide (SNVU545)](https://www.ti.com/lit/ug/snvu545/snvu545.pdf) — 5 V / 20 A layout template
 - [TI TPS1663 (TPS16630) datasheet](https://www.ti.com/lit/ds/symlink/tps1663.pdf)
