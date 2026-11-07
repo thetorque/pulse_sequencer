@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDS Board — Pin Connection Checklist</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1c2230; --muted:#5a6472; --line:#e3e7ee;
+    --accent:#2f6df6; --accent-soft:#eaf1ff; --done:#e9f8ee; --done-line:#8fd6a6;
+    --warn-bg:#fff6e6; --warn-line:#f0c66b; --tbd:#f4f5f8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  code{font-family:"SF Mono",ui-monospace,"Cascadia Code","Consolas",monospace}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px 90px}
+  header.hero{background:linear-gradient(180deg,#fff,#fbfcfe);border:1px solid var(--line);
+    border-radius:16px;padding:22px 26px;margin:22px 0 22px}
+  header.hero h1{margin:.1em 0 .2em;font-size:24px}
+  header.hero p{margin:.2em 0;color:var(--muted);font-size:14px}
+  .pill{display:inline-block;background:var(--accent-soft);color:#20458f;border-radius:999px;
+    padding:3px 11px;font-size:12px;font-weight:600;margin-right:6px}
+  .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .bar .prog{flex:1;min-width:160px;height:8px;background:#e3e7ee;border-radius:6px;overflow:hidden}
+  .bar .prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .bar b{font-size:13px;color:var(--muted);font-weight:500}
+  .bar button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:#fff;color:var(--muted);
+    border-radius:7px;padding:4px 10px;cursor:pointer}
+  .bar button:hover{border-color:var(--accent);color:var(--accent)}
+  section{margin:24px 0 0}
+  h2{font-size:18px;margin:26px 0 4px;padding-top:10px;border-top:1px solid var(--line)}
+  h2 .st{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;
+    padding:2px 8px;margin-left:8px;vertical-align:middle}
+  .st.locked{background:var(--done);color:#1c6b3f;border:1px solid var(--done-line)}
+  .st.tbd{background:var(--tbd);color:var(--muted);border:1px solid var(--line)}
+  .note{color:var(--muted);font-size:13px;margin:6px 0 10px}
+  table{border-collapse:collapse;width:100%;margin:8px 0 4px;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f3f8;font-weight:600}
+  td.ball code{background:#eef1f6;border:1px solid var(--line);border-radius:5px;padding:.05em .4em;white-space:nowrap}
+  td.chk{width:34px;text-align:center}
+  input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:var(--accent)}
+  tr.on{background:var(--done)}
+  tr.on td{opacity:.72}
+  .tbdrow td{color:var(--muted)}
+  .box{border-radius:10px;padding:10px 14px;margin:12px 0;border:1px solid;font-size:13.5px}
+  .warn{background:var(--warn-bg);border-color:var(--warn-line)}
+  .box b.tag{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  footer{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px;margin-top:34px}
+  .legend{font-size:12.5px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <span class="pill">DDS slave board</span><span class="pill">LFE5U-25F-6BG256C</span>
+  <h1>Pin Connection Checklist</h1>
+  <p>Tick each net as you wire it in the schematic. Progress saves in this browser. Config + JTAG balls are locked (from TN-02039 / TN-02038 / the caBGA256 pinout); the rest fill in as you assign pins.</p>
+</header>
+
+<div class="bar">
+  <div class="prog"><i id="progbar"></i></div>
+  <b id="progtxt">0 / 0</b>
+  <button onclick="resetAll()">Reset all</button>
+</div>
+
+<!-- ===================== ECP5 CONFIG ===================== -->
+<section>
+  <h2>1 · ECP5 config — Pico W slave-SPI (SSPI)<span class="st locked">balls locked</span></h2>
+  <div class="note">All in Bank 8, referenced to <b>VCCIO8 = 3.3 V</b>. MISO is optional for a loader (blind-write + poll DONE).</div>
+  <table>
+    <thead><tr><th>✓</th><th>Signal (Pico ↔ ECP5)</th><th>ECP5 function</th><th>Ball</th><th>Resistor / note</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-sck"></td><td>SPI SCK → CCLK</td><td>CCLK</td><td class="ball"><code>N9</code></td><td>22–80 Ω series near Pico (+ opt. 510 Ω–1 k pull-up)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-mosi"></td><td>SPI MOSI → D0/MOSI</td><td>D0/MOSI (PB11B)</td><td class="ball"><code>T8</code></td><td>—</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-miso"></td><td>SPI MISO → D1/MISO</td><td>D1/MISO (PB11A)</td><td class="ball"><code>T7</code></td><td>optional; <b>not N8</b> (N8 = HOLDN)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-cs"></td><td>SPI CS → SN/CSN</td><td>SN/CSN (PB13A)</td><td class="ball"><code>R8</code></td><td><b>4.7 k pull-up to VCCIO8 (required)</b></td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-prog"></td><td>GPIO → PROGRAMN</td><td>PROGRAMN</td><td class="ball"><code>R9</code></td><td>4.7 k pull-up to VCCIO8</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-init"></td><td>GPIO ← INITN</td><td>INITN</td><td class="ball"><code>T9</code></td><td>4.7 k pull-up (open-drain)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-done"></td><td>GPIO ← DONE</td><td>DONE</td><td class="ball"><code>P9</code></td><td>4.7 k pull-up (open-drain)</td></tr>
+    </tbody>
+  </table>
+  <h2 style="border:none;padding-top:6px;font-size:15px">CFG mode straps — SSPI = <code>001</code> (not to the Pico)</h2>
+  <table>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-c2"></td><td>CFG_2</td><td>= 0</td><td class="ball"><code>R10</code></td><td><b>tie directly to GND</b></td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-c1"></td><td>CFG_1</td><td>= 0</td><td class="ball"><code>P10</code></td><td><b>tie directly to GND</b></td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="cfg-c0"></td><td>CFG_0</td><td>= 1</td><td class="ball"><code>N10</code></td><td>4.7 k pull-up to VCCIO8</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><b class="tag">Watch</b>logic-0 CFG must be a <b>strong</b> pull (tie to GND, or &lt;500 Ω) to beat the internal weak pull-up — a 10 k pull-down is not enough. VCCIO8 must be 3.3 V.</div>
+</section>
+
+<!-- ===================== JTAG ===================== -->
+<section>
+  <h2>2 · JTAG header (bring-up / debug)<span class="st locked">balls locked</span></h2>
+  <div class="note">Route to a test header with VCCIO8 + GND even if not the primary config path.</div>
+  <table>
+    <thead><tr><th>✓</th><th>Signal</th><th>Ball</th><th>Resistor</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="jt-tck"></td><td>TCK</td><td class="ball"><code>T10</code></td><td><b>4.7 k pull-DOWN to GND</b> (the odd one)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="jt-tms"></td><td>TMS</td><td class="ball"><code>T11</code></td><td>4.7 k pull-up to VCCIO8</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="jt-tdi"></td><td>TDI</td><td class="ball"><code>R11</code></td><td>4.7 k pull-up to VCCIO8</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="jt-tdo"></td><td>TDO</td><td class="ball"><code>M10</code></td><td>4.7 k pull-up to VCCIO8</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="jt-hdr"></td><td>Header carries VCCIO8 + GND</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== POWER ===================== -->
+<section>
+  <h2>3 · Power &amp; sequencing<span class="st locked">rule locked</span></h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Value / rule</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-vcc"></td><td>VCC (core)</td><td>1.1 V — TLV62569 buck</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-vccaux"></td><td>VCCAUX</td><td>2.5 V — NCP115-2.5 LDO (mandatory)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-vccio"></td><td>VCCIO (all banks incl. VCCIO8)</td><td>3.3 V — TLV62569 buck</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-seq"></td><td>Sequencing</td><td><b>VCCIO up BEFORE or WITH VCC + VCCAUX</b></td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-vccauxa"></td><td>VCCAUXA (if PLL used)</td><td>2.5 V via ferrite + cap filter from VCCAUX</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-unused"></td><td>Unused VCCIO banks</td><td>tie to a rail — do not float</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-decap"></td><td>Decoupling</td><td>per OrangeCrab DECOUPLING.sch; 0.1 µF 0402, bulk 10 µF 0603</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== TO ASSIGN ===================== -->
+<section>
+  <h2>4 · ECP5 ↔ AD9912<span class="st tbd">balls to assign</span></h2>
+  <div class="note">Assign to any free user I/O (banks 0–3, 6, 7). Keep the AD9912 behind the ECP5 (Pico never wires here).</div>
+  <table>
+    <thead><tr><th>✓</th><th>Signal</th><th>Ball</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-sclk"></td><td>SCLK</td><td class="ball">___</td><td>AD9912 SPI clock</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-sdio"></td><td>SDIO</td><td class="ball">___</td><td>SPI data</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-sdo"></td><td>SDO</td><td class="ball">___</td><td>4-wire readback</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-csb"></td><td>CSB</td><td class="ball">___</td><td>chip select</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-iou"></td><td>IO_UPDATE</td><td class="ball">___</td><td>latch — pulse on step_to_next</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-rst"></td><td>RESET</td><td class="ball">___</td><td><b>don't forget</b> — AD9912 hard reset</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dds-pwrdwn"></td><td>PWRDWN (opt.)</td><td class="ball">___</td><td>tie GND if unused; never use to gate RF</td></tr>
+    </tbody>
+  </table>
+  <div class="note" style="margin-top:12px"><b>Interface resistors</b> (pull rail = AD9912 DVDD_I/O, must match ECP5 bank VCCIO — <b>confirm 1.8 V vs 3.3 V</b>):</div>
+  <table>
+    <thead><tr><th>✓</th><th>Signal</th><th>Resistor</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-r-sclk"></td><td>SCLK</td><td>~33 Ω series at ECP5</td><td>clock-only damping (double-edge)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-r-csb"></td><td>CSB</td><td><b>10 k pull-up</b></td><td>idle SPI while ECP5 unconfigured</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-r-iou"></td><td>IO_UPDATE</td><td><b>10 k pull-down</b></td><td>no spurious register latch</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-r-rst"></td><td>RESET</td><td>10 k pull-down</td><td>not held in reset when floating</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-r-sdo"></td><td>SDO (opt.)</td><td>10 k pull-down</td><td>defines input when 9912 tri-states</td></tr>
+    </tbody>
+  </table>
+  <div class="note" style="margin-top:12px"><b>Analog / clock pins</b> (not ECP5 I/O):</div>
+  <table>
+    <thead><tr><th>✓</th><th>Pin</th><th>Handling</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-dacout"></td><td>DAC_OUT / DAC_OUTB (50/51)</td><td><b>the analog sine → RF chain</b> (AC-couple; internal 50 Ω, no ext bias R)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-rset"></td><td>DAC_RSET (48)</td><td>10 kΩ to GND (~20 mA full-scale)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-sysclk"></td><td>SYSCLK / SYSCLKB (27/28)</td><td>AC-couple external 1 GHz; single-ended → 0.01 µF on SYSCLKB</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-loopf"></td><td>LOOP_FILTER (31)</td><td><b>1 kΩ to analog GND</b> (PLL bypassed); dual-footprint if DNP-selectable on-board clock</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-clkmode"></td><td>CLKMODESEL (32)</td><td>leave unconnected (external clock, PLL bypassed)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="dds-fdbk"></td><td>FDBK_IN/OUT/OUT_CMOS (40/41/34/35/38)</td><td><b>UNUSED</b> — clock path; leave open, power down HSTL+CMOS drivers</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><b class="tag">Output path</b>Use <b>DAC_OUT (sine)</b> for the AOM — NOT the <code>FDBK_IN → OUT/OUT_CMOS</code> square-wave clock path. Drive SYSCLK with the clean 1 GHz directly (PLL bypassed); never clock the DDS from the ECP5.</div>
+</section>
+
+<section>
+  <h2>5 · ECP5 ↔ amplitude DAC (MCP4821)<span class="st tbd">balls to assign</span></h2>
+  <table>
+    <thead><tr><th>✓</th><th>Signal</th><th>Ball</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-sck"></td><td>SCK</td><td class="ball">___</td><td>write-only, no MISO</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-sdi"></td><td>SDI</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-cs"></td><td>CS</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-ldac"></td><td>LDAC</td><td class="ball">___</td><td>pre-stage + latch (amplitude "IO_UPDATE")</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-shdn"></td><td>SHDN</td><td class="ball">—</td><td>tie to VDD (or optional GPIO)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="dac-rc"></td><td>VOUT → ADL5330 VDBS</td><td class="ball">—</td><td>RC low-pass on the line (amplitude noise)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>6 · ECP5 ↔ backplane (via 2× DSLVDS1048)<span class="st tbd">balls to assign</span></h2>
+  <div class="note">All inputs (MISO dropped). <code>step_to_next</code> pair length-matched. Address straps are local resistors.</div>
+  <table>
+    <thead><tr><th>✓</th><th>Signal</th><th>ECP5 ball</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-sck"></td><td>SCK (from rcv1)</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-mosi"></td><td>MOSI (rcv1)</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-cs"></td><td>CS (rcv1)</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-step"></td><td>step_to_next (rcv1)</td><td class="ball">___</td><td>low-jitter trigger — clean route</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-ramr"></td><td>ram_reset (rcv2)</td><td class="ball">___</td><td>—</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-spare"></td><td>3 spare inputs (rcv2)</td><td class="ball">___</td><td>route to free ECP5 GPIO, input-only</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-addr"></td><td>add_in[3:0] board address</td><td class="ball">___</td><td><b>4-pin header / 4-pos DIP</b> (or resistor straps) → 4 ECP5 GPIO, 10 k pulls, silk <b>A0–A3</b>; matches backplane <code>dds_bus_in[31:28]</code>. See §10.</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="bp-term"></td><td>Term: 100 Ω populatable, end card only</td><td class="ball">—</td><td>silkscreen "populate on end card"</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>7 · RF output chain<span class="st locked">parts chosen</span></h2>
+  <div class="note">Finalized chain (per ADL5330 datasheet Fig 33/34): <code>DAC_OUT → balun → recon LPF → balun → ADL5330 → balun → harmonic LPF → RF switch → AOM</code>. All JLC-stocked.</div>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Part (JLC)</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="rf-balun"></td><td>Baluns ×3</td><td class="ball">ETC1-1-13 (C2834808)</td><td>DDS-out, VGA-in, VGA-out</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="rf-cap"></td><td>AC-couple caps ×6</td><td class="ball">CL10C101JB8NNNC (C14858)</td><td>100 pF <b>C0G</b> 0603</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="rf-choke"></td><td>VGA bias chokes ×2</td><td class="ball">LQW18ANR12G00D</td><td>120 nH wirewound; +5 V → OPHI/OPLO</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="rf-lpf"></td><td>LPF ×1–2</td><td class="ball">LFCN-400+ (C879882)</td><td>recon + harmonic; cascade 2× recon for deep 600 MHz reject</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="rf-vga"></td><td>VGA</td><td class="ball">ADL5330</td><td>gain 0–1.4 V ← MCP4821</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rf-sw"></td><td>RF switch + control</td><td class="ball">PE4251MLI-Z (C2654721)</td><td>absorptive SPDT, 62 dB iso, single part (no cascade, no ext. 50 Ω, no DC caps); CTRL ← ECP5 (ball ___) 3.3 V, gate off step_to_next. ~150 ns switch — use PE4259-63 if sub-100 ns edges needed</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="clk-osc"></td><td>ECP5 clock = internal OSCG</td><td class="ball">—</td><td>no external pin</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><b class="tag">Rules</b>Caps must be <b>C0G</b> (never X7R). Chokes must be <b>wirewound, SRF ≥ 2× fmax</b> (not multilayer ferrite). ETC1-1-13 DC path is fine — everything is AC-coupled.</div>
+</section>
+
+<!-- ===================== PICO W GPIO MAP ===================== -->
+<section>
+  <h2>8 · Pico W GPIO map<span class="st locked">GPIO assigned</span></h2>
+  <div class="note">The Pico side of every wire. Config = <b>SPI0</b>; command/status sideband = a <b>separate SPI1</b> (never share the config port); OLED = <b>I²C1</b>. GPIO chosen to match the RP2040's fixed per-pin peripheral mapping. Reserved: GP23/24/25/29 = CYW43 WiFi (onboard LED is on CYW43 → board LEDs need real GPIO).</div>
+  <table>
+    <thead><tr><th>✓</th><th>GPIO</th><th>RP2040 fn</th><th>Net</th><th>Dir</th><th>Group</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp2"></td><td class="ball"><code>GP2</code></td><td>SPI0 SCK</td><td>ECP5 CCLK</td><td>out</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp3"></td><td class="ball"><code>GP3</code></td><td>SPI0 TX</td><td>ECP5 MOSI (D0)</td><td>out</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp4"></td><td class="ball"><code>GP4</code></td><td>SPI0 RX</td><td>ECP5 MISO (D1) <i>opt.</i></td><td>in</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp5"></td><td class="ball"><code>GP5</code></td><td>SPI0 CSn</td><td>ECP5 SN/CSN</td><td>out</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp6"></td><td class="ball"><code>GP6</code></td><td>GPIO</td><td>ECP5 PROGRAMN</td><td>out</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp7"></td><td class="ball"><code>GP7</code></td><td>GPIO</td><td>ECP5 INITN</td><td>in (OD)</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp8"></td><td class="ball"><code>GP8</code></td><td>GPIO</td><td>ECP5 DONE</td><td>in</td><td>config</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp10"></td><td class="ball"><code>GP10</code></td><td>SPI1 SCK</td><td>sideband SCLK</td><td>out</td><td>sideband</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp11"></td><td class="ball"><code>GP11</code></td><td>SPI1 TX</td><td>sideband MOSI (command)</td><td>out</td><td>sideband</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp12"></td><td class="ball"><code>GP12</code></td><td>SPI1 RX</td><td>sideband MISO (status)</td><td>in</td><td>sideband</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp13"></td><td class="ball"><code>GP13</code></td><td>SPI1 CSn</td><td>sideband CS</td><td>out</td><td>sideband</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp9"></td><td class="ball"><code>GP9</code></td><td>GPIO</td><td>ECP5 → Pico ATTN/IRQ <i>opt.</i></td><td>in</td><td>sideband</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp14"></td><td class="ball"><code>GP14</code></td><td>I²C1 SDA</td><td>OLED SDA</td><td>bidir</td><td>OLED</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp15"></td><td class="ball"><code>GP15</code></td><td>I²C1 SCL</td><td>OLED SCL</td><td>out</td><td>OLED</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp16"></td><td class="ball"><code>GP16</code></td><td>GPIO</td><td>Status LED 1</td><td>out</td><td>LEDs</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp17"></td><td class="ball"><code>GP17</code></td><td>GPIO</td><td>Status LED 2</td><td>out</td><td>LEDs</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="pw-gp18"></td><td class="ball"><code>GP18</code></td><td>GPIO</td><td>Status LED 3 <i>opt.</i></td><td>out</td><td>LEDs</td></tr>
+    </tbody>
+  </table>
+  <div class="note">Left free on purpose: <code>GP0/GP1</code> → UART0 USB/console for bring-up; <code>GP26/GP27/GP28</code> → ADC-capable, reserve for housekeeping (rail voltage / temperature); <code>GP19–GP22</code> → spare/expansion.</div>
+  <div class="box warn"><b class="tag">Keep separate</b>The sideband is a <b>dedicated SPI1</b>, not the config SPI0 — sharing would put runtime traffic on PROGRAMN/CS and risk an accidental reconfig. AD9912 SPI is <b>not</b> on the Pico: the Pico sends setpoints over the sideband and the ECP5 executes them.</div>
+</section>
+
+<!-- ===================== SSPI VERIFICATION ===================== -->
+<section>
+  <h2>9 · SSPI verification — check against Lattice docs<span class="st locked">how to verify</span></h2>
+  <div class="note">Validate the config wiring against <b>TN-02039</b> (sysCONFIG User Guide) + <b>TN-02038</b> (Hardware Checklist). Tick each once confirmed.</div>
+  <table>
+    <thead><tr><th>✓</th><th>Doc reference</th><th>What it confirms</th></tr></thead>
+    <tbody>
+      <tr><td class="chk"><input type="checkbox" data-k="v-fig65"></td><td><b>TN-02039 Figure 6.5</b> (§6.2) — "Slave SPI Port with CPU"</td><td>Lattice's reference schematic for a CPU/MCU driving slave-SPI — compare your wiring pin-for-pin</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-t63"></td><td><b>TN-02039 Table 6.3</b> — Slave SPI port pins</td><td>CCLK/MOSI(in)/MISO(out, read-only)/SN + HOLDN; Note 1 = SN needs 4.7 k pull-up</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-t45"></td><td><b>TN-02039 Table 4.5</b> — Slave-SPI column</td><td>function→ball map (N9/T8/T7/R8/R9/T9/P9)</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-t46"></td><td><b>TN-02039 Table 4.6</b> — CFGMDN settings</td><td>CFG[2:0] = <b>001</b> for SSPI</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-flow"></td><td><b>TN-02039 §6.2.1 + Figure 6.10</b> — enable + config flow</td><td>PROGRAMN→INITN→stream→DONE handshake (Pico firmware spec); Appendix A + Table 6.4 = command bytes</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-res"></td><td><b>TN-02038 Tables 6.1 / 6.2</b> — resistor values</td><td>PROGRAMN/INITN 4.7 k pull-up, TCK 4.7 k pull-DOWN, CCLK series-R</td></tr>
+      <tr><td class="chk"><input type="checkbox" data-k="v-erc"></td><td>Run KiCad <b>ERC</b></td><td>catch floating global labels / mis-connected nets after both sheets are wired</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><b class="tag">Note</b>PROGRAMN/INITN/DONE are <b>not</b> in Table 6.3 (that's just the SPI port + HOLDN) — they're general config-control pins (§4 / Table 4.5), and they <b>do</b> connect to the Pico (GP6/GP7/GP8), each with a 4.7 k pull-up. Only CFG[2:0] are resistor-strapped with no Pico connection.</div>
+</section>
+
+<!-- ===================== FULL-BOARD REVIEW SWEEP ===================== -->
+<section>
+  <h2>10 · Full-board review sweep<span class="st tbd">go over again</span></h2>
+  <div class="note">Second pass over connections not fully covered in §1–9. Tick each once confirmed on the schematic. Biggest still-open blocks: the supply tree, ADL5330 support pins, the sideband SPI1, and the backplane.</div>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">Board address — 4-pin header / DIP <span style="font-size:12px;font-weight:400;color:#b23">(easy to forget!)</span></h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-addrhdr"></td><td><b>4-pin header / 4-pos DIP → add_in[3:0]</b></td><td>board ID 0–15 → <b>4 ECP5 GPIO</b> (3.3 V bank), 10 kΩ pull each (open = defined bit), silk-label <b>A0–A3</b>. The value the backplane matches to <code>dds_bus_in[31:28]</code> to select this card.</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-addralt"></td><td>Alt: geographic slot-coding</td><td>strap add_in[3:0] from dedicated per-slot backplane-connector pins (slot sets the ID; set-and-forget rack) — needs those pins on the backplane.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">AD9912 power &amp; ground completeness</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Pins</th><th>Rail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-dvddio"></td><td>DVDD_I/O (1) + pin 14</td><td>3.3 V (digital — may share digital buck; ftnt 1 ties pin 14 to pin 1)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-dvdd"></td><td>DVDD (3, 5, 7)</td><td>1.8 V</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-avdd3"></td><td>AVDD3 (37, 46, 47, 49)</td><td>3.3 V <b>analog LDO</b> (not the digital buck)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-avdd"></td><td>AVDD (11, 19, 23–26, 29, 30, 36, 42, 44, 45, 53)</td><td>1.8 V analog LDO</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-gnd"></td><td>DVSS (2,4,6,8,56,57) + AVSS (33,39,43,52) + <b>EPAD</b></td><td>GND (EPAD mandatory)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-ad-decap"></td><td>100 nF per supply pin + bulk per rail</td><td>ferrite-split AVDD(1.8 analog) from DVDD(1.8 digital)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">ADL5330 (U8) support pins</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-adl-ep"></td><td><b>EP (25) → GND</b> + thermal vias renumbered to 25</td><td>fixes the DRC annular/clearance cluster; annular ≥ 0.1 mm; bottom GND pour under the array</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-adl-pwr"></td><td>VPS1/VPS2 → +5 V; COM1/COM2 → GND</td><td>all of them</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-adl-enbl"></td><td>ENBL (23) → high (or control)</td><td>don't leave floating</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-adl-bias"></td><td>IPBS / OPBS / VREF / GNLO</td><td>per ADL5330 datasheet (decouple, not floating)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-adl-gain"></td><td>MCP4821 Vout → RC → GAIN (24)</td><td>was unconnected — add the RC low-pass</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">Supply tree</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Rail</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-5"></td><td>5 V backplane in</td><td>filtering; also feeds ADL5330 + Pico VSYS + analog LDO inputs</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-33"></td><td>3.3 V digital</td><td>TLV62569 buck (VCCIO, DVDD_I/O, MCP4821, drivers)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-11"></td><td>1.1 V core</td><td>TLV62569 buck</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-25"></td><td>2.5 V VCCAUX</td><td>NCP115-2.5 LDO</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-18"></td><td><b>1.8 V AD9912 (AVDD/DVDD)</b></td><td><b>low-noise LDO</b> (5 V→~2.5 V buck→LDO, or off 3.3 V) — never a bare buck</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-33a"></td><td><b>3.3 V analog (AVDD3)</b></td><td>small low-noise LDO off 5 V (TPS7A20/ADM7160)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-sup-seq"></td><td>Sequencing</td><td>VCCIO before/with VCC + VCCAUX; ECP5 core/aux/IO order</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">Clocking</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-clk-1g"></td><td>1 GHz hardwired (J2→R39 49.9 Ω→C39→SYSCLK)</td><td>no jumper in the precision path</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-clk-osc"></td><td>DNP osc: J4 (2-pin add on SYSCLK) + J5 (3-pin SPDT on SYSCLK_B)</td><td>R50 = 100 Ω across (LVDS); C65 decap with osc; verify LVDS not LVPECL; label silk A=1GHz/B=OSC</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-clk-mode"></td><td>CLKMODESEL(32)=1.8 V; LOOP_FILTER(31)=1 kΩ→AGND; straps S1–S4=1000</td><td>S4↑3.3 V, S1–S3↓GND, 10 k each</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-clk-ecp5"></td><td>ECP5 clock = OSCG (default)</td><td>opt. DNP aux LVDS XO → J1/J2 (left bank PCLKT7_1) + 100 Ω term + 2.5 V DNP feed</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">Pico W power path</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-pico-pfet"></td><td>Q4 (AO3401A): D→board 5 V, S→VSYS_PICO, G→VBUS</td><td>USB-priority, no back-feed</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-pico-gpd"></td><td><b>100 kΩ gate pull-down (VBUS→GND)</b></td><td>defines FET when USB unplugged</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-pico-sep"></td><td>VBUS = USB only; 3V3 (36) NOT tied to board 3.3 V</td><td>keep rails separate</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-pico-bulk"></td><td>~10 µF bulk on VSYS_PICO; common GND</td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="border:none;padding-top:6px;font-size:15px">Peripherals + global sweep</h2>
+  <table>
+    <thead><tr><th>✓</th><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-led"></td><td>Bicolor LED (LTST-S326)</td><td>A+→3.3 V, C1/C2 → 1 kΩ each → ECP5 (active-low sink)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-oled"></td><td>OLED connector (I²C1) + pull-ups</td><td>if not on module</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-glob-pg"></td><td><b>Every power &amp; ground pin on every IC connected</b></td><td>incl. unused VCCIO banks (don't float)</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-glob-dec"></td><td>Decoupling on every IC supply pin</td><td>0.1 µF close + bulk per rail</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-glob-float"></td><td>Unused inputs tied off; pulls where needed</td><td>no floating logic inputs</td></tr>
+      <tr class="tbdrow"><td class="chk"><input type="checkbox" data-k="rv-glob-erc"></td><td>Run <b>ERC</b> + DRC "test parity between PCB and schematic"</td><td>catch mismatches / floating labels</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><b class="tag">Optional spare-I/O uses</b>Scope-sync / trigger I/O, debug LEDs + LA test-point header, RF power-detector + interlock inputs, DSA control, a reserved expansion header (group on one 3.3 V bank w/ a clock-capable pin), DNP QSPI PSRAM (APS6404L, 6-pin) for memory expansion.</div>
+</section>
+
+<footer>
+  DDS slave board pin checklist — generated 2026-09-15, review sweep added 2026-09-25. Config/JTAG balls: LFE5U-25 caBGA256 (FPGA-SC-02033) + TN-02039 + TN-02038. Companion to <a href="hardware.html">hardware.html</a> and <a href="manual.html">manual.html</a>. Design stage — verify against the datasheet before fab.
+</footer>
+</div>
+
+<script>
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('input[type=checkbox]'));
+  function store(){ try{ var s={}; boxes.forEach(function(b){s[b.dataset.k]=b.checked}); localStorage.setItem('dds_pinchk', JSON.stringify(s)); }catch(e){} }
+  function load(){ try{ var s=JSON.parse(localStorage.getItem('dds_pinchk')||'{}'); boxes.forEach(function(b){ if(s[b.dataset.k]) b.checked=true; }); }catch(e){} }
+  function paint(){
+    var n=0; boxes.forEach(function(b){ if(b.checked)n++; b.closest('tr').classList.toggle('on', b.checked); });
+    var pct = boxes.length? Math.round(n/boxes.length*100):0;
+    document.getElementById('progbar').style.width = pct+'%';
+    document.getElementById('progtxt').textContent = n+' / '+boxes.length+'  ('+pct+'%)';
+  }
+  function resetAll(){ boxes.forEach(function(b){b.checked=false}); store(); paint(); }
+  boxes.forEach(function(b){ b.addEventListener('change', function(){ store(); paint(); }); });
+  load(); paint();
+</script>
+</body>
+</html>

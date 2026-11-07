@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDS Slave Board — Hardware Design</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#ffffff; --ink:#1c2230; --muted:#5a6472; --line:#e3e7ee;
+    --accent:#2f6df6; --accent-soft:#eaf1ff; --code-bg:#0f172a; --code-ink:#e6edf7;
+    --warn-bg:#fff6e6; --warn-line:#f0c66b; --ok-bg:#e9f8ee; --ok-line:#8fd6a6;
+    --tip-bg:#eef4ff; --tip-line:#a9c6ff;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd,pre{font-family:"SF Mono",ui-monospace,"Cascadia Code","Consolas",monospace}
+  .wrap{display:flex;max-width:1180px;margin:0 auto;gap:36px;padding:0 24px}
+  nav{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;
+    width:250px;flex:none;padding:28px 8px 40px;border-right:1px solid var(--line)}
+  nav h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    margin:22px 10px 8px}
+  nav a{display:block;padding:5px 10px;color:var(--muted);border-radius:7px;font-size:14px}
+  nav a:hover{background:var(--panel);color:var(--ink);text-decoration:none}
+  main{flex:1;min-width:0;padding:34px 0 96px}
+  header.hero{background:linear-gradient(180deg,#fff, #fbfcfe);border:1px solid var(--line);
+    border-radius:16px;padding:26px 30px;margin-bottom:30px}
+  header.hero h1{margin:.1em 0 .15em;font-size:27px;letter-spacing:-.01em}
+  header.hero p{margin:.2em 0;color:var(--muted)}
+  .pill{display:inline-block;background:var(--accent-soft);color:#20458f;border-radius:999px;
+    padding:3px 11px;font-size:12.5px;font-weight:600;margin-right:6px}
+  section{margin:0 0 40px;scroll-margin-top:18px}
+  h2.sec{font-size:21px;margin:34px 0 10px;padding-top:8px;border-top:1px solid var(--line)}
+  h3{font-size:16.5px;margin:22px 0 6px}
+  p{margin:.5em 0}
+  ol,ul{margin:.5em 0 .5em;padding-left:22px}
+  li{margin:.28em 0}
+  pre{background:var(--code-bg);color:var(--code-ink);border-radius:11px;padding:14px 16px;
+    overflow-x:auto;font-size:13.5px;line-height:1.55;margin:12px 0}
+  p code,li code,td code{background:#eef1f6;border:1px solid var(--line);border-radius:5px;
+    padding:.08em .38em;font-size:13.5px;color:#20305a}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:#f0f3f8;font-weight:600}
+  td code{white-space:nowrap}
+  .box{border-radius:11px;padding:12px 16px;margin:14px 0;border:1px solid}
+  .box p:first-child{margin-top:0}.box p:last-child{margin-bottom:0}
+  .warn{background:var(--warn-bg);border-color:var(--warn-line)}
+  .ok{background:var(--ok-bg);border-color:var(--ok-line)}
+  .tip{background:var(--tip-bg);border-color:var(--tip-line)}
+  .box b.tag{display:block;font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:2px}
+  .arch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;
+    font-size:13.5px;color:var(--muted);overflow-x:auto}
+  .arch pre{background:none;color:var(--ink);padding:0;margin:0;font-size:13px}
+  footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px;margin-top:40px}
+  @media (max-width:820px){
+    .wrap{flex-direction:column;gap:0;padding:0 16px}
+    nav{position:static;height:auto;width:auto;border-right:none;border-bottom:1px solid var(--line);
+      padding:14px 0;display:flex;flex-wrap:wrap;gap:2px}
+    nav h2{width:100%;margin:8px 10px 2px}
+    main{padding-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h2>Design</h2>
+  <a href="#overview">Overview</a>
+  <a href="#oldnew">Old vs new board</a>
+  <a href="#block">Block diagram</a>
+  <h2>Digital</h2>
+  <a href="#fpga">FPGA (ECP5)</a>
+  <a href="#config">Configuration (Pico W)</a>
+  <a href="#clocking">Clocking</a>
+  <a href="#table">Config table &amp; RAM</a>
+  <h2>RF chain</h2>
+  <a href="#dds">DDS chip (AD9912)</a>
+  <a href="#rfpath">RF signal path + BOM</a>
+  <a href="#amplitude">Amplitude (VGA + DAC)</a>
+  <a href="#rfoff">RF on/off gating</a>
+  <h2>Interfaces</h2>
+  <a href="#bus">Pulser ↔ DDS bus</a>
+  <a href="#backplane">Backplane / receivers</a>
+  <a href="#pins">Pin budgets</a>
+  <h2>Board</h2>
+  <a href="#power">Power</a>
+  <a href="#bom">Key BOM</a>
+  <a href="#refs">References</a>
+  <a href="#open">Open items</a>
+</nav>
+
+<main>
+<header class="hero">
+  <span class="pill">DDS slave board</span><span class="pill">ECP5 + AD9912</span><span class="pill">planning</span>
+  <h1>DDS Slave Board — Hardware Design Summary</h1>
+  <p>The DDS board the XEM7305 pulser drives over the Eurocard backplane to generate RF for AOMs. This captures the design decisions taken so far.</p>
+  <p style="font-size:13.5px">Companion to the software <a href="manual.html">Pulser manual</a>. <b>Status: design/planning — not yet built.</b> Point-in-time as of 2026-09-22 (RF signal-path BOM finalized); verify parts/specs against datasheets before committing a layout.</p>
+</header>
+
+<section id="overview">
+  <h2 class="sec">Overview</h2>
+  <p>Each DDS card sits in a Eurocard rack. The <b>XEM7305 pulser</b> streams a per-board frequency/phase/amplitude table into the card and issues broadcast triggers; the card's FPGA plays that table out to an <b>AD9912 DDS</b> on each <code>step_to_next</code>, and the RF passes through an amplitude/gating chain to the AOM. An on-board <b>Raspberry Pi Pico W</b> is the local supervisor (config-loads the FPGA, does standalone/bench control, WiFi/USB).</p>
+  <div class="box tip"><b class="tag">Design philosophy</b>
+    <p>Two clean lanes: a <b>fast, hardware-timed experiment path</b> (pulser → FPGA → AD9912, phase-coherent, ns/µs timing) and a <b>slow supervisor path</b> (Pico W — config, CW setpoints, housekeeping, WiFi). The Pico is never in the timing-critical loop. The FPGA is a "config-memory + SPI streamer" — the old on-FPGA frequency sweep engine is dropped.</p>
+  </div>
+</section>
+
+<section id="oldnew">
+  <h2 class="sec">Old vs new board</h2>
+  <table>
+    <tr><th></th><th>Old (<code>DDS_FPGA_2015_03_10</code>)</th><th>New (planned)</th></tr>
+    <tr><td>FPGA</td><td>Cyclone IV E <code>EP4CE22F17C8</code></td><td>Lattice ECP5 <code>LFE5U-25F-6BG256C</code></td></tr>
+    <tr><td>DDS chip</td><td><b>AD9915</b> (AD9914/15 family — parallel port, 8 profiles, digital ramp, OSK, programmable modulus)</td><td><b>AD9912</b> (SPI-only, 48-bit FTW, integrated DAC, no amplitude control)</td></tr>
+    <tr><td>FPGA role</td><td>Sweep engine (64-bit freq adder + comparers, amp ramp)</td><td>Memory holder — store table, stream over SPI on trigger</td></tr>
+    <tr><td>Amplitude</td><td>External 14-bit DAC → VGA (FPGA amp ramp)</td><td>External DAC → VGA (AD9912 has <b>no</b> digital amplitude)</td></tr>
+    <tr><td>Config load</td><td>Boot flash / programmer</td><td>Pico W slave-SPI (bitstream in Pico flash)</td></tr>
+    <tr><td>Pulser bus</td><td>16-bit parallel, address-gated</td><td>Serial addressable SPI + broadcast triggers</td></tr>
+  </table>
+  <div class="box warn"><b class="tag">Correction</b>
+    <p>The old chip was earlier mis-identified as AD9910. The RTL (<code>DDS_RIKEN.vhd</code>) has a <b>parallel register-programming port</b> (<code>par_add</code>/<code>par_data</code>/8-16-bit mode) and <b>"modulus mode"</b> init writes — both are AD9914/AD9915 features absent on the AD9910. AD9914 (3.5 GSPS) vs AD9915 (2.5 GSPS) are register-compatible; confirm from the board silkscreen / ref-clock.</p>
+  </div>
+</section>
+
+<section id="block">
+  <h2 class="sec">Block diagram</h2>
+  <div class="arch"><pre>
+             external 1 GHz ref ──► AD9912 ──► VGA ──► RF switch ──► RF out → AOM
+                                      ▲  ▲              ▲   (gate)
+   XEM7305 ──serial SPI + triggers──► ECP5 ──SPI──┘     │
+    (backplane, via 2× DSLVDS1048)    │  ▲       └──────┘ (drives amplitude DAC → VGA gain)
+                                      │  │ config (slave-SPI) + command sideband
+                                   Pico W ── WiFi / USB (supervisor, config-load, CW)
+  </pre></div>
+  <p>Fast path in the middle row (hardware-timed); Pico W supervisor below (out of the timing loop). The external 1 GHz reference is supplied separately (not over the digital backplane).</p>
+</section>
+
+<section id="fpga">
+  <h2 class="sec">FPGA — Lattice ECP5</h2>
+  <p><b><code>LFE5U-25F-6BG256C</code></b> — 24k LUT4, 1,008 Kbit EBR, caBGA-256 (0.8 mm, 14×14 mm), 197 I/O. Chosen over Cyclone 10 for the open-source toolchain (Yosys + nextpnr-ecp5 + Trellis) and generous RAM. Heavily oversized once the sweep engine is dropped — the real gate is the AD9912 config table RAM.</p>
+  <ul>
+    <li>Package is <b>caBGA-256</b> — for fanout reference use <b>Colorlight 5A-75B</b> community KiCad (same package), <i>not</i> OrangeCrab (csfBGA-285).</li>
+    <li>Order the bare PCB with <b>ENIG</b> finish (BGA/QFN coplanarity).</li>
+    <li>ECP5 is SRAM-based → needs external config every power-up (the Pico W's job).</li>
+  </ul>
+</section>
+
+<section id="config">
+  <h2 class="sec">Configuration — Pico W loader</h2>
+  <p><b>Decision:</b> an on-board <b>Raspberry Pi Pico W</b> holds the bitstream in its 2 MB flash and config-loads the ECP5 via <b>slave-SPI</b> at power-up (<code>PROGRAMN → wait INITN → stream bitstream → check DONE</code>). It earns its place by doubling as the <b>supervisor</b> (standalone CW/bench control, WiFi/USB reflash, housekeeping) — that second job is what justifies it over a bare boot flash.</p>
+  <table>
+    <tr><th>Option</th><th>When</th></tr>
+    <tr><td>A — master-SPI boot from a passive flash + JTAG header</td><td>leanest, if config is the only need (no on-board USB — reflash via external probe)</td></tr>
+    <tr><td>B — Pico W slave-SPI loader <b>(chosen)</b></td><td>want WiFi/USB reflash + supervisor/standalone</td></tr>
+    <tr><td>C — hybrid: ECP5 master-boots from flash, Pico rewrites that flash</td><td>want remote reflash <i>and</i> guaranteed boot if Pico is dead</td></tr>
+  </table>
+  <p><b>Flash budget (2 MB):</b> LFE5U-25 bitstream ≈ 0.57 MB (uncompressed) + C/C++ WiFi app ≈ 0.5 MB (incl. the ~224 KB CYW43 blob) ≈ 1.1 MB → ~1 MB free (room for a golden-fallback bitstream). <b>Use C/C++, not MicroPython</b> (its ~1.5 MB interpreter would crowd out the bitstream).</p>
+  <div class="box tip"><b class="tag">References</b>
+    <p><b>pico-ice</b> (RP2040+iCE40) for the config-controller firmware pattern; <b>Lattice TN-02039</b> (ECP5 sysCONFIG) for the slave-SPI byte sequence; <b>openFPGALoader / ecpdap</b> as known-good implementations + JTAG bring-up.</p>
+  </div>
+</section>
+
+<section id="clocking">
+  <h2 class="sec">Clocking — three independent domains</h2>
+  <table>
+    <tr><th>Domain</th><th>Source</th><th>Note</th></tr>
+    <tr><td>AD9912 reference</td><td><b>external 1 GHz</b> (supplied separately)</td><td>precision, clean, dedicated coax — not the backplane</td></tr>
+    <tr><td>Pico W</td><td>its own 12 MHz crystal</td><td>required for USB; internal ROSC not accurate enough</td></tr>
+    <tr><td>ECP5 fabric</td><td><b>internal OSCG</b> primitive</td><td>non-timing-critical → sloppy clock fine; zero parts, no coupling</td></tr>
+  </table>
+  <p><b>Do not</b> clock the ECP5 from the Pico (jitter + single-point-of-failure). Config is clocked by the slave-SPI clock, not the fabric clock, so there's no chicken-and-egg.</p>
+</section>
+
+<section id="table">
+  <h2 class="sec">Config table &amp; RAM sizing</h2>
+  <p>Each sequence step = one row of setpoints (store payload only; the ECP5 adds SPI/DAC framing at stream time):</p>
+  <table>
+    <tr><th>Field</th><th>Bits</th><th>Note</th></tr>
+    <tr><td>Frequency (FTW)</td><td>48</td><td>AD9912 full tuning word</td></tr>
+    <tr><td>Phase (POW)</td><td>14</td><td><b>confirm width</b> in the register map (14 vs 16)</td></tr>
+    <tr><td>Amplitude (ext DAC)</td><td>14</td><td>word to the external amplitude DAC</td></tr>
+    <tr><td><b>Row total</b></td><td><b>76 raw / 80 byte-aligned (10 B)</b></td><td>use 80; +8-bit control byte → 88 if per-row flags wanted</td></tr>
+  </table>
+  <p><b>Sizing on the LFE5U-25</b> (EBR = 1,008 Kbit): <b>8192 rows × 80 bit = 640 Kbit ≈ 62% of EBR raw</b> (~65–85% after block-mapping) → fits comfortably. Use 2<sup>13</sup> depth; pad the row width to a multiple of 9/18 bits for efficient block packing. Step to LFE5U-45 only if you need &gt;~12k rows.</p>
+  <div class="box ok"><b class="tag">Programming time</b>
+    <p>10 boards × 8192 rows × 80 bit = 6.4 Mbit total (sent per-board, sequentially). At 25–50 MHz serial clock that's <b>~0.13–0.26 s</b> — a one-time setup cost. During scans, rewrite only changed lines (ms), not full tables.</p>
+  </div>
+</section>
+
+<section id="dds">
+  <h2 class="sec">DDS chip — AD9912</h2>
+  <p>1 GSPS, <b>48-bit FTW</b> (~3.6 µHz resolution), integrated 14-bit RF-output DAC, SPI-configured. Wins on frequency resolution and simplicity. What it gives up vs the AD9915: <b>no digital amplitude control</b> (→ external VGA), no hardware profiles, no on-chip RAM/digital ramp.</p>
+  <div class="box tip"><b class="tag">The load-bearing design rule</b>
+    <p><b>Double-buffer the frequency.</b> During each dwell, the ECP5 pre-stages the <i>next</i> 48-bit FTW into the AD9912 over SPI (~1–2 µs). On <code>step_to_next</code> it just pulses <b><code>IO_UPDATE</code></b> → the switch is ~ns and deterministic. As long as dwell ≫ SPI write time, this fully hides the lack of hardware profiles.</p>
+  </div>
+  <p><b>Digital lines ECP5 ↔ AD9912:</b> <code>SCLK, SDIO, SDO, CSB, IO_UPDATE</code> (4-wire SPI) <b>+ <code>RESET</code></b> (hard reset — easy to miss), optional <code>PWRDWN</code>. Keep the AD9912 running continuously for phase coherence; never power it down to gate RF.</p>
+  <div class="box warn"><b class="tag">Two output paths — use the sine, not the clock</b>
+    <p>The AD9912 has <b>two separate outputs</b>. <b>Use PATH 1:</b> <code>DAC_OUT/DAC_OUTB</code> (pins 50/51) = the 14-bit DAC <b>analog sine</b> — internal 50 Ω to AVSS, full-scale ~20 mA set by <code>DAC_RSET</code> (pin 48 = 10 kΩ), max fout ≈ 0.4×fS = <b>400 MHz</b>. AC-couple it straight into the RF chain (DC return is internal — no external bias resistors). <b>Do NOT use PATH 2:</b> <code>FDBK_IN → OUT/OUT_CMOS</code> is the <b>square-wave clock generator</b> (loops the filtered sine back in, squares it, optional 2× doubler — for ADC/FPGA/LO clocks). A square wave's harmonics are wrong for an AOM. Leave <code>FDBK_IN/OUT/OUT_CMOS</code> unconnected and <b>power down the HSTL + CMOS drivers</b>.</p>
+  </div>
+  <div class="box tip"><b class="tag">SYSCLK — drive 1 GHz directly (PLL bypassed)</b>
+    <p>Best jitter = feed the clean external 1 GHz straight into <code>SYSCLK/SYSCLKB</code> (AC-coupled) with the SYSCLK PLL <b>bypassed</b>. Then: <code>LOOP_FILTER</code> (pin 31) = <b>1 kΩ to analog GND</b> (not the R-C loop-filter network — that's only for the PLL multiplier); power down the SYSCLK PLL (Reg 0x0010 bit 4); <code>CLKMODESEL</code> (pin 32) left unconnected. <b>Never clock the DDS from the ECP5</b> (OSCG ±7–15 % + jitter → bad accuracy/phase noise). For an optional on-board fallback, use a dedicated clean XO/MEMS → SYSCLK PLL, selectable at build time via DNP jumpers (dual <code>LOOP_FILTER</code> footprints) — not a runtime mux (that degrades the 1 GHz).</p>
+  </div>
+</section>
+
+<section id="rfpath">
+  <h2 class="sec">RF signal path + BOM <span class="pill">finalized</span></h2>
+  <p>Full chain from the AD9912 analog output to the AOM, with real JLC-stocked parts. Confirmed against the <b>ADL5330 datasheet (Figures 33/34)</b>, which uses the <code>ETC1-1-13</code> baluns and choke bias directly.</p>
+  <div class="arch"><pre>
+AD9912 DAC_OUT/DAC_OUTB (diff sine, RSET 10k, internal 50Ω)
+   │  100pF C0G (AC-couple)
+   ▼
+ETC1-1-13  #1   diff → single-ended 50Ω
+   ▼
+LFCN-400+  reconstruction LPF (DC–400 MHz)   [kills DAC image at 1GHz−fout ≈ 600 MHz]
+   │  100pF
+   ▼
+ETC1-1-13  #2   single-ended → diff        (ADL5330 input balun, Fig 33)
+   ▼  INHI/INLO
+ADL5330 VGA   gain ← MCP4821 DAC (RC-filtered, 0–1.4 V);  VPOS 5 V
+   │  OPHI/OPLO   bias: +5V → 2× 120nH chokes → OPHI/OPLO
+   ▼  100pF
+ETC1-1-13  #3   diff → single-ended 50Ω     (ADL5330 output balun, Fig 33)
+   ▼
+LFCN-400+  harmonic LPF (2nd harm @800 MHz → ~40 dB)
+   ▼
+PE4251     RF switch (absorptive SPDT, internal 50Ω) gated by ECP5 off step_to_next
+   ▼
+RF_OUT (SMA) → AOM
+  </pre></div>
+  <table>
+    <tr><th>Function</th><th>Part</th><th>JLC/LCSC</th><th>Qty</th><th>Note</th></tr>
+    <tr><td>Baluns (DDS-out, VGA-in, VGA-out)</td><td>MACOM <code>ETC1-1-13</code></td><td>C2834808</td><td>3</td><td>1:1, 4.5–3000 MHz; ADI-blessed for the ADL5330</td></tr>
+    <tr><td>AC-coupling caps</td><td>Samsung <code>CL10C101JB8NNNC</code></td><td>C14858</td><td>6</td><td>100 pF, <b>C0G/NP0</b>, 0603 — dielectric is critical</td></tr>
+    <tr><td>VGA output bias chokes</td><td>muRata <code>LQW18ANR12G00D</code></td><td>—</td><td>2</td><td>120 nH <b>wirewound</b>, SRF ~1.6 GHz (≥2× fmax)</td></tr>
+    <tr><td>Reconstruction + harmonic LPF</td><td>Mini-Circuits <code>LFCN-400+</code></td><td>C879882</td><td>1–2</td><td>DC–400 MHz LTCC; cascade 2× on recon side for deep 600 MHz image reject</td></tr>
+    <tr><td>VGA</td><td>ADL5330</td><td>—</td><td>1</td><td>gain 0–1.4 V from the amplitude DAC</td></tr>
+    <tr><td>Amplitude DAC</td><td>MCP4821 (→RC→GAIN)</td><td>—</td><td>1</td><td>write-only SPI, LDAC on step</td></tr>
+    <tr><td>RF switch</td><td>pSemi <code>PE4251MLI-Z</code></td><td>C2654721</td><td>1</td><td><b>absorptive</b> SPDT, 62 dB iso, single-3.3 V CMOS, no ext. 50 Ω / no DC caps — one part (no cascade)</td></tr>
+  </table>
+  <div class="box tip"><b class="tag">Why these choices</b>
+    <p><b>ETC1-1-13</b> is a transmission-line transformer (pin 1↔pin 5 DC-connected — <i>not</i> an isolation transformer), but that's irrelevant here because every amplifier pin is <b>AC-coupled with 100 pF</b> at the transformer: caps block DC, chokes set the ADL5330 output bias. No center tap needed. <b>Choke rule:</b> wirewound with SRF ≥ 2× fmax — the TDK MLF1608 (SRF = 400 MHz, multilayer ferrite) was rejected for that reason. <b>Cap rule:</b> must be C0G, never X5R/X7R (RF loss/distortion).</p>
+  </div>
+
+  <h3>AC-coupling / RF-ground cap value vs AOM frequency</h3>
+  <p>The 6 AC-coupling caps double as series coupling (in the 50 Ω line) and cold-side RF ground, so their reactance <code>Xc = 1/(2πfC)</code> must stay small vs 50 Ω. 100 pF is fine near 400 MHz but ~20 Ω at 80 MHz (too high). Since the board runs a few fixed AOM frequencies, <b>swap all 6 caps together</b> to the value below for the target band (aim <code>Xc</code> ≈ 2 Ω; SRF stays well above the band). All <b>C0G/NP0, 0603, 50 V</b> — same Samsung <code>CL10C</code> family as the 100 pF.</p>
+  <table>
+    <tr><th>Target AOM</th><th>Cap value (all 6)</th><th>Xc @ f<sub>AOM</sub></th><th>Samsung P/N (verify LCSC code)</th></tr>
+    <tr><td>80 MHz</td><td><b>1 nF</b> (1000 pF)</td><td>~2.0 Ω</td><td><code>CL10C102JB8NNNC</code></td></tr>
+    <tr><td>120 MHz</td><td><b>680 pF</b></td><td>~2.0 Ω</td><td><code>CL10C681JB8NNNC</code></td></tr>
+    <tr><td>200 MHz</td><td><b>390 pF</b></td><td>~2.0 Ω</td><td><code>CL10C391JB8NNNC</code></td></tr>
+    <tr><td>400 MHz</td><td><b>220 pF</b> (or keep 100 pF)</td><td>~1.8 Ω (100 pF → ~4.0 Ω)</td><td><code>CL10C221JB8NNNC</code> / <code>CL10C101JB8NNNC</code> (C14858)</td></tr>
+  </table>
+  <div class="box tip"><b class="tag">Notes</b>
+    <p>Values are the same in every AC-couple position (DDS-out ×2, VGA-in ×2, VGA-out ×2) — pick one row per build. Bigger C = lower Xc = better, but keep it a 0603 C0G (SRF above the band): 1 nF 0603 C0G self-resonates ~500 MHz, fine for ≤120 MHz use; don't push 1 nF at 400 MHz. If you ever want one board to cover a wide range, 100 pF is the "good enough only near 400 MHz" compromise — otherwise match the band. Part numbers follow Samsung's <code>CL10C&lt;value&gt;JB8NNNC</code> pattern; confirm each LCSC C-code and C0G/50 V availability before ordering.</p>
+  </div>
+</section>
+
+<section id="amplitude">
+  <h2 class="sec">Amplitude — VGA + DAC</h2>
+  <p><b>VGA:</b> original board uses <b>ADL5330</b> (0–1.4 V gain control, ~60 dB, linear-in-dB). If out of stock: <b>AD8367</b> (45 dB, ≤500 MHz) or <b>AD8368</b> (34 dB, ≤800 MHz, has an ENBL shutdown) as drop-ins; or a digital step attenuator + fixed amp (quieter, drops the DAC).</p>
+  <p><b>DAC:</b> replace the old fast parallel AD9744 with a cheap SPI voltage DAC — <b>MCP4821</b> (single 12-bit) or MCP4822 (dual); 16-bit <b>DAC80501</b>/<b>DAC8560</b> to hold 14-bit resolution. 4-wire, write-only (<code>SCK/SDI/CS/LDAC</code>, no MISO). <b>RC low-pass on VOUT → VDBS</b> (amplitude-line noise → RF AM/PM noise = decoherence).</p>
+  <div class="box ok"><b class="tag">Timing</b>
+    <p>Pre-stage the DAC code during the dwell, pulse <b>LDAC</b> on the step (the amplitude analog of <code>IO_UPDATE</code>) → the SPI transfer is out of the critical path. Amplitude-path latency is then <b>DAC settling (~µs) + RC</b>, both larger than the VGA's 300–400 ns → amplitude is the slow path; it may lead the frequency step since it needs no ns sync.</p>
+  </div>
+</section>
+
+<section id="rfoff">
+  <h2 class="sec">RF on/off gating</h2>
+  <p><b>Requirement:</b> full extinction, phase-coherent (VGA at min still leaks −30/−40 dBm). <b>Rule:</b> keep the AD9912 running (phase accumulator never stops) and gate <b>downstream</b>.</p>
+  <p><b>Solution:</b> a high-isolation RF switch in the output path — <b>pSemi <code>PE4251MLI-Z</code></b> (<code>C2654721</code>; <b>absorptive</b> SPDT, 10 MHz–3 GHz, single 3.3/5 V supply, single-pin CMOS control = ECP5-direct, <b>62 dB isolation @ 1 GHz</b>, IL 0.60 dB, P1dB +30.5 dBm) — gated from the fast path (ECP5 off <code>step_to_next</code> or a pulser TTL, not the Pico). Because it's <b>absorptive</b>, the deselected throw is internally 50 Ω-terminated — <b>no external RF2→50 Ω resistor and no DC-block caps</b> (RF ports DC-free). Use as on/off SPST: RFC = in, RF1 → output (ON), RF2 = dummy (switch to it = OFF). Its <b>62 dB in one part</b> replaces the cascaded pair we'd have needed with the reflective <code>PE4259-63</code> — so a <b>single switch</b> + VGA-at-min + AOM clears &gt;80 dB total off. <b>Caveat:</b> ~150 ns switching (vs the PE4259's ns) — fine for typical AOM gating, but if you need sub-100 ns RF edges fall back to the <code>PE4259-63</code> (C470892, reflective, needs RF2→50 Ω, cascade 2×).</p>
+  <table>
+    <tr><th>Option</th><th>Phase-coherent?</th><th>Verdict</th></tr>
+    <tr><td>VGA to min</td><td>yes</td><td>insufficient (−30/−40 dBm leak)</td></tr>
+    <tr><td>AD9912 power-down</td><td><b>no</b></td><td>rejected — disturbs phase, slow wake</td></tr>
+    <tr><td>Retune to 1 Hz</td><td><b>no</b></td><td>rejected — tone still present, loses coherence</td></tr>
+    <tr><td>AD8368 ENBL shutdown</td><td>yes (amp, not DDS)</td><td>µs/soft edge — use as stacked isolation/power-save layer</td></tr>
+    <tr><td><b>Absorptive RF switch</b></td><td><b>yes</b></td><td><b>primary gate</b> — ns, clean, high isolation</td></tr>
+  </table>
+  <p>Total off = switch (45–55 dB) + VGA-min (30–40 dB) + AOM extinction → &gt;80–100 dB.</p>
+</section>
+
+<section id="bus">
+  <h2 class="sec">Pulser ↔ DDS bus</h2>
+  <p><b>New serial protocol</b> (replaces the old 16-bit parallel): an <b>addressable SPI</b> frame <code>[ADDR(4b) | CMD(4b)][payload…]</code> shared by all boards; each board compares ADDR to its strapped <code>add_in[3:0]</code> and only the match consumes the payload (0xF = broadcast). The timing triggers <b><code>step_to_next</code></b> and <b><code>ram_reset</code></b> stay <b>dedicated broadcast wires</b> (low-jitter), not buried in frames.</p>
+  <p><b>MISO dropped</b> — the DDS board never talks back to the XEM7305 (readback goes to the Pico W). So every backplane signal is an <b>input</b> to the board. Active signals: <code>SCK, MOSI, CS, step_to_next, ram_reset</code> (5).</p>
+</section>
+
+<section id="backplane">
+  <h2 class="sec">Backplane / receivers</h2>
+  <p><b>2× <code>DSLVDS1048</code></b> (quad receive-only LVDS) = 8 channels: <b>Rcv1</b> = SCK/MOSI/CS/step_to_next; <b>Rcv2</b> = ram_reset + <b>3 spares</b> (routed backplane→receiver→ECP5 GPIO, input-only). Differential over the backplane; drivers on the XEM7305 side (reserve matching driver channels for the spares).</p>
+  <div class="box warn"><b class="tag">Termination — multi-drop!</b>
+    <p>The bus is <b>multi-drop</b> (one driver, all boards tap the same pair). Do <b>not</b> terminate on every card — N × 100 Ω would parallel to 100/N Ω. <b>One 100 Ω per pair at the far end.</b> Decision: <b>populatable 100 Ω on every card, populate only the last-slot (far-end) card</b>; cards are high-Z taps with short stubs. Silkscreen "TERM: populate on end card only".</p>
+  </div>
+</section>
+
+<section id="pins">
+  <h2 class="sec">Pin budgets</h2>
+  <h3>Pico W (~15–18 of ~26 GPIO)</h3>
+  <ul>
+    <li><b>ECP5 config (slave-SPI): 7</b> — SCK/MOSI/MISO/CS + PROGRAMN/INITN/DONE (trim to ~5)</li>
+    <li><b>Command sideband: 2–4</b> — UART (2) or SPI (4), <b>kept separate</b> from config (avoids accidental reconfig)</li>
+    <li><b>Peripherals: ~6</b> — status LEDs (2–3), I²C OLED bus (2, expandable), spares (2–4)</li>
+  </ul>
+  <p>AD9912 access stays <b>behind the ECP5</b> — the Pico commands the ECP5, which is the sole AD9912 SPI master (bare-board bring-up = load a tiny SPI-passthrough bitstream). SPI1-aux MISO carries ECP5→Pico readback (master-initiated; add an IRQ GPIO for async).</p>
+  <h3>ECP5 → backplane: 6 pins</h3>
+  <p>5 active inputs (SCK/MOSI/CS/step_to_next/ram_reset) through the receivers, across 8 provisioned RX channels; <code>add_in[3:0]</code> = 4 local address straps (not backplane traffic); <code>IO_UPDATE</code> generated locally.</p>
+</section>
+
+<section id="power">
+  <h2 class="sec">Power</h2>
+  <p><b>Single 5 V backplane rail is sufficient</b> — every on-board rail is ≤5 V (step-down only), ~1–1.5 A per card (~3–5 W; AD9912 + VGA + Pico WiFi bursts are the hogs). Per-card local regulation off a shared 5 V bus is good for RF (each card filters its own supply).</p>
+  <table>
+    <tr><th>Rail</th><th>For</th><th>Regulator</th></tr>
+    <tr><td>5 V direct</td><td>ADL5330 VGA, Pico VSYS</td><td>from backplane, filtered</td></tr>
+    <tr><td>3.3 V</td><td>ECP5 VCCIO, MCP482x, drivers</td><td><code>TLV62569DRL</code> buck (adjustable, FB 0.6 V)</td></tr>
+    <tr><td>2.5 V</td><td>ECP5 VCCAUX <b>(mandatory)</b></td><td><code>NCP115-2.5</code> LDO</td></tr>
+    <tr><td>1.8 V</td><td>AD9912 analog</td><td><b>low-noise LDO</b> (ADM7150 / TPS7A85), fed by a buck pre-reg</td></tr>
+    <tr><td>1.1 V</td><td>ECP5 core</td><td><code>TLV62569DRL</code> buck</td></tr>
+  </table>
+  <div class="box warn"><b class="tag">RF-critical</b>
+    <p><b>Never bare-buck the AD9912 analog</b> — switching ripple → RF spurs. Use a <b>buck → low-noise LDO</b> for the 1.8 V and clean 3.3 V analog (per the AD9912 eval board). Regulator parts are lifted from OrangeCrab r0.2.1 (KiCad); the analog LDOs are additions OrangeCrab doesn't have. Sequence the ECP5 rails; add the VCCAUXA PLL filter if a PLL is used.</p>
+  </div>
+</section>
+
+<section id="bom">
+  <h2 class="sec">Key BOM</h2>
+  <table>
+    <tr><th>Function</th><th>Part</th></tr>
+    <tr><td>FPGA</td><td><code>LFE5U-25F-6BG256C</code> (ECP5, caBGA-256)</td></tr>
+    <tr><td>Config / supervisor</td><td>Raspberry Pi Pico W (RP2040)</td></tr>
+    <tr><td>DDS</td><td><code>AD9912BCPZ</code> (64-LFCSP, exposed pad — reflow, not hand-solder)</td></tr>
+    <tr><td>VGA</td><td>ADL5330 (alt: AD8367 / AD8368)</td></tr>
+    <tr><td>RF baluns ×3</td><td>MACOM <code>ETC1-1-13</code> (C2834808)</td></tr>
+    <tr><td>AC-coupling caps ×6</td><td>Samsung <code>CL10C101JB8NNNC</code> — 100 pF C0G 0603 (C14858)</td></tr>
+    <tr><td>VGA bias chokes ×2</td><td>muRata <code>LQW18ANR12G00D</code> — 120 nH wirewound, SRF ~1.6 GHz</td></tr>
+    <tr><td>LPF (recon + harmonic)</td><td>Mini-Circuits <code>LFCN-400+</code> (C879882), ×1–2</td></tr>
+    <tr><td>Amplitude DAC</td><td>MCP4821 (12-bit) / DAC80501 (16-bit)</td></tr>
+    <tr><td>RF switch</td><td>pSemi <code>PE4251MLI-Z</code> (C2654721), absorptive SPDT, 62 dB iso, single part (no cascade)</td></tr>
+    <tr><td>Backplane RX</td><td>2× DSLVDS1048 (quad LVDS receiver)</td></tr>
+    <tr><td>Regulators</td><td>2× TLV62569DRL buck, NCP115-2.5 LDO, low-noise LDO (ADM7150/TPS7A85)</td></tr>
+  </table>
+  <div class="box tip"><b class="tag">Assembly</b>
+    <p>AD9912 (exposed-pad QFN) and the ECP5 (BGA) can't be hand-soldered. Preferred route: bare PCB from JLC (ENIG) → local assembly house does full population, with the critical ICs (AD9912, ECP5, DAC, VGA, oscillator) <b>consigned from authorized distributors</b> (genuine-part assurance) and passives sourced by the assembler.</p>
+  </div>
+</section>
+
+<section id="refs">
+  <h2 class="sec">References</h2>
+  <ul>
+    <li><b>ECP5 power / decoupling / config-pins:</b> OrangeCrab (KiCad, CERN-OHL) — reuse the power section + JTAG only; ignore its DDR3L, QSPI-boot, csfBGA285 fanout.</li>
+    <li><b>caBGA-256 fanout:</b> Colorlight 5A-75B community KiCad.</li>
+    <li><b>Config firmware pattern:</b> pico-ice; <b>ECP5 slave-SPI:</b> Lattice TN-02039; openFPGALoader / ecpdap.</li>
+    <li><b>DDS analog power:</b> AD9912 datasheet + AD9912/PCBZ eval board.</li>
+  </ul>
+</section>
+
+<section id="open">
+  <h2 class="sec">Open items / next steps</h2>
+  <ol>
+    <li>Map the exact <code>dds_bus_in</code> bit-protocol (old vs new bus).</li>
+    <li>Size the AD9912 config table register set + spec the SPI register-write sequence (confirms phase width, and RAM/part).</li>
+    <li>Define the Pico ↔ ECP5 command set + standalone firmware.</li>
+    <li>RF chain specced for AOM drive <b>up to 400 MHz</b> with ADL5330 + ETC1-1-13 baluns + LFCN-400+ + PE4251 (see RF signal path). Still confirm required pulse-edge speed — the PE4251 switches in ~150 ns; if sub-100 ns RF gating is needed, use the faster reflective PE4259-63 instead. AD9912 DVDD_I/O confirmed = 3.3 V → ECP5 SPI-bank VCCIO = 3.3 V.</li>
+    <li>Confirm AD9914 vs AD9915 on the old board (silkscreen / ref-clock).</li>
+  </ol>
+</section>
+
+<footer>
+  DDS slave board hardware summary — generated from the project design notes, 2026-09-15. Design/planning stage; not yet fabricated. See the software <a href="manual.html">Pulser manual</a> for the LabRAD/pulser stack.
+</footer>
+</main>
+</div>
+</body>
+</html>
