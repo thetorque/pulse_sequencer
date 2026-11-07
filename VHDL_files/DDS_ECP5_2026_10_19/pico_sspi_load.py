@@ -21,7 +21,7 @@
 from machine import Pin, SPI
 import time
 
-BITFILE = "ad9912_sweep_c.bit"    # 10-400 MHz sweep, 10 MHz steps, ~2 s, 0 dBm @ 50 MHz
+BITFILE = "ad9912_finetune_c.bit"    # counter test: 5 fixed tones, ~20 s each
 SPI_HZ  = 2_000_000
 
 csn      = Pin(5, Pin.OUT, value=1)
