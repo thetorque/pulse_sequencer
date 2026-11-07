@@ -21,7 +21,7 @@
 from machine import Pin, SPI
 import time
 
-BITFILE = "led_chase_c.bit"    # compressed bitstream (ecppack --compress); set to led_half_c.bit etc. to swap patterns
+BITFILE = "ad9912_sweep_c.bit"    # 10-400 MHz sweep, 10 MHz steps, ~2 s, 0 dBm @ 50 MHz
 SPI_HZ  = 2_000_000
 
 csn      = Pin(5, Pin.OUT, value=1)
