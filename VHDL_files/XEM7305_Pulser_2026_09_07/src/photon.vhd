@@ -74,10 +74,10 @@
 -- bits (a time_stamp = 0 word ends the sequence), and derives
 -- logic_out from master_logic through the same per-channel
 -- force/invert override mux (ep02wire/ep03wire) as the legacy
--- design. logic_out is a full 32-bit internal signal, but only its
--- low 6 bits have physical pins so far, on led_ext (a separate add-on
--- LED header, not more onboard LEDs -- see the entity port comment);
--- the rest still has no pins to go to until Phase 4's breakout board.
+-- design. logic_out is a full 32-bit internal signal with no physical
+-- pins yet (the old 6-LED add-on header, led_ext, was removed
+-- 2026-11-10: its pins V2/T4/R4 are TTLIN_1/TTLIN_3/TTLOUT_16 on the
+-- master board); it gets pins when the TTL outputs are wired up.
 -- The full 32-bit value is also exposed on a new bring-up-only
 -- WireOut (0x2B) for host-side verification, alongside
 -- sequence-done/loop-count status (0x2C).
@@ -212,14 +212,7 @@ entity photon is
 		ddr3_ck_n     : out    STD_LOGIC_VECTOR(0 downto 0);
 		ddr3_cke      : out    STD_LOGIC_VECTOR(0 downto 0);
 		ddr3_dm       : out    STD_LOGIC_VECTOR(1 downto 0);
-		ddr3_odt      : out    STD_LOGIC_VECTOR(0 downto 0);
-
-		-- 6-bit LED header (see constraints/xem7305.xdc, pins copied from
-		-- ../XEM7305_references/Locally_compiled_ramtester -- LVCMOS33, a
-		-- different bank/voltage than the onboard led[3:0] above, so this
-		-- is a separate add-on LED board/header, not more onboard LEDs).
-		-- Carries logic_out(5 downto 0) for Phase 5a bring-up -- see below.
-		led_ext   : out    STD_LOGIC_VECTOR(5 downto 0)
+		ddr3_odt      : out    STD_LOGIC_VECTOR(0 downto 0)
 	);
 end photon;
 
@@ -767,10 +760,9 @@ architecture arch of photon is
 	-- Phase 5a: pulse-sequence FSM. master_logic holds the RAM word
 	-- currently in effect; logic_out is master_logic run through the
 	-- per-channel force/invert override mux (ep02wire/ep03wire), same
-	-- as the legacy design's LOGIC_OUT. master_logic itself has no
-	-- pins; logic_out's low 6 bits reach led_ext (see entity port
-	-- comment), the rest has no pins until Phase 4 -- see 0x2B/0x2C
-	-- below for full-width host-side observation either way.
+	-- as the legacy design's LOGIC_OUT. Neither has pins yet (see the
+	-- header comment); 0x2B/0x2C below give full-width host-side
+	-- observation.
 	signal master_logic : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
 	signal logic_out    : STD_LOGIC_VECTOR(31 downto 0);
 
@@ -1143,14 +1135,6 @@ begin
 			end if;
 		end if;
 	end process;
-
-	-- Assumed active-high (a bit lit = LED on), unlike the onboard led[3:0]
-	-- above which are active-low. led_ext is presumed a separate add-on LED
-	-- board wired the ordinary way (LED positive lead to the FPGA pin
-	-- through a series resistor) rather than Opal Kelly's own onboard
-	-- open-drain-style LEDs -- if channels appear inverted on hardware,
-	-- change this to "not logic_out(5 downto 0)".
-	led_ext <= logic_out(5 downto 0);
 
 	-- Phase 3 bring-up only: drains pulse_fifo into pulser_ram at an
 	-- auto-incrementing address. pulse_fifo is First-Word-Fall-Through,
