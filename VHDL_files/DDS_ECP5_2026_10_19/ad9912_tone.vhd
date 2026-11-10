@@ -42,11 +42,11 @@ end entity;
 architecture rtl of ad9912_tone is
   component OSCG generic ( DIV : integer := 128 ); port ( OSC : out std_logic ); end component;
 
-  constant FTW       : unsigned(47 downto 0) := x"4CCCCCCCD7CC";      -- 300 MHz + 0.01 Hz @ 1 GHz
-                                                                      --   (300 000 000.010 001 6 Hz)
-                                                                      -- +0.1 Hz: x"4CCCCCCD3AC0"
-                                                                      -- +1 Hz: x"4CCCCCD11850"
-                                                                      -- 300 MHz exact: x"4CCCCCCCCCCD"
+  constant FTW       : unsigned(47 downto 0) := x"4CCCCCCCCCCD";      -- 300 MHz @ 1 GHz
+                                                                      --   (300 000 000.000 000 7 Hz)
+                                                                      -- +0.01 Hz: x"4CCCCCCCD7CC"
+                                                                      -- +0.1 Hz:  x"4CCCCCCD3AC0"
+                                                                      -- +1 Hz:    x"4CCCCCD11850"
   constant VGA_CODE  : std_logic_vector(11 downto 0) := x"B40";      -- ~0 dBm (board 8)
   constant STEP_CLKS : integer := 4_840_000;                         -- ~2 s @ ~2.42 MHz OSCG
   constant NWORDS    : integer := 10;

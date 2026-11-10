@@ -1,0 +1,43 @@
+# bp_rx.lpf -- subset of dds_ecp5.lpf: backplane receivers + status LEDs.
+# ===== Backplane / DDS bus  (from pulser via DS90LV048A LVDS RX -> single-ended) =====   [ECP5 inputs]
+LOCATE COMP "backplane_sck" SITE "N1"; # I   bus SPI clock
+LOCATE COMP "backplane_mosi" SITE "P1"; # I   bus SPI data
+LOCATE COMP "backplane_cs" SITE "P2"; # I   bus chip select / frame
+LOCATE COMP "backplane_stepnext" SITE "R1"; # I   broadcast step trigger (low-jitter)
+LOCATE COMP "backplane_ramreset" SITE "L1"; # I   broadcast RAM reset
+LOCATE COMP "backplane_aux1" SITE "L2"; # I   spare backplane line
+LOCATE COMP "backplane_aux2" SITE "M1"; # I   spare backplane line
+LOCATE COMP "backplane_aux3" SITE "M2"; # I   spare backplane line
+IOBUF PORT "backplane_sck" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_mosi" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_cs" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_stepnext" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_ramreset" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux1" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux2" IO_TYPE=LVCMOS33;
+IOBUF PORT "backplane_aux3" IO_TYPE=LVCMOS33;
+# ===== Status LEDs  (6 bicolor D1-D6, common-anode -> ACTIVE-LOW) =====   [ECP5 outputs]
+LOCATE COMP "led_g1" SITE "L16"; # O   D1 green
+LOCATE COMP "led_r1" SITE "K15"; # O   D1 red
+LOCATE COMP "led_g2" SITE "K16"; # O   D2 green
+LOCATE COMP "led_r2" SITE "J15"; # O   D2 red
+LOCATE COMP "led_g3" SITE "J16"; # O   D3 green
+LOCATE COMP "led_r3" SITE "H15"; # O   D3 red
+LOCATE COMP "led_g4" SITE "M16"; # O   D4 green
+LOCATE COMP "led_r4" SITE "L15"; # O   D4 red
+LOCATE COMP "led_g5" SITE "N16"; # O   D5 green
+LOCATE COMP "led_r5" SITE "M15"; # O   D5 red
+LOCATE COMP "led_g6" SITE "G15"; # O   D6 green
+LOCATE COMP "led_r6" SITE "G16"; # O   D6 red
+IOBUF PORT "led_g1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r1" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r2" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r3" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r4" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r5" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_g6" IO_TYPE=LVCMOS33;
+IOBUF PORT "led_r6" IO_TYPE=LVCMOS33;
