@@ -33,6 +33,9 @@ architecture sim of tb_bus_rx is
   signal log_d : row_arr(0 to 15);
   signal last_reg_addr : std_logic_vector(15 downto 0);
   signal last_reg_data : std_logic_vector(7 downto 0);
+  signal cmd_ident, cmd_clear : std_logic;
+  signal ident_secs, last_secs : std_logic_vector(7 downto 0);
+  signal n_id, n_clr : integer := 0;
 
   function mkrow(k : integer) return std_logic_vector is
     variable r : std_logic_vector(DATA_W-1 downto 0);
@@ -56,6 +59,7 @@ begin
                board_addr => MYADDR, we => we, waddr => waddr, wdata => wdata,
                rows_written => rows_written, cmd_reset => cmd_reset, cmd_step => cmd_step,
                reg_we => reg_we, reg_addr => reg_addr, reg_data => reg_data,
+               cmd_ident => cmd_ident, ident_secs => ident_secs, cmd_clear => cmd_clear,
                frame_err => frame_err );
 
   monitor : process(clk) begin
@@ -72,6 +76,8 @@ begin
         n_reg <= n_reg + 1; last_reg_addr <= reg_addr; last_reg_data <= reg_data;
       end if;
       if frame_err = '1' then n_err <= n_err + 1; end if;
+      if cmd_ident = '1' then n_id <= n_id + 1; last_secs <= ident_secs; end if;
+      if cmd_clear = '1' then n_clr <= n_clr + 1; end if;
     end if;
   end process;
 
@@ -194,6 +200,23 @@ begin
     frame(hdr(31) & x"01" & x"00" & x"05" & (mkrow(10)));
     expect("T11 write 1 row @ 1 MHz", 1, 1, 0, 0, 0, 0);
     check_write("T11", start_w, 5, mkrow(10));
+
+    -- T12: IDENTIFY / CLEAR_STATUS (v0.4)
+    half := 20 ns;
+    snap; frame(hdr(5) & x"05" & x"0A");
+    expect("T12a IDENTIFY own", 0, 0, 0, 0, 0, 0);
+    if n_id /= 1 or last_secs /= x"0A" then
+      report "T12a: FAIL ident pulse/seconds" severity error; fails := fails + 1;
+    end if;
+    snap; frame(hdr(31) & x"06"); expect("T12b CLEAR_STATUS broadcast", 0, 0, 0, 0, 0, 0);
+    if n_clr /= 1 then report "T12b: FAIL clear pulse" severity error; fails := fails + 1; end if;
+    snap; frame(hdr(5) & x"05");             expect("T12c IDENTIFY without SECS -> error", 0, 0, 0, 0, 0, 1);
+    snap; frame(hdr(5) & x"05" & x"01" & x"02"); expect("T12d IDENTIFY too long -> error", 0, 0, 0, 0, 0, 1);
+    snap; frame(hdr(5) & x"06" & x"00");     expect("T12e CLEAR with payload -> error", 0, 0, 0, 0, 0, 1);
+    snap; frame(hdr(9) & x"05" & x"0A");     expect("T12f IDENTIFY other board ignored", 0, 0, 0, 0, 0, 0);
+    if n_id /= 1 or n_clr /= 1 then
+      report "T12: FAIL bad/foreign frames must not fire" severity error; fails := fails + 1;
+    end if;
 
     if fails = 0 then report "tb_bus_rx: ALL TESTS PASSED";
     else report "tb_bus_rx: " & integer'image(fails) & " FAILURE(S)" severity error; end if;

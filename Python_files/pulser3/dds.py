@@ -1,7 +1,7 @@
 """
 dds.py -- host side of the DDS backplane bus (M4, part 1: encoding + transport).
 
-Implements DDS_BUS_CONTRACT.md v0.3 (repo root). Pure Python except for the three
+Implements DDS_BUS_CONTRACT.md v0.4 (repo root). Pure Python except for the three
 small functions at the bottom that talk to an `ok.FrontPanel` object; everything
 else is unit-tested without hardware (python -m pulser3.test_dds).
 
@@ -9,7 +9,7 @@ Layers:
   Row          one DDS setpoint (frequency, phase, VGA amplitude code, RF on/off)
                -> 11-byte config_ram row (§3)
   frames       bus frames for one board / broadcast (§4, §5):
-               write_rows, reset, step, write_reg, nop
+               write_rows, reset, step, write_reg, identify, clear_status, nop
   pack()       frames -> the BTPipeIn 0x81 byte stream: LEN16-prefixed records,
                padded to the pipe block size (§7)
   VgaCal       dBm -> VGA code (per-board calibration; the board never sees dBm)
@@ -28,6 +28,7 @@ N_ROWS = 8192                # config_ram depth per board
 VGA_MAX = 0xFFF
 
 CMD_NOP, CMD_WRITE_ROWS, CMD_RESET, CMD_STEP, CMD_WRITE_REG = 0x00, 0x01, 0x02, 0x03, 0x04
+CMD_IDENTIFY, CMD_CLEAR_STATUS = 0x05, 0x06                     # v0.4
 
 
 class DDSError(Exception):
@@ -115,6 +116,18 @@ def write_reg(addr, reg, data):
     if not 0 <= reg <= 0x1FFF or not 0 <= data <= 0xFF:
         raise DDSError("register address must be 13-bit, data 8-bit")
     return _hdr(addr) + bytes([CMD_WRITE_REG]) + reg.to_bytes(2, "big") + bytes([data])
+
+
+def identify(addr, seconds=10):
+    """IDENTIFY (v0.4): blink the board's D6 LED amber for ~`seconds` (0 = stop)."""
+    if not 0 <= seconds <= 255:
+        raise DDSError("identify seconds must be 0..255")
+    return _hdr(addr) + bytes([CMD_IDENTIFY, int(seconds)])
+
+
+def clear_status(addr=BROADCAST):
+    """CLEAR_STATUS (v0.4): clear the latched error LEDs (frame error, step overrun)."""
+    return _hdr(addr) + bytes([CMD_CLEAR_STATUS])
 
 
 def nop(addr=BROADCAST, payload=b""):

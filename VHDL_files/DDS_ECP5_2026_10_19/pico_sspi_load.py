@@ -21,7 +21,7 @@
 from machine import Pin, SPI
 import time
 
-BITFILE = "ad9912_finetune_c.bit"    # counter test: 5 fixed tones, ~20 s each
+BITFILE = "dds_top_c.bit"    # full DDS slave (bus_rx + dds_ctl); boots to 100 MHz ~-10 dBm
 SPI_HZ  = 2_000_000
 
 csn      = Pin(5, Pin.OUT, value=1)

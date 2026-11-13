@@ -99,9 +99,10 @@ def test_two_boards_step_together():
     assert [r.rf_on for r in B] == [False, False, True, True, False]
     assert A[1].freq_hz == 50e6 and B[2].freq_hz == 70e6 and B[2].vga == c["B"].cal.code(-5.0)
     fr = prog.frames()
-    assert [f[:2] for f in fr] == [bytes([1, 1]), bytes([2, 1]), bytes([0x1F, 2])]
-    assert all(f[2:4] == b"\x00\x00" for f in fr[:2])          # every table from row 0
-    assert fr[0][4:15] == A[0].to_bytes() and len(fr[0]) == 4 + 5 * 11
+    # CLEAR_STATUS, one table per board, RESET
+    assert [f[:2] for f in fr] == [bytes([0x1F, 6]), bytes([1, 1]), bytes([2, 1]), bytes([0x1F, 2])]
+    assert all(f[2:4] == b"\x00\x00" for f in fr[1:3])         # every table from row 0
+    assert fr[1][4:15] == A[0].to_bytes() and len(fr[1]) == 4 + 5 * 11
 
 
 def test_back_to_back_start_wins():

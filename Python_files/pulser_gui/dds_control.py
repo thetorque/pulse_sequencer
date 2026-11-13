@@ -4,7 +4,7 @@ dds_control.py -- PyQt5 DDS Control GUI for the Pulser's DDS channels.
 Python-3 / PyQt5 port of the legacy clients/DDS_CONTROL.py (py2 / PyQt4,
 QCustomFreqPower). One card per DDS channel (pulser3 hwconfig.DDS_CHANNELS):
 
-    Frequency (MHz)  | Step (1 Hz .. 10 MHz) | Power (dBm) | RF ON/OFF
+    Frequency (MHz)  | Step (1 Hz .. 10 MHz) | Power (dBm) | RF ON/OFF | Identify
 
 These are the channel's MANUAL state -- what it outputs between runs (row 0 of
 every DDS table). Values are sent when you press Enter / leave the field / use
@@ -68,7 +68,7 @@ class DDSChannelCard(QtWidgets.QGroupBox):
         self.panel, self.name = panel, name
         grid = QtWidgets.QGridLayout(self)
         grid.setHorizontalSpacing(10)
-        for col, text in enumerate(("Frequency (MHz)", "Step", "Power (dBm)", "")):
+        for col, text in enumerate(("Frequency (MHz)", "Step", "Power (dBm)", "", "")):
             lab = QtWidgets.QLabel(text)
             lab.setObjectName('hint')
             grid.addWidget(lab, 0, col)
@@ -105,6 +105,10 @@ class DDSChannelCard(QtWidgets.QGroupBox):
         grid.addWidget(self.step, 1, 1)
         grid.addWidget(self.power, 1, 2)
         grid.addWidget(self.rf, 1, 3)
+        self.ident = QtWidgets.QPushButton("Identify")
+        self.ident.setToolTip("Blink this board's D6 LED (amber) for 10 s")
+        self.ident.clicked.connect(self._identify)
+        grid.addWidget(self.ident, 1, 4)
 
         self.freq.valueChanged.connect(self._freq_changed)
         self.power.valueChanged.connect(self._power_changed)
@@ -119,6 +123,9 @@ class DDSChannelCard(QtWidgets.QGroupBox):
 
     def _power_changed(self, dbm):
         self.panel.call(self, lambda p: p.amplitude(self.name, _unit(dbm, 'dBm')))
+
+    def _identify(self, *_):
+        self.panel.call(self, lambda p: p.identify_dds(self.name, 10))
 
     def _rf_toggled(self, on):
         self.rf.setText("ON" if on else "OFF")

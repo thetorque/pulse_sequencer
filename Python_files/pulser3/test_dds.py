@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Unit tests for pulser3.dds -- DDS bus encoding (DDS_BUS_CONTRACT.md v0.3). No hardware:
+Unit tests for pulser3.dds -- DDS bus encoding (DDS_BUS_CONTRACT.md v0.4). No hardware:
 
     python -m pulser3.test_dds     # (also discoverable by pytest)
 """
@@ -50,6 +50,8 @@ def test_frames():
     f = D.write_rows(3, 0x0102, [D.Row(50e6, 0, 0xB40, True), D.OFF])
     assert f[:4] == bytes([0x03, 0x01, 0x01, 0x02]) and len(f) == 4 + 2 * 11
     assert f[4:15].hex() == HW_ROWS[0][2]
+    assert D.identify(8, 10) == bytes([0x08, 0x05, 10]) and D.identify(0x1F, 0) == bytes([0x1F, 0x05, 0])
+    assert D.clear_status() == bytes([0x1F, 0x06]) and D.clear_status(3) == bytes([0x03, 0x06])
     assert D.set_dac_fsc(1, 0x200) == [bytes([1, 4, 0x04, 0x0C, 0x02]), bytes([1, 4, 0x04, 0x0B, 0x00])]
 
 
@@ -104,7 +106,7 @@ def test_vga_cal_board8_points():
 
 def test_errors():
     for bad in (lambda: D.Row(600e6).to_int(), lambda: D.Row(1e6, 0, 0x1000).to_int(),
-                lambda: D.reset(32), lambda: D.write_rows(1, 0, []),
+                lambda: D.reset(32), lambda: D.write_rows(1, 0, []), lambda: D.identify(1, 256),
                 lambda: D.write_reg(1, 0x2000, 0), lambda: D.pack([b"\x01"]),
                 lambda: D.VgaCal().code(30.0)):
         try:

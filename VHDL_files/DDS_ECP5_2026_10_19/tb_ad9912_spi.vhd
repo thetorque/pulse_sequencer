@@ -3,6 +3,9 @@
 --   1. start_row: 80-bit stream = instr 0x61AD + {00,POW[13:8]} + POW[7:0] + FTW48, with
 --      POW = top 14 bits of the row's 16-bit turn-fraction field (DDS_BUS_CONTRACT §3).
 --   2. start_reg: 24-bit stream = instr {0,00,addr13} + data8.
+--   3. start_rd : 16-bit read instruction {1,00,addr13} driven, then SDIO released and
+--      the model (an AD9912 in 3-wire mode) shifts 0x82 out after each SCLK falling
+--      edge; rd_data must read 0x82 and the FPGA must never drive during the data phase.
 -- (IO_UPDATE is no longer driven by ad9912_spi -- dds_ctl strobes it.)
 --   make sim TB=tb_ad9912_spi
 
@@ -23,10 +26,15 @@ architecture sim of tb_ad9912_spi is
   signal reg_data  : std_logic_vector(7 downto 0)  := x"A5";
   signal busy      : std_logic;
   signal sclk      : std_logic;
-  signal sdio      : std_logic;
+  signal sdio      : std_logic;                         -- the shared SDIO wire
+  signal sdio_o, sdio_oe : std_logic;
+  signal slave_drv : std_logic := 'Z';
+  signal start_rd  : std_logic := '0';
+  signal rd_data   : std_logic_vector(7 downto 0);
   signal csb       : std_logic;
 
-  constant TCLK : time := 13 ns;                                         -- ~77 MHz
+  constant TCLK : time := 13 ns;
+  constant ID_BYTE : std_logic_vector(7 downto 0) := x"82";                                         -- ~77 MHz
 
   constant INSTR_ROW : std_logic_vector(15 downto 0) := x"61AD";        -- write, streaming, 0x01AD
   constant FTW_TEST  : std_logic_vector(47 downto 0) := x"123456789ABC";
@@ -36,10 +44,14 @@ begin
   clk <= not clk after TCLK/2;
 
   dut : entity work.ad9912_spi
-    generic map ( DIV => 1 )
+    generic map ( DIV => 1, RD_DIV => 8 )
     port map ( clk => clk, rst => rst, start_row => start_row, row => row,
                start_reg => start_reg, reg_addr => reg_addr, reg_data => reg_data,
-               busy => busy, sclk => sclk, sdio => sdio, csb => csb );
+               start_rd => start_rd, rd_addr => '0' & x"002", rd_data => rd_data,
+               busy => busy, sclk => sclk, sdio_o => sdio_o, sdio_oe => sdio_oe,
+               sdio_i => sdio, csb => csb );
+  sdio <= sdio_o when sdio_oe = '1' else 'Z';
+  sdio <= slave_drv;                                   -- resolved: 'X' on any contention
 
   stim : process
     variable cap : std_logic_vector(79 downto 0) := (others => '0');
@@ -82,7 +94,34 @@ begin
       report "FAIL: register write" severity error; fails := fails + 1;
     end if;
 
-    if fails = 0 then report "PASS: ad9912_spi row stream + register write correct";
+    -- 3. register read (3-wire)
+    wait until busy = '0';
+    wait until rising_edge(clk); start_rd <= '1';
+    wait until rising_edge(clk); start_rd <= '0';
+    wait until csb = '0'; n := 0;
+    for i in 1 to 16 loop                               -- instruction, sampled on rising
+      wait until rising_edge(sclk);
+      cap := cap(78 downto 0) & sdio; n := n + 1;
+    end loop;
+    if cap(15 downto 0) /= x"8002" then
+      report "FAIL: read instruction " & to_hstring(cap(15 downto 0)) severity error;
+      fails := fails + 1;
+    end if;
+    for i in 7 downto 0 loop                            -- data out after each falling edge
+      wait until falling_edge(sclk);
+      wait for 8 ns;                                    -- AD9912 output delay
+      if sdio_oe = '1' then
+        report "FAIL: FPGA still drives SDIO in the data phase" severity error;
+        fails := fails + 1;
+      end if;
+      slave_drv <= ID_BYTE(i);
+    end loop;
+    wait until rising_edge(csb); slave_drv <= 'Z';
+    wait until busy = '0';
+    report "read: rd_data=" & to_hstring(rd_data);
+    if rd_data /= x"82" then report "FAIL: read data" severity error; fails := fails + 1; end if;
+
+    if fails = 0 then report "PASS: ad9912_spi row stream + register write + 3-wire read correct";
     else report "tb_ad9912_spi: FAILED" severity error; end if;
     std.env.stop;
   end process;

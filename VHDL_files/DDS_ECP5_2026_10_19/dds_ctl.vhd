@@ -1,8 +1,11 @@
 -- dds_ctl.vhd -- DDS board controller: config_ram rows -> AD9912 + VGA DAC + RF switch.
 -- Implements DDS_BUS_CONTRACT.md v0.2 §6 (preload-then-strobe) on top of bus_rx events.
 --
---   INIT     after reset: AD9912 setup writes (0x0010 = 0xD0 direct SYSCLK, DAC FSC =
---            0x200), then APPLY row 0.
+--   ID       after reset: read the AD9912's read-only part ID (0x0002 = 0x82,
+--            0x0003 = 0x19; 3-wire readback) -> id_ok. Proves the chip is alive and
+--            its serial port answers (front-panel health LED). Init continues either way.
+--   INIT     AD9912 setup writes (0x0010 = 0xD0 direct SYSCLK, DAC FSC = 0x200), then
+--            APPLY row 0. init_done rises when row 0 is live.
 --   PRELOAD  read row k+1, stream its POW+FTW into the AD9912 BUFFERED registers and its
 --            VGA code into the MCP4821 input register (LDAC held high) -> "armed".
 --   STEP     (STEPNEXT edge or STEP frame) when armed: IO_UPDATE + LDAC strobed in the
@@ -48,6 +51,9 @@ entity dds_ctl is
     ad_reg_start : out std_logic;
     ad_reg_addr  : out std_logic_vector(12 downto 0);
     ad_reg_data  : out std_logic_vector(7 downto 0);
+    ad_rd_start  : out std_logic;
+    ad_rd_addr   : out std_logic_vector(12 downto 0);
+    ad_rd_data   : in  std_logic_vector(7 downto 0);
     ad_busy      : in  std_logic;
     -- MCP4821 SPI engine (AUTO_LDAC = false)
     dac_start : out std_logic;
@@ -60,7 +66,9 @@ entity dds_ctl is
     -- status
     row_ptr   : out std_logic_vector(ADDR_W-1 downto 0);
     armed     : out std_logic;
-    overrun   : out std_logic                          -- 1-clk pulse: step arrived unarmed
+    overrun   : out std_logic;                         -- 1-clk pulse: step arrived unarmed
+    init_done : out std_logic;                         -- ID check + setup done, row 0 live
+    id_ok     : out std_logic                          -- part ID read back correctly
   );
 end entity;
 
@@ -72,8 +80,11 @@ architecture rtl of dds_ctl is
   --   1: 0x040C = 0x02 : DAC FSC[9:8]  (FSC = 0x200)
   --   2: 0x040B = 0x00 : DAC FSC[7:0]
 
-  type st_t is (S_INIT, S_REGW, S_RD, S_LOAD, S_WAIT, S_STROBE, S_IDLE);
-  signal st      : st_t := S_INIT;
+  type st_t is (S_ID, S_IDW, S_INIT, S_REGW, S_RD, S_LOAD, S_WAIT, S_STROBE, S_IDLE);
+  signal st      : st_t := S_ID;
+  signal id_i    : integer range 0 to 2 := 0;
+  signal id_bad  : std_logic := '0';
+  signal done_i  : std_logic := '0';
   signal init_i  : integer range 0 to N_INIT := 0;
   signal in_init : std_logic := '1';
 
@@ -95,6 +106,8 @@ begin
   raddr   <= std_logic_vector(target);
   row_ptr <= std_logic_vector(rp);
   armed   <= armed_i;
+  init_done <= done_i;
+  id_ok   <= done_i and not id_bad;
   ad_row  <= rowbuf;
   dac_code <= rowbuf(23 downto 12);
 
@@ -103,12 +116,13 @@ begin
     variable ps        : integer range 0 to 4;
   begin
     if rising_edge(clk) then
-      ad_row_start <= '0'; ad_reg_start <= '0'; dac_start <= '0'; overrun <= '0';
+      ad_row_start <= '0'; ad_reg_start <= '0'; ad_rd_start <= '0'; dac_start <= '0';
+      overrun <= '0';
       take_step := false;
       ps := p_step;
 
       if rst = '1' then
-        st <= S_INIT; init_i <= 0; in_init <= '1';
+        st <= S_ID; id_i <= 0; id_bad <= '0'; done_i <= '0'; init_i <= 0; in_init <= '1';
         rp <= (others => '0'); target <= (others => '0'); armed_i <= '0'; apply <= '0';
         io_update <= '0'; ldac_n <= '1'; rf_sw <= '0'; pre_rf <= '0';
         p_step <= 0; p_reset <= '0'; p_rows <= '0'; p_reg <= '0';
@@ -129,6 +143,23 @@ begin
 
         -- ---------- sequencer ----------
         case st is
+          when S_ID =>                                   -- part ID readback (2 bytes)
+            if id_i = 2 then
+              st <= S_INIT;
+            else
+              if id_i = 0 then ad_rd_addr <= '0' & x"002"; else ad_rd_addr <= '0' & x"003"; end if;
+              ad_rd_start <= '1'; bwait <= 2; st <= S_IDW;
+            end if;
+
+          when S_IDW =>
+            if bwait /= 0 then bwait <= bwait - 1;
+            elsif ad_busy = '0' then
+              if (id_i = 0 and ad_rd_data /= x"82") or (id_i = 1 and ad_rd_data /= x"19") then
+                id_bad <= '1';
+              end if;
+              id_i <= id_i + 1; st <= S_ID;
+            end if;
+
           when S_INIT =>                                 -- AD9912 setup register list
             if init_i = N_INIT then
               in_init <= '0'; target <= (others => '0'); apply <= '1';
@@ -176,7 +207,7 @@ begin
             scnt <= scnt + 1;
             if scnt = UPD_CLKS - 1 then io_update <= '0'; end if;
             if scnt = LDAC_CLKS - 1 then
-              ldac_n <= '1';
+              ldac_n <= '1'; done_i <= '1';
               target <= rp + 1; apply <= '0'; rdwait <= 2; st <= S_RD;   -- PRELOAD next
             end if;
 

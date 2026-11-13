@@ -184,9 +184,10 @@ class DDSProgram:
         return len(self.ticks) + 1
 
     def frames(self):
-        """WRITE_ROWS for every board from row 0, then one broadcast RESET so each
-        board sits on row 0 (the manual state) before the first run."""
-        out = []
+        """CLEAR_STATUS (so a board's red error LEDs mean "since this load"), WRITE_ROWS
+        for every board from row 0, then one broadcast RESET so each board sits on
+        row 0 (the manual state) before the first run."""
+        out = [D.clear_status()]
         for name, ch in self.channels.items():
             out += D.program_board(ch.addr, self.rows[name], start=0)
         return out + [D.reset()]

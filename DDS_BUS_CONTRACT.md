@@ -1,7 +1,8 @@
 # DDS Backplane Bus — Protocol Contract (Step 0)
 
-_v0.3, 2026-11-13 — all design decisions agreed (v0.1 draft; v0.3 moves the DDS
-TriggerIn bits to 6/7/8, see §7). The shared
+_v0.4, 2026-11-13 — all design decisions agreed (v0.1 draft; v0.3 moves the DDS
+TriggerIn bits to 6/7/8, see §7; v0.4 adds `IDENTIFY` / `CLEAR_STATUS` and the
+front-panel LED scheme, §5 and §8). The shared
 spec both FPGA tracks build against (see `NEXT_PHASE.md` → "Step 0"):_
 
 - **Slave:** DDS ECP5 board — `VHDL_files/DDS_ECP5_2026_10_19/` (`bus_rx`, `dds_top`)
@@ -121,6 +122,8 @@ byte 2..   : payload (CMD-specific)
 | `0x02` | `RESET` | — | same as a `RAMRESET` edge: row_ptr = 0, apply row 0 |
 | `0x03` | `STEP` | — | same as a `STEPNEXT` edge |
 | `0x04` | `WRITE_REG` | `REG16` + `DATA8` | raw AD9912 register write, followed by IO update (setup / FSC / debug) |
+| `0x05` | `IDENTIFY` | `SECS8` | blink the board's identify LED (D6, amber) for ~SECS s; 0 stops it (v0.4) |
+| `0x06` | `CLEAR_STATUS` | — | clear the latched error LEDs (frame error, step overrun) (v0.4) |
 | `0x00` | `NOP` | any | ignored (padding) |
 
 - `START16`, `REG16`: big-endian.
@@ -197,8 +200,25 @@ The **host** should reject sequences with DDS changes closer than 5 µs.
 
 The bus is write-only, so the slave can only **report locally**:
 
-- Counters: frame errors, step overruns. Readable over the Pico sideband (later)
-  and summarised on the LEDs (red = any error since reset).
+- Frame errors and step overruns are **latched** and shown on the LEDs until a
+  `CLEAR_STATUS` frame. The host sends one at the **start** of every table load, so
+  red means "an error since this program was loaded". (Clearing on `RESET` instead
+  would erase a load-time frame error at once: every table load ends with `RESET`.)
+  Counters readable over the Pico sideband: later.
+- Front-panel LEDs (v0.4, `dds_top`), D1–D6 bicolour (green / red / both = amber):
+
+  | LED | Job | Green | Red | Amber |
+  |---|---|---|---|---|
+  | — | **Boot** (first ~3.5 s) | D1–D5 = address bits 0–4 that are 1 | D1–D5 = address bits that are 0 | D6 |
+  | D1 | Health | slow blink: running, AD9912 part ID read back (0x82/0x19) | AD9912 did not answer its part ID | ID check / setup in progress |
+  | D2 | RF | RF switch on | — | — |
+  | D3 | Bus | flash: a frame for this board executed | frame error (latched) | — |
+  | D4 | Step | flash: STEPNEXT (line or frame) | step overrun (latched) | — |
+  | D5 | Sequence | row_ptr ≠ 0 | flash: RESET (line or frame) | — |
+  | D6 | Identify | — | — | blinks during `IDENTIFY` |
+
+  The part ID is read over 3-wire SPI (SDIO released for the data phase; the
+  board's SDO pin is not connected) before the AD9912 setup writes.
 - **✅ AGREED — no CRC in v1.** Measured BER < 1e-8 at 33 MHz; a full 8192-row
   table is ~720 kbit. Add a per-frame CRC-8 later if errors ever show up (it
   would need a readback path to be useful anyway).
@@ -216,6 +236,8 @@ The bus is write-only, so the slave can only **report locally**:
 - Sequence: keep the legacy `parseDDS` logic; enforce the 5 µs minimum DDS
   change spacing.
 - Manual / CW: `WRITE_ROWS(addr, 0, [row])` + `RESET(addr)`.
+- Table load: `CLEAR_STATUS` (broadcast) + per-board `WRITE_ROWS` + `RESET`.
+- Identify: `IDENTIFY(addr, secs)` from the server / GUI to find a board in the crate.
 
 ---
 

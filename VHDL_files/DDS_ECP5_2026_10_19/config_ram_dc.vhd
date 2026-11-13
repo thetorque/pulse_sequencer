@@ -5,13 +5,16 @@
 -- mux does not fit the ~155 MHz fast clock, but fits ~77.5 MHz easily.
 -- Read: 1-cycle registered (rclk). A row being written while it is read returns old or
 -- new data; dds_ctl re-reads after every rows_written event, so this never matters.
+-- INIT_ROW0: power-up content of row 0 (in the bitstream's EBR init values), so the
+-- board outputs a defined default tone after configuration until a table is loaded.
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity config_ram_dc is
-  generic ( ADDR_W : integer := 13; DATA_W : integer := 88 );
+  generic ( ADDR_W : integer := 13; DATA_W : integer := 88;
+            INIT_ROW0 : std_logic_vector(DATA_W-1 downto 0) := (others => '0') );
   port (
     wclk  : in  std_logic;
     we    : in  std_logic;
@@ -25,7 +28,7 @@ end entity;
 
 architecture rtl of config_ram_dc is
   type mem_t is array (0 to 2**ADDR_W-1) of std_logic_vector(DATA_W-1 downto 0);
-  signal mem : mem_t := (others => (others => '0'));   -- driven only by the write process
+  signal mem : mem_t := (0 => INIT_ROW0, others => (others => '0'));   -- written only by wclk
 begin
   process(wclk) begin
     if rising_edge(wclk) then

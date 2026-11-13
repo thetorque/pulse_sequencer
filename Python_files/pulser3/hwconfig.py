@@ -60,8 +60,11 @@ def new_sequence():
 # DDS outputs: name -> DDSChannel(board address, manual state, limits, calibration).
 # Bench (2026-11-13): ONE board (ID 8) on the backplane, addressed by broadcast so
 # its slot straps don't matter. With a crate, give each channel its board's slot
-# address (0..30; shown on the DDS board's green LEDs g1-g5) and a per-board VgaCal.
+# address (0..30; shown on the DDS board's D1-D5 for ~3.5 s after it boots: green = 1,
+# red = 0) and a per-board VgaCal.
+# Manual state = 100 MHz, -10 dBm, RF on: the same as the DDS board's own power-up
+# default (dds_top DEFAULT_ROW), so a server (re)start doesn't change the output.
 DDS_CHANNELS = {
     'DDS_bench': DDSChannel('DDS_bench', addr=BROADCAST,
-                            frequency_mhz=100.0, amplitude_dbm=0.0, on=False),
+                            frequency_mhz=100.0, amplitude_dbm=-10.0, on=True),
 }

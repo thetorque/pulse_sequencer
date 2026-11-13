@@ -537,6 +537,7 @@ class Pulser(LabradServer):
         yield self.inCommunication.acquire()
         try:
             yield deferToThread(self.driver.dds_clear)
+            yield deferToThread(self._send_dds, [D.clear_status()])   # error LEDs off
             for ch in self.ddsDict.values():
                 yield deferToThread(self._apply_manual, ch)
         finally:
@@ -639,6 +640,18 @@ class Pulser(LabradServer):
     def clear_dds_lock(self, c):
         """Allow manual DDS changes again while a DDS sequence is loaded."""
         self.ddsLock = False
+
+    @setting(94, 'Identify DDS', name='s', seconds='w', returns='')
+    def identifyDDS(self, c, name, seconds=10):
+        """Blink the identify LED (D6, amber) of the board carrying a DDS channel for
+        ~seconds (0 stops it) -- to find it in the crate. Not in the legacy server.
+        A broadcast-address channel blinks every board."""
+        ch = self._dds_channel(name)
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self._send_dds, [D.identify(ch.addr, min(int(seconds), 255))])
+        finally:
+            self.inCommunication.release()
 
     @setting(93, 'Get DDS Lock', returns='b')
     def getDDSLock(self, c):

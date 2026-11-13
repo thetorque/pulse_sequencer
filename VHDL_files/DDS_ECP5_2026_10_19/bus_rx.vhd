@@ -1,5 +1,5 @@
 -- bus_rx.vhd -- DDS backplane bus receiver (slave side).
--- Implements DDS_BUS_CONTRACT.md v0.2 (repo root), sections 2, 4, 5, 8.
+-- Implements DDS_BUS_CONTRACT.md v0.4 (repo root), sections 2, 4, 5, 8.
 --
 -- Physical: SPI mode 0, MSB first, CS-framed, SCK <= 33 MHz (25 MHz nominal).
 -- bp_sck / bp_mosi / bp_cs are asynchronous; they are oversampled in clk through
@@ -22,6 +22,9 @@
 --   0x02 RESET       no payload  -> cmd_reset pulse at frame end
 --   0x03 STEP        no payload  -> cmd_step  pulse at frame end
 --   0x04 WRITE_REG   REG16 + DATA8 -> reg_we pulse (reg_addr / reg_data) at frame end
+--   0x05 IDENTIFY    SECS8         -> cmd_ident pulse (ident_secs) at frame end
+--                                     (blink the identify LED for SECS s; 0 = stop)
+--   0x06 CLEAR_STATUS no payload   -> cmd_clear pulse (clear latched error LEDs)
 --   0x00 NOP         any payload, ignored
 -- Wrong payload length / unknown CMD (for this board) -> frame_err pulse at frame end
 -- (nothing executed for RESET/STEP/WRITE_REG; rows already completed stay written).
@@ -51,6 +54,9 @@ entity bus_rx is
     reg_we       : out std_logic;
     reg_addr     : out std_logic_vector(15 downto 0);
     reg_data     : out std_logic_vector(7 downto 0);
+    cmd_ident    : out std_logic;
+    ident_secs   : out std_logic_vector(7 downto 0);
+    cmd_clear    : out std_logic;
     frame_err    : out std_logic
   );
 end entity;
@@ -62,6 +68,8 @@ architecture rtl of bus_rx is
   constant OP_RESET : std_logic_vector(7 downto 0) := x"02";
   constant OP_STEP  : std_logic_vector(7 downto 0) := x"03";
   constant OP_WREG  : std_logic_vector(7 downto 0) := x"04";
+  constant OP_IDENT : std_logic_vector(7 downto 0) := x"05";
+  constant OP_CLEAR : std_logic_vector(7 downto 0) := x"06";
   constant ROW_BYTES : integer := DATA_W / 8;              -- 11
 
   -- synchronisers: (0) sck (1) mosi (2) cs ; cs resets to idle-high
@@ -111,7 +119,7 @@ begin
   begin
     if rising_edge(clk) then
       we <= '0'; rows_written <= '0'; cmd_reset <= '0'; cmd_step <= '0';
-      reg_we <= '0'; frame_err <= '0';
+      reg_we <= '0'; frame_err <= '0'; cmd_ident <= '0'; cmd_clear <= '0';
 
       if rst = '1' then
         nbytes <= 0; active <= '0'; ignore <= '0'; wrote <= '0'; extra <= '0';
@@ -135,6 +143,12 @@ begin
               if nbytes = 5 and extra = '0' then
                 reg_we <= '1'; reg_addr <= p16; reg_data <= pdata;
               else frame_err <= '1'; end if;
+            when OP_IDENT =>
+              if nbytes = 3 and extra = '0' then
+                cmd_ident <= '1'; ident_secs <= pdata;
+              else frame_err <= '1'; end if;
+            when OP_CLEAR =>
+              if nbytes = 2 and extra = '0' then cmd_clear <= '1'; else frame_err <= '1'; end if;
             when OP_NOP => null;
             when others => frame_err <= '1';
           end case;
@@ -176,8 +190,10 @@ begin
               elsif nbytes = 4 then pdata <= byte_d;            nbytes <= 5;
               else  extra <= '1';
               end if;
+            when OP_IDENT =>
+              if nbytes = 2 then pdata <= byte_d; nbytes <= 3; else extra <= '1'; end if;
             when OP_NOP => null;
-            when others => extra <= '1';                    -- RESET/STEP/unknown: no payload
+            when others => extra <= '1';                    -- RESET/STEP/CLEAR/unknown: no payload
           end case;
         end if;
       end if;

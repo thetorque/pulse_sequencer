@@ -1,19 +1,26 @@
--- tb_dds_top.vhd -- full DDS-board simulation (DDS_BUS_CONTRACT.md v0.2).
+-- tb_dds_top.vhd -- full DDS-board simulation (DDS_BUS_CONTRACT.md v0.4).
 -- The TB is the XEM7305 master (backplane frames + STEPNEXT/RAMRESET pulses) AND the
 -- board's chips: an AD9912 register model (buffered FTW/POW, made active by an
--- IO_UPDATE rising edge; single-byte register writes) and an MCP4821 model (input
+-- IO_UPDATE rising edge; single-byte register writes; 3-wire reads of the part ID
+-- 0x0002/0x0003 = 0x82/0x19, or garbage with -gBAD_ID=true) and an MCP4821 model (input
 -- register, output updated by LDAC falling). It checks what is ACTUALLY live after
--- each step / reset / register write, and the STEPNEXT -> IO_UPDATE latency.
+-- each step / reset / register write, the STEPNEXT -> IO_UPDATE latency, and the
+-- front-panel LEDs (boot address display, health, flashes, error latch + CLEAR_STATUS,
+-- IDENTIFY). BOOT_BITS/FLASH_BITS are shortened so it all fits in 1 ms.
 --   make sim TB=tb_dds_top     -> ends with "tb_dds_top: ALL TESTS PASSED"
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity tb_dds_top is end entity;
+entity tb_dds_top is
+  generic ( BAD_ID : boolean := false );      -- true: model answers the ID reads wrongly
+end entity;
 
 architecture sim of tb_dds_top is
-  signal dds_sclk, dds_sdio, dds_csb, dds_ioupdate, dds_reset, dds_pwrdwn : std_logic;
+  signal dds_sclk, dds_csb, dds_ioupdate, dds_reset, dds_pwrdwn : std_logic;
+  signal dds_sdio : std_logic := 'Z';
+  signal n_rd : integer := 0;
   signal vga_sck, vga_sci, vga_cs, vga_ldac, vga_shdn, rf_main_sw : std_logic;
   signal sck, mosi : std_logic := '0';
   signal cs, stepnext, ramreset : std_logic := '1';   -- undriven lines idle HIGH (fail-safe)
@@ -25,7 +32,7 @@ architecture sim of tb_dds_top is
 
   -- AD9912 model
   type regmap_t is array (0 to 16#5FF#) of std_logic_vector(7 downto 0);
-  signal ad_buf   : regmap_t := (others => (others => '0'));
+  signal ad_buf   : regmap_t := (16#002# => x"82", 16#003# => x"19", others => (others => '0'));
   signal act_ftw  : std_logic_vector(47 downto 0) := (others => '0');
   signal act_pow  : std_logic_vector(13 downto 0) := (others => '0');
   signal n_upd, n_regw, n_roww : integer := 0;
@@ -46,7 +53,9 @@ architecture sim of tb_dds_top is
   constant R3 : std_logic_vector(87 downto 0) := mkrow(x"028F5C28F5C3", x"FFFC", x"123", '1');
   constant R9 : std_logic_vector(87 downto 0) := mkrow(x"111111111111", x"2222", x"333", '1');
 begin
-  dut : entity work.dds_top port map (
+  dut : entity work.dds_top
+    generic map ( BOOT_BITS => 15, FLASH_BITS => 12 )   -- boot ~0.42 ms, flash ~53 us
+    port map (
     dds_sclk => dds_sclk, dds_sdio => dds_sdio, dds_csb => dds_csb,
     dds_ioupdate => dds_ioupdate, dds_reset => dds_reset, dds_pwrdwn => dds_pwrdwn,
     dds_sdo => '0',
@@ -73,24 +82,40 @@ begin
     variable instr : std_logic_vector(15 downto 0);
     variable a  : integer;
     variable nbytes : integer;
+    variable rb : std_logic_vector(7 downto 0);
   begin
+    dds_sdio <= 'Z';
     wait until falling_edge(dds_csb);
     n := 0;
     loop
       wait until rising_edge(dds_sclk) or rising_edge(dds_csb);
       exit when dds_csb = '1';
       sh := sh(254 downto 0) & dds_sdio; n := n + 1;
+      if n = 16 and sh(15) = '1' then                  -- READ: shift the byte out on SDIO
+        a := to_integer(unsigned(sh(12 downto 0)));
+        rb := ad_buf(a);
+        if BAD_ID then rb := x"00"; end if;            -- e.g. an unpowered chip
+        for i in 7 downto 0 loop
+          wait until falling_edge(dds_sclk);
+          dds_sdio <= rb(i) after 8 ns;
+        end loop;
+        wait until rising_edge(dds_csb);
+        dds_sdio <= 'Z' after 5 ns;
+        n_rd <= n_rd + 1;
+        exit;
+      end if;
     end loop;
-    instr := sh(n-1 downto n-16);
-    a := to_integer(unsigned(instr(12 downto 0)));
-    nbytes := (n - 16) / 8;
-    for b in 0 to nbytes-1 loop                         -- MSB-first: address decrements
-      ad_buf(a - b) <= sh(n-17-8*b downto n-24-8*b);
-    end loop;
-    if instr(14 downto 13) = "11" then n_roww <= n_roww + 1;
-    else n_regw <= n_regw + 1; last_reg <= sh(23 downto 0); end if;
-    assert instr(15) = '0' report "AD9912 model: unexpected READ" severity error;
-    assert (n - 16) mod 8 = 0 report "AD9912 model: partial byte" severity error;
+    if not (n = 16 and sh(15) = '1') then              -- a write
+      instr := sh(n-1 downto n-16);
+      a := to_integer(unsigned(instr(12 downto 0)));
+      nbytes := (n - 16) / 8;
+      for b in 0 to nbytes-1 loop                         -- MSB-first: address decrements
+        ad_buf(a - b) <= sh(n-17-8*b downto n-24-8*b);
+      end loop;
+      if instr(14 downto 13) = "11" then n_roww <= n_roww + 1;
+      else n_regw <= n_regw + 1; last_reg <= sh(23 downto 0); end if;
+      assert (n - 16) mod 8 = 0 report "AD9912 model: partial byte" severity error;
+    end if;
   end process;
 
   ad_update : process(dds_ioupdate) begin
@@ -125,6 +150,7 @@ begin
     variable fails : integer := 0;
     variable t0 : time;
     variable u0 : integer;
+    variable seen : boolean;
 
     procedure frame(b : std_logic_vector) is
       constant v : std_logic_vector(b'length-1 downto 0) := b;
@@ -163,11 +189,25 @@ begin
     stepnext <= '0'; ramreset <= '0';
 
     -- power-up: POR (~0.42 ms) + AD9912 init + apply row 0 (all-zero table)
-    wait for 600 us;
+    wait for 300 us;                                     -- still in the boot display
+    check("B1 boot: D1..D5 = address 00101 (green = 1, red = 0)",
+          leds(4 downto 0) = not ADDR and leds(10 downto 6) = ADDR);
+    check("B2 boot: D6 amber", leds(5) = '0' and leds(11) = '0');
+    wait for 300 us;
+    check("P0 init: part ID read twice", n_rd = 2);
     check("P1 init: 3 AD9912 register writes", n_regw = 3);
+    if BAD_ID then
+      check("H1 bad part ID -> D1 red, not green", leds(6) = '0' and leds(0) = '1');
+      report "tb_dds_top (BAD_ID): done";
+      std.env.stop;
+    end if;
+    check("H1 health: D1 not red (part ID ok)", leds(6) = '1');
+    check("H2 D6 off (no identify), D2 green (default row: RF on)",
+          leds(5) = '1' and leds(11) = '1' and leds(1) = '0');
     check("P2 init: 0x0010=D0 / FSC=0x200",
           ad_buf(16#010#) = x"D0" and ad_buf(16#40C#) = x"02" and ad_buf(16#40B#) = x"00");
-    check_live("P3 power-up applies empty row 0 (RF open)", (87 downto 0 => '0'));
+    check_live("P3 power-up applies the default row 0 (100 MHz, VGA 0x8DE, RF on)",
+               mkrow(x"19999999999A", x"0000", x"8DE", '1'));
 
     -- write rows 0..3, then RESET frame -> row 0 live, row 1 preloaded
     frame("000" & ADDR & x"01" & x"0000" & R0 & R1 & R2 & R3);
@@ -185,21 +225,26 @@ begin
     check_live("T2 STEPNEXT -> row 1", R1);
     report "T2 STEPNEXT->IO_UPDATE latency = " & time'image(t_upd - t0);
     check("T2b latency < 100 ns", n_upd = u0 + 1 and t_upd - t0 < 100 ns);
+    check("L1 D4 green step flash, D5 green (row 1), D2 green (RF on)",
+          leds(3) = '0' and leds(4) = '0' and leds(1) = '0');
 
     -- another step after > 5 us -> row 2 (RF off)
     pulse(stepnext); wait for 10 us;
     check_live("T3 STEPNEXT -> row 2 (RF off)", R2);
-    check("T3b no overrun at the 5 us minimum spacing (LED r2 off)", leds(7) = '1');
+    check("T3b no overrun at the 5 us minimum spacing (D4 not red)", leds(9) = '1');
 
     -- two steps 1 us apart: second arrives while preloading -> late, not lost
     pulse(stepnext); wait for 1 us;
     pulse(stepnext); wait for 10 us;
     check_live("T4 fast double step -> row 4 (= empty row)", (87 downto 0 => '0'));
-    check("T4b overrun flagged (LED r2 on)", leds(7) = '0');
+    check("T4b overrun flagged (D4 red, latched)", leds(9) = '0');
+    frame("000" & ADDR & x"06"); wait for 2 us;          -- CLEAR_STATUS
+    check("T4c CLEAR_STATUS clears the overrun latch", leds(9) = '1');
 
     -- RAMRESET line -> row 0
     pulse(ramreset); wait for 10 us;
     check_live("T5 RAMRESET -> row 0", R0);
+    check("L2 RESET: D5 red flash, D5 green off (row 0)", leds(10) = '0' and leds(4) = '1');
 
     -- WRITE_REG 0x040B = 0x55 -> register written, current row re-applied
     u0 := n_regw;
@@ -218,6 +263,27 @@ begin
     frame("000" & "11111" & x"01" & x"0002" & R9); wait for 10 us;   -- preloaded row 2 overwritten
     pulse(stepnext); wait for 10 us;
     check_live("T9 rewritten preloaded row is what gets stepped to", R9);
+
+    -- frame error latch, IDENTIFY
+    check("L3 no frame error so far (D3 not red)", leds(8) = '1');
+    frame("000" & ADDR & x"7E"); wait for 2 us;          -- unknown command
+    check("L4 frame error -> D3 red (latched)", leds(8) = '0');
+    frame("000" & "11111" & x"06"); wait for 2 us;       -- broadcast CLEAR_STATUS
+    check("L5 CLEAR_STATUS clears D3 red", leds(8) = '1');
+    frame("000" & ADDR & x"05" & x"03");                 -- IDENTIFY 3 s
+    seen := false;
+    for i in 1 to 100 loop                               -- blink: amber within ~60 us
+      wait for 1 us;
+      if leds(5) = '0' and leds(11) = '0' then seen := true; end if;
+    end loop;
+    check("L6 IDENTIFY -> D6 amber blink", seen);
+    frame("000" & ADDR & x"05" & x"00");                 -- IDENTIFY 0 = stop
+    seen := false;
+    for i in 1 to 100 loop
+      wait for 1 us;
+      if leds(5) = '0' or leds(11) = '0' then seen := true; end if;
+    end loop;
+    check("L7 IDENTIFY 0 stops it (D6 dark)", not seen);
 
     if fails = 0 then report "tb_dds_top: ALL TESTS PASSED";
     else report "tb_dds_top: " & integer'image(fails) & " FAILURE(S)" severity error; end if;
