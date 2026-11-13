@@ -757,17 +757,15 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
   <h3>Phase D — DDS <span style="color:#16a34a">(software done; hardware tests remain)</span></h3>
   <ul>
     <li><b>Done (2026-11-13, hardware-verified on board 8):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–94), the <b>DDS Control</b> GUI, board firmware v0.4 (front-panel LEDs, AD9912 health check, identify, 100 MHz / −10 dBm default tone).</li>
+    <li><b>Done (2026-11-14):</b> <b>2-hour stepping soak</b> (<code>python -m pulser3.dds_soak</code>) — 1,441,770,000 AdvanceDDS steps at 5 µs spacing, no lost or extra step (counter on the predicted 52.576 MHz), no red D3/D4; <b>DAC full-scale current register write</b> from the host (FSC tracks the output level; it is a static per-board setting, not used for sequence amplitude — the VGA is); <b>master FPGA</b>: DDR3 read-path fix, the "DDS FIFO drained" status wire (WireOut 0x36), rebuilt from the repo.</li>
     <li><span style="color:#b45309">Next:</span> see the test list below.</li>
   </ul>
   <table>
     <tr><th>Test</th><th>Needs</th></tr>
     <tr><td>RF switch isolation (output with RF off)</td><td>spectrum analyzer</td></tr>
     <tr><td>Step timing: STEPNEXT → RF change, 5 µs minimum spacing</td><td>scope</td></tr>
-    <tr><td>Soak: hours of stepping with no red LEDs</td><td>time</td></tr>
-    <tr><td>Register write: DAC full-scale current from the host</td><td>counter / scope</td></tr>
-    <tr><td>Per-frequency amplitude calibration file (+ load it per board)</td><td>spectrum analyzer / power meter</td></tr>
+    <tr><td>Per-frequency amplitude calibration file (+ load it per board, with the per-board FSC)</td><td>spectrum analyzer / power meter</td></tr>
     <tr><td>Wire coupler c11–c18 → RAMRESET by line → infinite loops with DDS pulses</td><td>soldering</td></tr>
-    <tr><td>Master: DDR3 read-path fix, a "DDS FIFO drained" status wire, rebuild from the repo</td><td>Vivado</td></tr>
     <tr><td>ScriptScanner end to end with <code>addDDS</code></td><td>bench</td></tr>
     <tr><td>The other 9 boards (Pico config → AD9912 first light → 5 V current → counter → address → bus)</td><td>boards</td></tr>
     <tr><td>Crate: board-to-board step skew, phase offsets, crosstalk, power/thermal</td><td>2+ boards</td></tr>

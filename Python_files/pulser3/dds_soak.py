@@ -76,6 +76,7 @@ def main(argv=None):
     # verify=False: the read-back uses the DDR3 read path, which can hit the known
     # cold-start mis-address (roadmap 3.2); the write is fine and every block is
     # checked below (done + loop count + streamer overflow) -- same as the server.
+    print("loading the stepping sequence into DDR3 ...", flush=True)
     drv.load_program(seq.to_lines(), verify=False)
     per_block = BLOCK * a.steps
     print(f"sequence: {a.steps} steps x {a.spacing_us:g} us per loop; "
@@ -86,6 +87,8 @@ def main(argv=None):
     try:
         while time.time() < deadline and not os.path.exists(STOP_FILE):
             tb = time.time()
+            if blocks == 0:
+                print("starting block 1 ...", flush=True)
             drv.start_number(BLOCK)
             if not drv.wait_done(timeout=BLOCK * (a.steps + 2) * sp * 3 + 60):
                 print("ERROR: block did not finish -- stopping", flush=True)
