@@ -193,6 +193,8 @@ Loop: Mac edits HDL/XDC → commit → **push** → ssh-trigger build → scp th
 - [ ] Confirm the Windows bench Vivado + FrontPanel + scalabrad env still runs
       (the `JAVA_HOME` / corrupt-registry fixes are documented in
       `Python_files/pulser_labrad/manual.html`).
-- [ ] **Write the Step-0 DDS backplane protocol contract** (its own doc) — the
-      first dev task; unblocks Tracks A and B in parallel.
-- [ ] AD9912 population plan for the DDS board (QFN reflow) before Track A HW.
+- [x] **Write the Step-0 DDS backplane protocol contract** (its own doc) — the
+      first dev task; unblocks Tracks A and B in parallel. → `DDS_BUS_CONTRACT.md`
+      (v0.2, decisions agreed 2026-11-13).
+- [x] AD9912 population plan for the DDS board (QFN reflow) before Track A HW.
+      → board 8 populated + verified (first light 2026-11-07, counter test 2026-11-08).
