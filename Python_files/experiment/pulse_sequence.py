@@ -13,8 +13,8 @@ in a sequence class (here / in `pulser_sequences/`), and let an experiment
 
 py3 changes vs the legacy:
 - uses our local `treedict` (script_scanner/treedict.py) instead of the py2 pkg;
-- DDS is hardware-deferred, so `programSequence` sends TTL pulses and only attempts
-  DDS if the sequence actually defines any (raising a clear message otherwise);
+- `programSequence` sends the TTL pulses and, if the sequence has any, the DDS
+  pulses (Pulser 'Add DDS Pulses', DDS backplane bus since 2026-11-13);
 - `addTTL`/`addDDS` track the sequence end time (handy for the run timeout);
 - `addSequence` now also merges the subsequence's TTL pulses (the legacy had that
   line commented out), so composition works for TTL too.
@@ -87,7 +87,7 @@ class pulse_sequence(object):
 
     def addDDS(self, channel, start, duration, frequency, amplitude,
                phase=None, ramp_rate=None, amp_ramp_rate=None):
-        '''add a DDS pulse (stored; DDS is hardware-deferred -- see programSequence).'''
+        '''add a DDS pulse (stored; sent to the Pulser by programSequence).'''
         if phase is None:
             phase = WithUnit(0, 'deg')
         if ramp_rate is None:
@@ -119,9 +119,7 @@ class pulse_sequence(object):
         if self._ttl_pulses:
             pulser.add_ttl_pulses(self._ttl_pulses)
         if self._dds_pulses:
-            try:
-                pulser.add_dds_pulses(self._dds_pulses)
-            except Exception:
-                raise Exception("This sequence uses DDS pulses, but the Pulser has no DDS "
-                                "support yet (DDS is hardware-deferred) -- use TTL-only sequences.")
+            # Pulser 'Add DDS Pulses' (8-tuple form); errors such as an unknown
+            # channel or DDS changes < 5 us apart surface from the server as-is
+            pulser.add_dds_pulses(self._dds_pulses)
         pulser.program_sequence()

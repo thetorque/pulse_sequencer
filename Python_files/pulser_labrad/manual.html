@@ -318,8 +318,24 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
     <tr><td>14</td><td><code>switch_auto</code></td><td>channelName <code>s</code>, invert <code>b</code></td><td>Return a channel to sequence control.</td></tr>
     <tr><td>15</td><td><code>get_state</code></td><td>channelName <code>s</code> → <code>(b b b b)</code></td><td>(ismanual, manualstate, manualinv, autoinv).</td></tr>
   </table>
-  <div class="box tip"><b class="tag">Coming next</b>
-    <p>DDS settings (90–92) are still to come — DDS is hardware-blocked. See <code>pmt_client.py</code> for a runnable PMT example and <code>../pulser_gui/</code> for the PyQt5 GUI.</p>
+
+  <h3>DDS</h3>
+  <p>The DDS boards on the backplane (DDS_BUS_CONTRACT.md v0.3). Channels come from <code>pulser3/hwconfig.py</code> <code>DDS_CHANNELS</code> (board address, manual state, limits, amplitude calibration). Same IDs/names as the legacy server. The <b>manual state</b> is what a channel outputs between runs; inside a sequence it is row 0 of the channel's table.</p>
+  <table>
+    <tr><th>ID</th><th>Method</th><th>Arguments</th><th>What it does</th></tr>
+    <tr><td>41</td><td><code>get_dds_channels</code></td><td>→ <code>*s</code></td><td>DDS channel names.</td></tr>
+    <tr><td>44</td><td><code>frequency</code></td><td>name <code>s</code>, frequency <code>v[MHz]</code></td><td>Get/set the manual frequency (applied at once).</td></tr>
+    <tr><td>43</td><td><code>amplitude</code></td><td>name <code>s</code>, amplitude <code>v[dBm]</code></td><td>Get/set the manual amplitude (applied at once if the channel is on).</td></tr>
+    <tr><td>48</td><td><code>output</code></td><td>name <code>s</code>, state <code>b</code></td><td>Manual on/off. Off = the board's RF switch opens.</td></tr>
+    <tr><td>45</td><td><code>add_dds_pulses</code></td><td><code>*(s v[s] v[s] v[MHz] v[dBm])</code> or with <code>v[deg] v[MHz] v[dB]</code> (phase, ramp, amp ramp)</td><td>Add DDS pulses to the context's sequence. Frequency 0 = off; 0-length ignored; ramps must be 0. One form per call.</td></tr>
+    <tr><td>46 / 47</td><td><code>get_dds_amplitude_range</code> / <code>get_dds_frequency_range</code></td><td>name <code>s</code> → <code>(v v)</code></td><td>Allowed dBm / MHz range.</td></tr>
+    <tr><td>49</td><td><code>clear_dds_lock</code></td><td>—</td><td>Allow manual changes while a DDS sequence is loaded.</td></tr>
+    <tr><td>11</td><td><code>human_readable_dds</code></td><td>→ <code>*(s v v)</code></td><td>The compiled tables: (name, MHz, dBm) per row, row 0 first; RF off = −inf dBm.</td></tr>
+    <tr><td>90 / 91 / 92</td><td><code>internal_reset_dds</code> / <code>internal_advance_dds</code> / <code>reinitialize_dds</code></td><td>—</td><td>Debug: all boards to row 0 / one step / every channel back to its manual state.</td></tr>
+  </table>
+  <p>How a sequence with DDS pulses runs: <code>program_sequence</code> compiles every channel into a row table (one row per instant at which <i>any</i> DDS setting changes), adds an <b>AdvanceDDS</b> (TTL 18) pulse at each such instant and a <b>ResetDDS</b> (TTL 19) pulse at the end, and loads the tables over the bus. Rules: changes must be <b>≥ 5 µs apart</b> (also ≥ 5 µs after t = 0), at most 8192 rows, pulses on one channel may touch but not overlap. While a DDS sequence is loaded, manual DDS changes are refused (<i>DDS lock</i>) until <code>stop_sequence</code> or <code>clear_dds_lock</code>. Every start first sends a RESET frame, so each run begins on row 0 even where the RAMRESET line isn't wired. Run <code>dds_client.py</code> for a bench check.</p>
+  <div class="box tip"><b class="tag">Not ported</b>
+    <p><code>movinglattice</code> (50) is gone: the 2026 DDS has no ramps. See <code>pmt_client.py</code> / <code>dds_client.py</code> for runnable examples and <code>../pulser_gui/</code> for the PyQt5 GUI.</p>
   </div>
 </section>
 
@@ -657,9 +673,10 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <li><b>Line Tracker</b> (<code>Line_tracker/</code>, bundles Andor) + <b>line_tracker</b> GUI — line-center drift.</li>
   </ul>
 
-  <h3>Phase D — DDS <span style="color:#b45309">(hardware-blocked: board not built)</span></h3>
+  <h3>Phase D — DDS <span style="color:#16a34a">(mostly done)</span></h3>
   <ul>
-    <li>DDS in <code>pulser3</code> + the FPGA datapath, <b>DDS server settings</b> (90–92), <b>DDS_CONTROL</b> GUI.</li>
+    <li><b>Done (2026-11-13, hardware-verified on one board):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–92).</li>
+    <li><span style="color:#b45309">Next:</span> the <b>DDS_CONTROL</b> GUI, per-board/per-frequency amplitude calibration files, the RAMRESET line on the bench coupler, the other DDS boards.</li>
   </ul>
 
   <h3>Phase E — Polish &amp; infra <span style="color:#6b7280">(anytime, small)</span></h3>

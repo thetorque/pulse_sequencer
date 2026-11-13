@@ -23,13 +23,15 @@ timeout = 20
 # setting IDs/names (so existing clients + the rest of the lab's LabRAD
 # ecosystem work unchanged) and delegates every hardware action to pulser3.
 #
-# This is the MINIMAL proof-of-stack server (sequence build/program/run/stop);
-# the full setting set (PMT counting, DDS, switch manual/auto) is added next.
+# Settings: sequence build/program/run/stop, PMT counting + timetags, manual
+# TTL switching, and DDS (legacy dds.py IDs 41-49 + 11 + 90-92; the DDS
+# backplane bus of DDS_BUS_CONTRACT.md v0.3 through pulser3.dds_sequence).
 #
 # Blocking FPGA calls (USB) run in a thread via deferToThread, so they don't
 # stall the Twisted reactor -- same pattern as the legacy server.
 #
 # Config: set PULSER_BIT_PATH to the photon .bit before starting the server.
+import copy
 import os
 import sys
 import time
@@ -38,11 +40,14 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from labrad.server import LabradServer, setting, Signal   # noqa: E402
+from labrad.units import WithUnit                          # noqa: E402
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock  # noqa: E402
 from twisted.internet.threads import deferToThread        # noqa: E402
 
 from pulser3 import Driver                                 # noqa: E402
 from pulser3 import hwconfig                               # noqa: E402
+from pulser3 import dds as D                               # noqa: E402
+from pulser3 import dds_sequence as DS                     # noqa: E402
 
 # PMT collection-mode state (LabRAD/server-layer, not hwconfig -- see hwconfig.py
 # header). Collection time is the counting-gate length in seconds; the range is
@@ -60,6 +65,9 @@ class Pulser(LabradServer):
     # Fired when any switch is toggled, so other clients (GUIs) stay in sync.
     # Same ID/name/signature as the legacy server -> existing listeners work.
     onSwitch = Signal(611051, 'signal: switch toggled', '(ss)')
+    # Fired when a DDS channel's frequency/amplitude/state changes (legacy dds.py).
+    # (name, 'frequency'|'amplitude'|'state', value); state is sent as 1.0/0.0.
+    on_dds_param = Signal(142006, 'signal: new dds parameter', '(ssv)')
 
     @inlineCallbacks
     def initServer(self):
@@ -91,9 +99,18 @@ class Pulser(LabradServer):
                    'manualinv': False, 'autoinv': False}
             for name in self.channels}
         self.listeners = set()             # client contexts, for signal fan-out
+        # DDS: private copies of the configured channels (the server mutates the
+        # manual state). ddsLock: set by programming a DDS sequence, cleared by
+        # Stop Sequence / Clear DDS Lock -- manual changes are refused meanwhile,
+        # since they rewrite row 0 of the loaded tables (legacy behaviour).
+        self.ddsDict = copy.deepcopy(hwconfig.DDS_CHANNELS)
+        DS.check_channels(self.ddsDict)
+        self.ddsLock = False
+        self.dds_programmed = False        # the loaded program has DDS tables
         print("Pulser: connecting to XEM7305 and configuring %s ..." % bit_path)
         yield deferToThread(self.driver.connect, bit_path)   # ConfigureFPGA + MIG calib
         print("Pulser: FPGA ready.")
+        yield self.initializeDDS()
 
     # ---- sequence building (server-side Sequence per context) --------------
     @setting(0, "New Sequence", returns='')
@@ -136,7 +153,10 @@ class Pulser(LabradServer):
         seq = c.get('sequence')
         if seq is None:
             raise Exception("Please create a new sequence first")
-        lines = seq.to_lines()
+        # TTL lines + (if the sequence has DDS pulses) the per-board DDS tables,
+        # with AdvanceDDS/ResetDDS added. Compiled up front so a DDS error (e.g.
+        # steps closer than 5 us) is reported before the hardware is touched.
+        lines, dds_prog = DS.compile_sequence(seq, self.ddsDict)
         yield self.inCommunication.acquire()
         try:
             # Persistent-session cleanup: a prior start_single leaves the
@@ -151,15 +171,21 @@ class Pulser(LabradServer):
             # WRITE is fine and the running sequence validates itself via
             # line_count / drop flags, so the verify is redundant in the server.
             yield deferToThread(self.driver.load_program, lines, verify=False)
+            if dds_prog is not None:
+                yield deferToThread(self._send_dds, dds_prog.frames())
         finally:
             self.inCommunication.release()
         self.isProgrammed = True
+        self.dds_programmed = dds_prog is not None
+        if self.dds_programmed:
+            self.ddsLock = True
 
     @setting(4, "Start Single", returns='')
     def startSingle(self, c):
         """Run the programmed sequence once (DDR3 sequencer mode)."""
         yield self.inCommunication.acquire()
         try:
+            yield self._rewind_dds()
             yield deferToThread(self.driver.start_single)
         finally:
             self.inCommunication.release()
@@ -169,6 +195,7 @@ class Pulser(LabradServer):
         """Run the programmed sequence, looping until stopped."""
         yield self.inCommunication.acquire()
         try:
+            yield self._rewind_dds()
             yield deferToThread(self.driver.start_infinite)
         finally:
             self.inCommunication.release()
@@ -178,6 +205,7 @@ class Pulser(LabradServer):
         """Run the programmed sequence a finite number of times."""
         yield self.inCommunication.acquire()
         try:
+            yield self._rewind_dds()
             yield deferToThread(self.driver.start_number, int(repetition))
         finally:
             self.inCommunication.release()
@@ -190,6 +218,7 @@ class Pulser(LabradServer):
             yield deferToThread(self.driver.stop)
         finally:
             self.inCommunication.release()
+        self.ddsLock = False
 
     @setting(16, 'Wait Sequence Done', timeout='v', returns='b')
     def waitSequenceDone(self, c, timeout=None):
@@ -456,6 +485,205 @@ class Pulser(LabradServer):
             raise Exception("Incorrect Channel")
         st = self.switchState[channelName]
         return (st['ismanual'], st['manualstate'], st['manualinv'], st['autoinv'])
+
+    # ---- DDS (backplane bus, pulser3.dds_sequence) --------------------------
+    # Same setting IDs/names/signatures as the legacy servers/pulser/dds.py so
+    # experiment code (Add DDS Pulses) and DDS GUI clients work unchanged.
+    # Differences on the 2026 hardware: "off" opens the RF switch (contract
+    # decision 2), there are no ramps (the Movinglattice setting 50 is gone and
+    # non-zero ramp rates are refused), and DDS changes in a sequence must be
+    # >= 5 us apart. Manual settings rewrite the channel's row 0 and RESET its
+    # board, so the new value appears at once.
+
+    def _send_dds(self, frames):
+        """Blocking: queue frames on pipe 0x81 and wait until they are on the bus."""
+        self.driver.dds_send(frames)
+        time.sleep(DS.bus_seconds(frames))
+
+    def _rewind_dds(self):
+        """Before a run: put every board on row 0 with a RESET frame. The
+        sequence's own ResetDDS pulse does this at the end of each run, but only
+        where the RAMRESET line is wired; the frame always works. Deferred."""
+        if not self.dds_programmed:
+            return deferToThread(lambda: None)
+        return deferToThread(self._send_dds, [D.reset()])
+
+    def _dds_channel(self, name):
+        if name is None:
+            raise Exception("DDS channel name required (one of %s)" % sorted(self.ddsDict))
+        try:
+            return self.ddsDict[name]
+        except KeyError:
+            raise Exception("Channel {0} not found".format(name))
+
+    def _check_dds_lock(self):
+        if self.ddsLock:
+            raise Exception("DDS access is locked: a DDS sequence is programmed. "
+                            "Stop Sequence or Clear DDS Lock first.")
+
+    def _apply_manual(self, ch):
+        """Blocking: make the board output the channel's manual state now."""
+        self._send_dds([D.write_rows(ch.addr, 0, [ch.manual_row()]), D.reset(ch.addr)])
+
+    def _notify_dds(self, c, name, item, value):
+        others = self.listeners.copy()
+        others.discard(c.ID)
+        self.on_dds_param((name, item, float(value)), others)
+
+    @inlineCallbacks
+    def initializeDDS(self):
+        """Every configured channel to its manual state (legacy initializeDDS).
+        Also the first pipe-0x81 traffic, so it flushes the frame FIFO first."""
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self.driver.dds_clear)
+            for ch in self.ddsDict.values():
+                yield deferToThread(self._apply_manual, ch)
+        finally:
+            self.inCommunication.release()
+
+    @setting(41, "Get DDS Channels", returns='*s')
+    def getDDSChannels(self, c):
+        """Names of the DDS channels (hwconfig.DDS_CHANNELS)."""
+        return list(self.ddsDict.keys())
+
+    @setting(43, "Amplitude", name='s', amplitude='v[dBm]', returns='v[dBm]')
+    def amplitude(self, c, name=None, amplitude=None):
+        """Get or set the manual amplitude (dBm) of a DDS channel. If the channel
+        is on, the output changes immediately."""
+        ch = self._dds_channel(name)
+        if amplitude is not None:
+            self._check_dds_lock()
+            amplitude = amplitude['dBm']
+            ch.check(amplitude_dbm=amplitude)
+            ch.amplitude_dbm = amplitude
+            if ch.on:
+                yield self.inCommunication.acquire()
+                try:
+                    yield deferToThread(self._apply_manual, ch)
+                finally:
+                    self.inCommunication.release()
+            self._notify_dds(c, name, 'amplitude', amplitude)
+        returnValue(WithUnit(ch.amplitude_dbm, 'dBm'))
+
+    @setting(44, "Frequency", name='s', frequency='v[MHz]', returns='v[MHz]')
+    def frequency(self, c, name=None, frequency=None):
+        """Get or set the manual frequency (MHz) of a DDS channel. The frequency
+        is always loaded (the RF switch decides on/off), keeping phase continuity."""
+        ch = self._dds_channel(name)
+        if frequency is not None:
+            self._check_dds_lock()
+            frequency = frequency['MHz']
+            ch.check(frequency_mhz=frequency)
+            ch.frequency_mhz = frequency
+            yield self.inCommunication.acquire()
+            try:
+                yield deferToThread(self._apply_manual, ch)
+            finally:
+                self.inCommunication.release()
+            self._notify_dds(c, name, 'frequency', frequency)
+        returnValue(WithUnit(ch.frequency_mhz, 'MHz'))
+
+    @setting(48, 'Output', name='s', state='b', returns='b')
+    def output(self, c, name=None, state=None):
+        """Get or set a DDS channel's manual on/off (off = RF switch open)."""
+        ch = self._dds_channel(name)
+        if state is not None:
+            self._check_dds_lock()
+            ch.on = bool(state)
+            yield self.inCommunication.acquire()
+            try:
+                yield deferToThread(self._apply_manual, ch)
+            finally:
+                self.inCommunication.release()
+            self._notify_dds(c, name, 'state', ch.on)
+        returnValue(ch.on)
+
+    @setting(45, 'Add DDS Pulses',
+             values=['*(sv[s]v[s]v[MHz]v[dBm])',
+                     '*(sv[s]v[s]v[MHz]v[dBm]v[deg]v[MHz]v[dB])'])
+    def addDDSPulses(self, c, values):
+        """Add DDS pulses to this context's sequence:
+        [(name, start, duration, frequency, amplitude[, phase, ramp_rate, amp_ramp_rate])].
+        Frequency 0 = off; 0-length pulses are ignored; ramp rates must be 0."""
+        seq = c.get('sequence')
+        if seq is None:
+            raise Exception("Please create a new sequence first")
+        lo, hi = self.sequence_range
+        for value in values:
+            if len(value) == 5:
+                name, start, dur, freq, ampl = value
+                phase, ramp, amp_ramp = 0.0, 0.0, 0.0
+            else:
+                name, start, dur, freq, ampl, phase, ramp, amp_ramp = value
+                phase, ramp, amp_ramp = phase['deg'], ramp['MHz'], amp_ramp['dB']
+            ch = self._dds_channel(name)
+            start, dur = start['s'], dur['s']
+            if not (lo < start <= hi and lo < start + dur <= hi):
+                raise Exception("DDS start time out of acceptable input range for "
+                                "channel {0} at time {1}".format(name, start))
+            DS.add_dds_pulse(seq, ch, start, dur, freq['MHz'], ampl['dBm'],
+                             phase, ramp, amp_ramp)
+
+    @setting(46, 'Get DDS Amplitude Range', name='s', returns='(vv)')
+    def getDDSAmplRange(self, c, name=None):
+        """Allowed (min, max) amplitude in dBm (the channel's calibration range)."""
+        return self._dds_channel(name).amp_range_dbm
+
+    @setting(47, 'Get DDS Frequency Range', name='s', returns='(vv)')
+    def getDDSFreqRange(self, c, name=None):
+        """Allowed (min, max) frequency in MHz."""
+        return self._dds_channel(name).freq_range_mhz
+
+    @setting(49, 'Clear DDS Lock')
+    def clear_dds_lock(self, c):
+        """Allow manual DDS changes again while a DDS sequence is loaded."""
+        self.ddsLock = False
+
+    @setting(11, "Human Readable DDS", returns='*(svv)')
+    def humanReadableDDS(self, c):
+        """The DDS tables this context's sequence compiles to, one
+        (name, frequency MHz, amplitude dBm) per channel per row, row 0 first.
+        A row with the RF switch open reports amplitude -inf."""
+        seq = c.get('sequence')
+        if seq is None:
+            raise Exception("Please create a new sequence first")
+        _, prog = DS.compile_sequence(seq, self.ddsDict)
+        if prog is None:
+            return []
+        out = []
+        for _, rows in prog.describe():
+            for name, r in rows.items():
+                cal = self.ddsDict[name].cal
+                dbm = (r.vga - cal.code_at_0dbm) / cal.codes_per_db if r.rf_on else float('-inf')
+                out.append((name, r.freq_hz / 1e6, dbm))
+        return out
+
+    @setting(90, 'Internal Reset DDS', returns='')
+    def internal_reset_dds(self, c):
+        """Debug: all DDS boards back to row 0 (RESET frame)."""
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self._send_dds, [D.reset()])
+        finally:
+            self.inCommunication.release()
+
+    @setting(91, 'Internal Advance DDS', returns='')
+    def internal_advance_dds(self, c):
+        """Debug: one STEPNEXT pulse to all DDS boards."""
+        yield self.inCommunication.acquire()
+        try:
+            yield deferToThread(self.driver.dds_step)
+        finally:
+            self.inCommunication.release()
+
+    @setting(92, "Reinitialize DDS", returns='')
+    def reinitializeDDS(self, c):
+        """Every DDS channel back to its manual state (row 0 rewritten + RESET).
+        The AD9912 itself is initialised by its board at power-up."""
+        self.dds_programmed = False
+        self.ddsLock = False
+        yield self.initializeDDS()
 
     # ---- listener bookkeeping (for the switch-toggled signal) --------------
     def initContext(self, c):

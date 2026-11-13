@@ -9,8 +9,8 @@ LabRAD ecosystem work unchanged; all hardware goes through `pulser3`.
 scalabrad manager (JVM)  ──LabRAD──►  Pulser server (this, py3)  ──►  pulser3.Driver  ──►  XEM7305
 ```
 
-This is the **minimal proof-of-stack** server (sequence build / program / run /
-stop / status). PMT counting, DDS, and switch manual/auto are added next.
+The server covers sequence build / program / run / stop / status, PMT counting,
+manual TTL switching and DDS (see Settings).
 
 ## Files
 
@@ -19,6 +19,7 @@ stop / status). PMT counting, DDS, and switch manual/auto are added next.
 | `pulser_server.py` | the `Pulser` LabRAD server (run this) |
 | `test_client.py` | minimal client: build a TTL sequence, program, run, wait |
 | `pmt_client.py` | exercise the PMT counting settings (normal + timetags) |
+| `dds_client.py` | exercise the DDS settings (manual tone, DDS pulses in a sequence, lock, 5 us check) |
 
 ## Settings
 
@@ -42,8 +43,17 @@ server fires the *switch toggled* signal (611051) so GUI clients stay in sync;
 override is wired for channel numbers 0..11 only. The PyQt5 Switch Control GUI
 that drives these lives in `../pulser_gui/`.
 
-DDS (90-92) and the second-PMT/readout settings are not ported (hardware-
-blocked / unbuilt).
+DDS (legacy IDs/names, over pulser3.dds_sequence and the pipe-0x81 backplane
+bus): `Get DDS Channels` (41), `Frequency` (44), `Amplitude` (43), `Output`
+(48), `Add DDS Pulses` (45, 5- or 8-tuples, one form per call), `Get DDS
+Amplitude Range` (46), `Get DDS Frequency Range` (47), `Clear DDS Lock` (49),
+`Human Readable DDS` (11), debug `Internal Reset DDS` (90), `Internal Advance
+DDS` (91), `Reinitialize DDS` (92); the *new dds parameter* signal (142006).
+Channels: `pulser3/hwconfig.py` `DDS_CHANNELS`. Program Sequence adds
+AdvanceDDS/ResetDDS itself; DDS changes must be >= 5 us apart. Movinglattice
+(50) is dropped (no ramps on the 2026 DDS).
+
+The second-PMT and readout-count settings are not ported (unused so far).
 
 ## One-time setup
 
