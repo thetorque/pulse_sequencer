@@ -640,6 +640,12 @@ class Pulser(LabradServer):
         """Allow manual DDS changes again while a DDS sequence is loaded."""
         self.ddsLock = False
 
+    @setting(93, 'Get DDS Lock', returns='b')
+    def getDDSLock(self, c):
+        """True while a programmed DDS sequence locks the manual DDS settings
+        (not in the legacy server; lets GUIs grey out their controls)."""
+        return bool(self.ddsLock)
+
     @setting(11, "Human Readable DDS", returns='*(svv)')
     def humanReadableDDS(self, c):
         """The DDS tables this context's sequence compiles to, one

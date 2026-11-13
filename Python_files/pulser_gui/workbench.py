@@ -8,6 +8,7 @@ dashboard does, but as a focused, fixed three-tab layout instead of docks.
 
   - Script Scanner  -- launch / monitor experiments (needs the manager + server)
   - Parameters      -- edit ParameterVault values (needs the manager + server)
+  - DDS             -- the DDS channels' manual frequency/power/RF (needs the Pulser)
   - Sequence Editor -- build a sequence, preview it live, Program + Run
   - Sequence Viewer -- open and view a sequence .py
 
@@ -46,6 +47,7 @@ def _load(mod_name, relpath):
 
 ScriptScannerGui = _load('wb_script_scanner_gui', 'pulser_gui/script_scanner_gui.py').ScriptScannerGui
 ParameterEditor = _load('wb_parameter_editor', 'pulser_gui/parameter_editor.py').ParameterEditor
+DDSWidget = _load('wb_dds_control', 'pulser_gui/dds_control.py').DDSWidget
 SeqEditor = _load('wb_seq_editor', 'seq_viewer/seq_editor.py').SeqEditor
 SeqViewer = _load('wb_seq_viewer', 'seq_viewer/seq_viewer.py').SeqViewer
 
@@ -64,6 +66,7 @@ class Workbench(QtWidgets.QWidget):
         if self.cxn is not None:
             tabs.addTab(ScriptScannerGui(cxn=self.cxn), "Script Scanner")
             tabs.addTab(ParameterEditor(cxn=self.cxn), "Parameters")
+            tabs.addTab(DDSWidget(cxn=self.cxn), "DDS")
         else:
             note = QtWidgets.QLabel(
                 "Not connected to LabRAD.\n\nStart the manager and the ScriptScanner "

@@ -24,10 +24,11 @@ sequence's Auto channels -- changes something (the same effect the legacy
 | file | role |
 |---|---|
 | `switch_control.py` | ON / OFF / Auto buttons for the switchable TTL channels (blocking client) |
+| `dds_control.py` | DDS channels' manual state: frequency (+ step size), power (dBm), RF on/off; greys out while a DDS sequence holds the lock |
 | `pmt_control.py` | control panel for NormalPMTFlow: mode (Normal/Differential), collection window, record on/off, live count |
 | `script_scanner_gui.py` | operator view for ScriptScanner: launch (run/repeat/scan/schedule) + live queue / running (progress + pause/stop) / scheduled |
 | `parameter_editor.py` | edit ParameterVault values (numeric/string/bool/selection/scan), Apply + Save to registry |
-| `workbench.py` | **Experiment Workbench** -- Script Scanner + Parameters + Sequence Editor + Sequence Viewer as tabs, sharing one LabRAD connection |
+| `workbench.py` | **Experiment Workbench** -- Script Scanner + Parameters + DDS + Sequence Editor + Sequence Viewer as tabs, sharing one LabRAD connection |
 | `theme.py` | shared modern look (Fusion + light QSS); the GUIs call `theme.apply(app)` |
 | `connection.py` | shared **async** LabRAD connection -- kept for a future Twisted/async client (not used by the blocking GUIs) |
 
@@ -58,6 +59,7 @@ Start the manager and the `Pulser` server first (see
 
 ```bash
 python switch_control.py     # TTL switch panel
+python dds_control.py        # DDS frequency / power / RF panel
 python pmt_control.py        # PMT mode / window / record panel (talks to NormalPMTFlow)
 python script_scanner_gui.py # launch + monitor experiments (talks to ScriptScanner)
 python parameter_editor.py   # edit ParameterVault values
@@ -116,6 +118,17 @@ Each channel in `switch_control.py` shows **ON** / **OFF** / **Auto**:
 Buttons reflect the live state; a twice-a-second poll re-reads `Get State`, so
 changes made by another client (or by a running sequence on Auto channels) show
 up within ~0.5 s.
+
+Each channel in `dds_control.py` is one card: **Frequency (MHz)** with a
+**Step** size (1 Hz .. 10 MHz, used by the arrows / mouse wheel), **Power (dBm)**
+and an **RF ON/OFF** switch. This is the channel's *manual* state -- what it
+outputs between runs. A value is sent on Enter, on leaving the field, or on each
+arrow step, and the board changes at once. If the server refuses (out of range,
+lock), the reason appears at the bottom and the field goes back to the server's
+value. While a programmed DDS sequence holds the lock the cards are greyed out
+under a banner; **Stop Sequence** releases it. A once-a-second poll keeps the
+cards in sync with other clients but never overwrites a field you are editing.
+Channels come from `pulser3/hwconfig.py` `DDS_CHANNELS`.
 
 ### Which channels appear
 

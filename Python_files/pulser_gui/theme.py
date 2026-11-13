@@ -36,6 +36,19 @@ QPushButton#primary { background: #2563eb; color: #ffffff; border: none; font-we
 QPushButton#primary:hover { background: #1d4ed8; }
 /* record toggle: green while recording */
 QPushButton#record:checked { background: #16a34a; }
+/* DDS RF switch: green ON, neutral OFF */
+QPushButton#rf { font-weight: 600; color: #475467; }
+QPushButton#rf:checked { background: #16a34a; color: #ffffff; }
+QPushButton#rf:disabled { color: #98a2b3; background: #f2f4f7; }
+QPushButton#rf:checked:disabled { background: #9fd6b0; color: #ffffff; }
+QAbstractSpinBox#big:disabled, QAbstractSpinBox:disabled { color: #98a2b3; background: #f2f4f7; }
+QAbstractSpinBox#big { font-size: 14pt; font-family: 'Consolas','SF Mono','Menlo',monospace; }
+QLabel#hint { color: #667085; font-size: 9pt; font-weight: 400; }
+QLabel#error { color: #b42318; }
+QLabel#lockbanner {
+    background: #fffaeb; color: #93370d; border: 1px solid #fedf89;
+    border-radius: 8px; padding: 8px 10px;
+}
 
 QComboBox, QAbstractSpinBox, QLineEdit {
     background: #ffffff; border: 1px solid #d0d5dd; border-radius: 8px;
