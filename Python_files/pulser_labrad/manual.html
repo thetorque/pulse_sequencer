@@ -87,6 +87,7 @@
   <a href="#settings">Server settings</a>
   <a href="#channels">TTL channels</a>
   <a href="#gui">Switch Control GUI</a>
+  <a href="#dds">DDS boards</a>
   <a href="#headless">Headless (no LabRAD)</a>
   <a href="#pmt">PMT counting</a>
   <a href="#scriptscanner">Running experiments</a>
@@ -332,10 +333,12 @@ done = p.wait_sequence_done(5.0)       <span class="c"># True if finished within
     <tr><td>49</td><td><code>clear_dds_lock</code></td><td>—</td><td>Allow manual changes while a DDS sequence is loaded.</td></tr>
     <tr><td>11</td><td><code>human_readable_dds</code></td><td>→ <code>*(s v v)</code></td><td>The compiled tables: (name, MHz, dBm) per row, row 0 first; RF off = −inf dBm.</td></tr>
     <tr><td>90 / 91 / 92</td><td><code>internal_reset_dds</code> / <code>internal_advance_dds</code> / <code>reinitialize_dds</code></td><td>—</td><td>Debug: all boards to row 0 / one step / every channel back to its manual state.</td></tr>
+    <tr><td>93</td><td><code>get_dds_lock</code></td><td>→ <code>b</code></td><td>True while a programmed DDS sequence locks the manual settings (new; the GUI uses it).</td></tr>
+    <tr><td>94</td><td><code>identify_dds</code></td><td>name <code>s</code>, seconds <code>w</code> (default 10)</td><td>Blink the board's D6 LED amber to find it in the crate; 0 stops it (new).</td></tr>
   </table>
   <p>How a sequence with DDS pulses runs: <code>program_sequence</code> compiles every channel into a row table (one row per instant at which <i>any</i> DDS setting changes), adds an <b>AdvanceDDS</b> (TTL 18) pulse at each such instant and a <b>ResetDDS</b> (TTL 19) pulse at the end, and loads the tables over the bus. Rules: changes must be <b>≥ 5 µs apart</b> (also ≥ 5 µs after t = 0), at most 8192 rows, pulses on one channel may touch but not overlap. While a DDS sequence is loaded, manual DDS changes are refused (<i>DDS lock</i>) until <code>stop_sequence</code> or <code>clear_dds_lock</code>. Every start first sends a RESET frame, so each run begins on row 0 even where the RAMRESET line isn't wired. Run <code>dds_client.py</code> for a bench check.</p>
   <div class="box tip"><b class="tag">Not ported</b>
-    <p><code>movinglattice</code> (50) is gone: the 2026 DDS has no ramps. See <code>pmt_client.py</code> / <code>dds_client.py</code> for runnable examples and <code>../pulser_gui/</code> for the PyQt5 GUI.</p>
+    <p><code>movinglattice</code> (50) is gone: the 2026 DDS has no ramps. See <code>pmt_client.py</code> / <code>dds_client.py</code> for runnable examples, <a href="#dds">DDS boards</a> for day-to-day use and the LED meanings, and <code>../pulser_gui/</code> for the PyQt5 GUIs.</p>
   </div>
 </section>
 
@@ -387,6 +390,84 @@ python switch_control.py</code></pre>
   <div class="box tip"><b class="tag">No qt5reactor</b>
     <p>The GUI uses pylabrad's <b>blocking</b> client and a plain Qt event loop — <em>not</em> Twisted/<code>qt5reactor</code>, which conflicts with modern PyQt5 on Windows (it floods <code>QCoreApplication::exec: The event loop is already running</code> and the window comes up empty). It reads the same <code>LABRADHOST</code> / <code>LABRADPASSWORD</code> / <code>LABRAD_TLS</code> environment as the server and test clients.</p>
   </div>
+</section>
+
+<!-- ============================ DDS ============================ -->
+<section id="dds">
+  <h2 class="sec">DDS boards</h2>
+  <p>Each DDS board (Lattice ECP5 + AD9912, firmware <code>dds_top</code>) sits on the backplane and is driven by the Pulser over the DDS bus (<code>DDS_BUS_CONTRACT.md</code> v0.4). The Pulser loads each board's table of setpoints (frequency, phase, amplitude, RF on/off) and steps all boards together from the sequence's <b>AdvanceDDS</b> TTL (channel 18). Channels are configured in <code>pulser3/hwconfig.py</code> → <code>DDS_CHANNELS</code> (name, board address, manual state, limits, amplitude calibration).</p>
+
+  <h3>Power-up</h3>
+  <ol>
+    <li>On power-up the board's Pico W loads the FPGA from its flash (<code>main.py</code> boots <code>dds_top_c.bit</code>, ~2 s).</li>
+    <li>For ~3.5 s the LEDs show the <b>board address</b> (below), then the board runs.</li>
+    <li>It outputs its <b>default tone: 100 MHz, about −10 dBm, RF on</b> — a low level that is safe even unterminated. It keeps that until the Pulser loads a table or sets a manual value.</li>
+    <li>When the Pulser server starts, it applies every channel's <b>manual state</b> from <code>DDS_CHANNELS</code> (the bench channel is set to the same 100 MHz / −10 dBm / on, so nothing changes).</li>
+  </ol>
+  <div class="box warn"><b class="tag">Downstream equipment</b>
+    <p>The default tone is safe for the board, but a board that feeds an amplifier → AOM will drive it from power-up until the software takes over. For such channels consider a default with RF off (<code>DEFAULT_ROW</code> in <code>dds_top.vhd</code>).</p>
+  </div>
+
+  <h3>Front-panel LEDs</h3>
+  <p>D1–D6 are two-colour LEDs: <b>green</b>, <b>red</b>, or both = <b>amber</b>.</p>
+  <table>
+    <tr><th>When</th><th>LED</th><th>Green</th><th>Red</th><th>Amber</th></tr>
+    <tr><td rowspan="2">Boot<br>(~3.5 s)</td><td>D1–D5</td><td>address bit = 1</td><td>address bit = 0</td><td>—</td></tr>
+    <tr><td>D6</td><td>—</td><td>—</td><td>on (booting)</td></tr>
+    <tr><td rowspan="6">Running</td><td>D1 <b>Health</b></td><td>slow blink: running, the AD9912 answered its part-ID read</td><td>steady: the AD9912 did <b>not</b> answer (dead / unpowered chip, bad SPI)</td><td>start-up check in progress</td></tr>
+    <tr><td>D2 <b>RF</b></td><td>RF switch on (output live)</td><td>—</td><td>—</td></tr>
+    <tr><td>D3 <b>Bus</b></td><td>flash: a frame for this board arrived</td><td>a <b>frame error</b> since the last table load</td><td>—</td></tr>
+    <tr><td>D4 <b>Step</b></td><td>flash: a STEPNEXT (AdvanceDDS) step</td><td>a <b>step overrun</b> (steps closer than the board can follow) since the last table load</td><td>—</td></tr>
+    <tr><td>D5 <b>Sequence</b></td><td>inside a sequence (not on row 0)</td><td>flash: a RESET (end of sequence / start of a run)</td><td>—</td></tr>
+    <tr><td>D6 <b>Identify</b></td><td>—</td><td>—</td><td>blinks while an <b>Identify</b> command runs</td></tr>
+  </table>
+  <p><b>Reading the address:</b> D1 is the lowest bit. Address 5 (00101) shows D1 green, D2 red, D3 green, D4 red, D5 red; address 0 shows five reds. <b>Red D3/D4</b> stay lit until the next table load (the Pulser clears them at the start of every Program Sequence), so a red LED means "something went wrong since this program was loaded."</p>
+  <p><b>A healthy idle board:</b> D1 blinking green, D2 green if its output is on, everything else dark.</p>
+
+  <h3>Controlling it from the GUI</h3>
+  <p>The <b>DDS Control</b> panel (<code>pulser_gui/dds_control.py</code>; also a <b>DDS</b> tab in the Experiment Workbench and a dashboard panel) shows one card per channel: <b>Frequency</b> (MHz, 1 Hz resolution) with a <b>Step</b> size for the arrows / wheel, <b>Power</b> (dBm), <b>RF ON/OFF</b>, and <b>Identify</b> (blinks that board's D6 for 10 s). This is the channel's manual state; a value is sent on Enter, on leaving the field, or on each arrow step. While a programmed DDS sequence holds the <b>DDS lock</b>, the cards grey out under a banner — Stop Sequence releases it.</p>
+  <pre><code>python pulser_gui/dds_control.py      <span class="c"># on the PC</span>
+labgui dds                            <span class="c"># on the Mac (see Mac / Linux)</span></code></pre>
+
+  <h3>Controlling it from code (LabRAD)</h3>
+  <pre><code><span class="k">import</span> labrad
+<span class="k">from</span> labrad.units <span class="k">import</span> WithUnit <span class="k">as</span> U
+p = labrad.connect().pulser
+
+<span class="c"># manual (CW) output</span>
+p.frequency(<span class="s">'DDS_bench'</span>, U(<span class="fn">70</span>, <span class="s">'MHz'</span>))
+p.amplitude(<span class="s">'DDS_bench'</span>, U(<span class="fn">0</span>, <span class="s">'dBm'</span>))
+p.output(<span class="s">'DDS_bench'</span>, True)
+
+<span class="c"># DDS pulses inside a sequence: (channel, start, duration, frequency, amplitude)</span>
+p.new_sequence()
+p.add_dds_pulses([(<span class="s">'DDS_bench'</span>, U(<span class="fn">1</span>,<span class="s">'ms'</span>), U(<span class="fn">2</span>,<span class="s">'ms'</span>), U(<span class="fn">75</span>,<span class="s">'MHz'</span>), U(<span class="fn">0</span>,<span class="s">'dBm'</span>))])
+p.add_ttl_pulse(<span class="s">'ttl_0'</span>, U(<span class="fn">1</span>,<span class="s">'ms'</span>), U(<span class="fn">1</span>,<span class="s">'us'</span>))
+p.program_sequence()          <span class="c"># loads TTL program + every board's table, locks manual DDS</span>
+p.start_single(); p.wait_sequence_done(<span class="fn">10</span>)
+p.stop_sequence()             <span class="c"># releases the DDS lock</span></code></pre>
+  <p>Experiment scripts use <code>addDDS(...)</code> in <code>experiment/pulse_sequence.py</code>, which calls the same setting. Rules the server enforces:</p>
+  <ul>
+    <li>DDS changes (pulse starts/ends on <i>any</i> channel) must be <b>≥ 5 µs apart</b>, and the first ≥ 5 µs after t = 0.</li>
+    <li>Pulses on one channel may touch (end = next start) but not overlap. Frequency 0 = off; 0-length pulses are ignored.</li>
+    <li>No ramps (ramp rates must be 0); at most 8192 changes per sequence.</li>
+    <li>A pulse's end opens the RF switch and keeps the frequency (phase-continuous). Between runs the board returns to the manual state.</li>
+  </ul>
+
+  <h3>Bench caveats (2026-11)</h3>
+  <ul>
+    <li><b>One board, broadcast address.</b> The bench channel <code>DDS_bench</code> uses address 31 (broadcast), which only works with a single board. In a crate, give each channel its board's address (read it from the boot LEDs).</li>
+    <li><b>RAMRESET not wired</b> on the bench coupler (c17/c18). The server sends a RESET before every start, so single and numbered runs begin correctly, but <b>infinite loops with DDS pulses</b> don't rewind between iterations until the line is wired.</li>
+    <li><b>Amplitude calibration is provisional:</b> dBm is accurate near 50 MHz on board 8; at 100–200 MHz the output is ~2 dB higher. Per-board, per-frequency calibration comes later.</li>
+  </ul>
+
+  <h3>Updating the DDS firmware</h3>
+  <pre><code><span class="c"># on the Mac (oss-cad-suite on PATH), in VHDL_files/DDS_ECP5_2026_10_19</span>
+make TOP=dds_top compress                       <span class="c"># -> dds_top_c.bit</span>
+mpremote fs rm :dds_top_c.bit
+mpremote fs cp dds_top_c.bit :dds_top_c.bit     <span class="c"># Pico W flash; main.py boots it</span>
+mpremote run pico_sspi_load.py                  <span class="c"># load now (or power-cycle the board)</span></code></pre>
+  <p>The Pico's <code>main.py</code> is a copy of <code>pico_sspi_load.py</code>; its <code>BITFILE</code> line selects what boots.</p>
 </section>
 
 <!-- ============================ HEADLESS ============================ -->
@@ -673,15 +754,28 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <li><b>Line Tracker</b> (<code>Line_tracker/</code>, bundles Andor) + <b>line_tracker</b> GUI — line-center drift.</li>
   </ul>
 
-  <h3>Phase D — DDS <span style="color:#16a34a">(mostly done)</span></h3>
+  <h3>Phase D — DDS <span style="color:#16a34a">(software done; hardware tests remain)</span></h3>
   <ul>
-    <li><b>Done (2026-11-13, hardware-verified on one board):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–92).</li>
-    <li><span style="color:#b45309">Next:</span> the <b>DDS_CONTROL</b> GUI, per-board/per-frequency amplitude calibration files, the RAMRESET line on the bench coupler, the other DDS boards.</li>
+    <li><b>Done (2026-11-13, hardware-verified on board 8):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–94), the <b>DDS Control</b> GUI, board firmware v0.4 (front-panel LEDs, AD9912 health check, identify, 100 MHz / −10 dBm default tone).</li>
+    <li><span style="color:#b45309">Next:</span> see the test list below.</li>
   </ul>
+  <table>
+    <tr><th>Test</th><th>Needs</th></tr>
+    <tr><td>RF switch isolation (output with RF off)</td><td>spectrum analyzer</td></tr>
+    <tr><td>Step timing: STEPNEXT → RF change, 5 µs minimum spacing</td><td>scope</td></tr>
+    <tr><td>Soak: hours of stepping with no red LEDs</td><td>time</td></tr>
+    <tr><td>Register write: DAC full-scale current from the host</td><td>counter / scope</td></tr>
+    <tr><td>Per-frequency amplitude calibration file (+ load it per board)</td><td>spectrum analyzer / power meter</td></tr>
+    <tr><td>Wire coupler c11–c18 → RAMRESET by line → infinite loops with DDS pulses</td><td>soldering</td></tr>
+    <tr><td>Master: DDR3 read-path fix, a "DDS FIFO drained" status wire, rebuild from the repo</td><td>Vivado</td></tr>
+    <tr><td>ScriptScanner end to end with <code>addDDS</code></td><td>bench</td></tr>
+    <tr><td>The other 9 boards (Pico config → AD9912 first light → 5 V current → counter → address → bus)</td><td>boards</td></tr>
+    <tr><td>Crate: board-to-board step skew, phase offsets, crosstalk, power/thermal</td><td>2+ boards</td></tr>
+  </table>
 
   <h3>Phase E — Polish &amp; infra <span style="color:#6b7280">(anytime, small)</span></h3>
   <ul>
-    <li>First run of the GUIs on <b>Mac / Linux</b> to confirm (cross-platform by design; only exercised on Windows so far).</li>
+    <li>GUIs on the Mac against the PC: <b>done</b> (<code>labgui</code>). Still to try: the manager + servers themselves on Mac / Linux.</li>
     <li><code>returnValue → return</code> sweep on <code>pulser_server.py</code> / <code>parameter_vault.py</code> (Twisted 24.7 deprecation).</li>
     <li>Grapher: curve fitting, multi-dataset overlays.</li>
     <li>Sequence editor v3: drag pulses on the diagram; a "show the live / last-programmed sequence" source.</li>
@@ -701,10 +795,15 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
       In the Launcher, point the <b>Launcher</b> field at that <code>bin/labrad</code> script; it runs and stops it natively (no <code>cmd</code>/<code>taskkill</code>).</li>
     <li>No <code>JAVA_HOME</code> short-path dance — the <code>C:\Program Files</code> space problem is Windows-only. Just have a JDK 8/11 on the path.</li>
     <li><b>Python deps are identical:</b> <code>pip install pylabrad twisted "numpy&lt;2" pyopenssl PyQt5 pyqtgraph h5py</code>.</li>
+    <li><b>GUIs on a Mac against the bench PC</b> (confirmed 2026-11-13): the PC's manager listens on the network, so the GUIs run on the Mac with the manager and servers on the PC. Python 3.12 venv <code>~/labrad-venv</code> (pylabrad needs <code>numpy&lt;2</code>, which has no wheels for newer Pythons) and the launcher <code>~/.local/bin/labgui</code>:
+      <pre>labgui                 # Experiment Workbench
+labgui dds             # or: switch, pmt, scanner, params, dashboard, grapher, viewer, editor
+labgui python my.py    # your own client, same LabRAD settings</pre>
+      It connects to <code>LABRADHOST=192.168.1.113</code>, password <code>test</code> (override with the env variables).</li>
     <li><b>Hardware access</b> — the Pulser server needs the Opal Kelly <b>FrontPanel</b> SDK + USB driver for your OS (Opal Kelly ships Mac and Linux builds); the FPGA and bitstream are the same. Without FrontPanel, everything hardware-free still runs — notably the <a href="#launcher">sequence viewer/editor</a>, which import <code>pulser3</code> without the <code>ok</code> module.</li>
   </ul>
   <div class="box tip"><b class="tag">Status</b>
-    <p>Cross-platform <em>by design</em> (the only OS-specific code is in the Launcher, and it's guarded). Exercised on Windows so far; a first run on Mac/Linux is the remaining confirmation (see <a href="#roadmap">Roadmap</a> Phase E).</p>
+    <p>Cross-platform <em>by design</em> (the only OS-specific code is in the Launcher, and it's guarded). The GUIs run on the Mac against the PC (2026-11-13); running the manager + servers on Mac/Linux is the remaining confirmation (see <a href="#roadmap">Roadmap</a> Phase E).</p>
   </div>
 </section>
 
@@ -732,6 +831,34 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr>
       <td><code>module 'numpy' has no attribute 'bool8'</code></td>
       <td>numpy ≥ 2.0 with pylabrad. <code>pip install "numpy&lt;2"</code>.</td>
+    </tr>
+    <tr>
+      <td>DDS board: all LEDs dark</td>
+      <td>FPGA not configured. Check the board's 5 V and that the Pico booted (<code>mpremote run pico_sspi_load.py</code> prints <code>DONE = 1</code>); its <code>main.py</code> must name an existing <code>BITFILE</code>.</td>
+    </tr>
+    <tr>
+      <td>DDS board: D1 red</td>
+      <td>The AD9912 didn't answer its part-ID read: chip unpowered or dead, or a bad SPI joint. Check the 5 V current (~490 mA with a live AD9912 vs ~220 mA dead).</td>
+    </tr>
+    <tr>
+      <td>DDS board: D3 red</td>
+      <td>A malformed bus frame since the last table load: check the backplane wiring (SCK/MOSI/CS, c3–c10) and that the board firmware matches the host's contract version.</td>
+    </tr>
+    <tr>
+      <td>DDS board: D4 red</td>
+      <td>AdvanceDDS steps arrived faster than the board can follow (&lt; 5 µs apart). The server rejects such sequences; check for extra pulses on TTL 18 or STEP triggers.</td>
+    </tr>
+    <tr>
+      <td>DDS manual setting refused: "DDS access is locked"</td>
+      <td>A sequence with DDS pulses is programmed. <code>stop_sequence</code> (or <code>clear_dds_lock</code>) first.</td>
+    </tr>
+    <tr>
+      <td>Program Sequence fails: "closer than the 5 us minimum step"</td>
+      <td>Two DDS changes (on any channels) less than 5 µs apart, or the first change before 5 µs. Move the pulse edges apart.</td>
+    </tr>
+    <tr>
+      <td>No RF but the server reports output on</td>
+      <td>Look at the board: D2 green? If not, the frames aren't arriving (D3 doesn't flash on changes) — check the backplane and that the master runs the Phase-4 bitstream. If D2 is green, check the RF cabling.</td>
     </tr>
     <tr>
       <td>Client can't connect / TLS handshake error</td>
