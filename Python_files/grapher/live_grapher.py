@@ -43,6 +43,14 @@ QListWidget::item:selected { background:#e8f0fe; color:#1f2328; }
 QCheckBox { spacing:6px; }
 """
 
+# font families that exist on this OS (a missing first family makes Qt print
+# "Populating font family aliases ..." and spend ~0.1 s searching)
+_UI_FONT = {'darwin': 'Helvetica Neue', 'win32': 'Segoe UI'}.get(sys.platform, 'DejaVu Sans')
+_MONO_FONT = {'darwin': 'Menlo', 'win32': 'Consolas'}.get(sys.platform, 'DejaVu Sans Mono')
+STYLESHEET = STYLESHEET.replace("'Segoe UI','SF Pro Text','Helvetica Neue',Arial,sans-serif", "'%s'" % _UI_FONT) \
+                       .replace("'Consolas','Menlo','DejaVu Sans Mono',monospace", "'%s'" % _MONO_FONT)
+
+
 
 class Grapher(QtWidgets.QWidget):
     def __init__(self, parent=None, cxn=None):

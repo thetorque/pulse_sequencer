@@ -11,7 +11,7 @@ STYLESHEET = """
 QWidget#Root { background-color: #f4f5f7; }
 QFrame#Root  { background-color: #f4f5f7; }
 QDialog      { background-color: #f4f5f7; }
-QWidget { font-family: 'Segoe UI','SF Pro Text','Helvetica Neue',Arial,sans-serif;
+QWidget { font-family: '@UI@';
           font-size: 10pt; color: #1f2328; }
 QLabel { background: transparent; }
 
@@ -42,7 +42,7 @@ QPushButton#rf:checked { background: #16a34a; color: #ffffff; }
 QPushButton#rf:disabled { color: #98a2b3; background: #f2f4f7; }
 QPushButton#rf:checked:disabled { background: #9fd6b0; color: #ffffff; }
 QAbstractSpinBox#big:disabled, QAbstractSpinBox:disabled { color: #98a2b3; background: #f2f4f7; }
-QAbstractSpinBox#big { font-size: 14pt; font-family: 'Consolas','SF Mono','Menlo',monospace; }
+QAbstractSpinBox#big { font-size: 14pt; font-family: '@MONO@'; }
 QLabel#hint { color: #667085; font-size: 9pt; font-weight: 400; }
 QLabel#error { color: #b42318; }
 QLabel#lockbanner {
@@ -91,7 +91,15 @@ QLCDNumber {
 """
 
 
+# font families that exist on this OS (naming a missing one makes Qt print
+# "Populating font family aliases ..." and spend ~0.1 s searching)
+_UI = {'darwin': 'Helvetica Neue', 'win32': 'Segoe UI'}
+_MONO = {'darwin': 'Menlo', 'win32': 'Consolas'}
+
+
 def apply(app):
     """Apply the Fusion base style + the shared stylesheet to a QApplication."""
+    import sys
     app.setStyle('Fusion')
-    app.setStyleSheet(STYLESHEET)
+    app.setStyleSheet(STYLESHEET.replace('@UI@', _UI.get(sys.platform, 'DejaVu Sans'))
+                                .replace('@MONO@', _MONO.get(sys.platform, 'DejaVu Sans Mono')))
