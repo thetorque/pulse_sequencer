@@ -9,8 +9,9 @@ broadcast, so the boards' address straps don't matter.
     python -m pulser3.dds_demo <photon.bit> --sequence         # 3.4: TTL-18-stepped
     python -m pulser3.dds_demo --dump                          # print the frames, no HW
 
-Table (both modes): 50 / 100 / 150 / 200 MHz at VGA 0xB40 (~0 dBm @ 50 MHz on board 8),
-then 200 MHz with RF OFF.
+Table (both modes, --freqs to change): 60 / 110 / 160 / 210 MHz at VGA 0xB40 (~0 dBm @ 50 MHz on board 8),
+then 210 MHz with RF OFF. Deliberately NOT bp_proto's 50/100/150/200, so a pass
+can't be leftover state from the old test sender.
 
 --trigger : writes the 5 rows, RESET via TriggerIn 0x40 bit 7 (RAMRESET line) AND a
             RESET frame (works even if RAMRESET isn't wired), then a STEP trigger
@@ -28,14 +29,18 @@ import time
 
 from . import dds as D
 
-PATTERN = [
-    D.Row(50e6,  0.0, 0xB40, True),
-    D.Row(100e6, 0.0, 0xB40, True),
-    D.Row(150e6, 0.0, 0xB40, True),
-    D.Row(200e6, 0.0, 0xB40, True),
-    D.Row(200e6, 0.0, 0xB40, False),
-]
-LABELS = ["50 MHz", "100 MHz", "150 MHz", "200 MHz", "200 MHz RF OFF"]
+DEFAULT_FREQS_MHZ = (60.0, 110.0, 160.0, 210.0)
+PATTERN, LABELS = [], []
+
+
+def set_table(freqs_mhz):
+    """The rows: each frequency with RF on, then the last one with RF OFF."""
+    PATTERN[:] = [D.Row(f * 1e6, 0.0, 0xB40, True) for f in freqs_mhz] + \
+                 [D.Row(freqs_mhz[-1] * 1e6, 0.0, 0xB40, False)]
+    LABELS[:] = [f"{f:g} MHz" for f in freqs_mhz] + [f"{freqs_mhz[-1]:g} MHz RF OFF"]
+
+
+set_table(DEFAULT_FREQS_MHZ)
 
 
 def dump():
@@ -110,7 +115,12 @@ def main(argv=None):
     g.add_argument("--sequence", action="store_true")
     g.add_argument("--dump", action="store_true")
     ap.add_argument("--dwell", type=float, default=5.0, help="seconds per row (default 5)")
+    ap.add_argument("--freqs", default=",".join(f"{f:g}" for f in DEFAULT_FREQS_MHZ),
+                    help="comma-separated MHz, RF on; the last is repeated with RF off "
+                         "(default %(default)s)")
     a = ap.parse_args(argv)
+    set_table([float(f) for f in a.freqs.split(",")])
+    print("table:", " -> ".join(LABELS))
     if a.dump:
         dump()
         return 0
