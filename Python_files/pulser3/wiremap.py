@@ -110,3 +110,12 @@ PRIME_LINES = 16
 def line(time_ticks, channel):
     """Pack one 64-bit pulse line (time in ticks, channel bitmask)."""
     return ((time_ticks & TIME_MASK) << 32) | (channel & CHANNEL_MASK)
+
+# ---- DDS backplane bus (Phase 4, DDS_BUS_CONTRACT.md v0.3) -------------------
+DDS_PIPE = 0x81             # BTPipeIn: LEN16-prefixed bus frames (pulser3/dds.py pack())
+DDS_PIPE_BLOCK = 16         # bytes per block (any multiple of 16 up to 1024 is safe)
+TRIG_DDS_STEP_BIT = 6       # TriggerIn 0x40 bit6: 120 ns STEPNEXT to all DDS boards
+TRIG_DDS_RESET_BIT = 7      # TriggerIn 0x40 bit7: 120 ns RAMRESET to all DDS boards
+TRIG_DDS_CLEAR_BIT = 8      # TriggerIn 0x40 bit8: flush the 0x81 frame FIFO + serializer
+DDS_ADVANCE_CHANNEL = 18    # sequencer TTL channel -> STEPNEXT (hwconfig 'AdvanceDDS')
+DDS_RESET_CHANNEL = 19      # sequencer TTL channel -> RAMRESET (hwconfig 'ResetDDS')

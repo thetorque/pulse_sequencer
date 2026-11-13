@@ -174,6 +174,8 @@ use work.FRONTPANEL.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;
+library xpm;
+use xpm.vcomponents.all;
 
 entity photon is
 	port (
@@ -212,7 +214,14 @@ entity photon is
 		ddr3_ck_n     : out    STD_LOGIC_VECTOR(0 downto 0);
 		ddr3_cke      : out    STD_LOGIC_VECTOR(0 downto 0);
 		ddr3_dm       : out    STD_LOGIC_VECTOR(1 downto 0);
-		ddr3_odt      : out    STD_LOGIC_VECTOR(0 downto 0)
+		ddr3_odt      : out    STD_LOGIC_VECTOR(0 downto 0);
+
+		-- Phase 4: DDS backplane bus (DDS_BUS_CONTRACT.md v0.2), to the carrier's
+		-- 2x DS90LV047A LVDS drivers -> DIN41612 row C. Bit order:
+		-- 0 SCK, 1 MOSI, 2 CS, 3 STEPNEXT, 4 RAMRESET, 5-7 AUX1-3 (driven low).
+		dds_bp        : out    STD_LOGIC_VECTOR(7 downto 0);
+		-- Carrier status LEDs D4..D11 (active-high), see the Phase 4 block below.
+		board_led     : out    STD_LOGIC_VECTOR(7 downto 0)
 	);
 end photon;
 
@@ -844,6 +853,33 @@ architecture arch of photon is
 	-- the USB-driven LEDs below (Phase 6a: was sys_clk/IBUFGDS directly
 	-- -- see file header comment)
 	signal heartbeat_div : STD_LOGIC_VECTOR(23 downto 0) := (others => '0');
+
+	-- Phase 4: DDS bus master. BTPipeIn 0x81 (okClk) -> dds_fifo (XPM async,
+	-- 2048 x 32, FWFT) -> dds_bus_tx (clk_100) -> dds_bp pins.
+	-- TriggerIn 0x40 (ui_clk): bit 6 = DDS STEP (STEPNEXT pulse), bit 7 = DDS
+	-- RESET (RAMRESET pulse), bit 8 = clear the DDS frame FIFO + serializer.
+	-- (Bits 4/5 from the legacy api.py are taken: readout FIFO / DDR3 reset.)
+	signal dds_fifo_din, dds_fifo_dout : STD_LOGIC_VECTOR(31 downto 0);
+	signal dds_fifo_wr_en, dds_fifo_rd_en, dds_fifo_empty, dds_fifo_full : STD_LOGIC;
+	signal dds_fifo_pfull, dds_fifo_wr_busy, dds_fifo_rd_busy : STD_LOGIC;
+	signal pipe81_write : STD_LOGIC;
+	signal dds_fifo_rst : STD_LOGIC := '1';
+	signal dds_ok_rst_cnt : integer range 0 to 31 := 31;      -- okClk: power-up + clear
+	signal dds_tg_ui : STD_LOGIC_VECTOR(2 downto 0) := (others => '0');   -- ui_clk toggles
+	signal dds_tg_c1, dds_tg_c2, dds_tg_c3 : STD_LOGIC_VECTOR(2 downto 0) := (others => '0');
+	signal dds_tg_o1, dds_tg_o2, dds_tg_o3 : STD_LOGIC := '0';
+	attribute ASYNC_REG : string;
+	attribute ASYNC_REG of dds_tg_c1 : signal is "TRUE";
+	attribute ASYNC_REG of dds_tg_c2 : signal is "TRUE";
+	attribute ASYNC_REG of dds_tg_o1 : signal is "TRUE";
+	attribute ASYNC_REG of dds_tg_o2 : signal is "TRUE";
+	signal dds_trig_step, dds_trig_reset, dds_trig_clear : STD_LOGIC;
+	signal dds_tx_rst : STD_LOGIC := '1';
+	signal dds_tx_rst_cnt : integer range 0 to 63 := 63;     -- clk_100
+	signal dds_sck, dds_mosi, dds_cs, dds_step, dds_reset, dds_frame : STD_LOGIC;
+	signal dds_frames_sent : STD_LOGIC_VECTOR(15 downto 0);
+	signal dds_led_frame, dds_led_step, dds_led_reset : integer range 0 to 4194303 := 0;
+	signal hb100 : STD_LOGIC_VECTOR(26 downto 0) := (others => '0');
 begin
 
 	------------------------------------------------------------------
@@ -1739,14 +1775,14 @@ begin
 	wo22 : okWireOut port map (okHE => okHE, okEH => okEHx(2*65-1 downto 1*65), ep_addr => x"22", ep_datain => ep22wire);
 
 	-- BTPipeIn endpoints. 0x80 (Phase 3) writes into pulse_fifo; 0x81
-	-- (DDS program) stays a discard-everything stub until Phase 4/5.
+	-- (Phase 4) carries DDS bus frames into dds_fifo -- see the Phase 4 block.
 	pi80 : okBTPipeIn port map (
 		okHE => okHE, okEH => okEHx(3*65-1 downto 2*65), ep_addr => x"80",
 		ep_write => fifo_pulser_wr_en, ep_blockstrobe => open, ep_dataout => fifo_pulser_din, ep_ready => pipe80_ready
 	);
 	pi81 : okBTPipeIn port map (
 		okHE => okHE, okEH => okEHx(4*65-1 downto 3*65), ep_addr => x"81",
-		ep_write => open, ep_blockstrobe => open, ep_dataout => open, ep_ready => pipe81_ready
+		ep_write => pipe81_write, ep_blockstrobe => open, ep_dataout => dds_fifo_din, ep_ready => pipe81_ready
 	);
 
 	-- BTPipeOut endpoints (Phase 3): each now reads from a real FIFO
@@ -1865,5 +1901,130 @@ begin
 		empty  => readout_count_fifo_empty,
 		rd_data_count => readout_count_fifo_rd_data_count
 	);
+
+	------------------------------------------------------------------
+	-- Phase 4: DDS backplane bus master (DDS_BUS_CONTRACT.md v0.2 §7).
+	-- Host writes length-prefixed frames to BTPipeIn 0x81; dds_bus_tx
+	-- clocks them onto the backplane at 25 MHz. STEPNEXT / RAMRESET =
+	-- sequencer channel 18 / 19 (AdvanceDDS / ResetDDS) OR TriggerIn
+	-- 0x40 bit 6 / 7. Simulated against the DDS board's bus_rx in
+	-- sim/tb_dds_bus_tx.vhd.
+	------------------------------------------------------------------
+
+	-- TriggerIn 0x40 bits 6/7/8 (ui_clk pulses) -> toggles
+	process (ui_clk)
+	begin
+		if rising_edge(ui_clk) then
+			dds_tg_ui <= dds_tg_ui xor ep40wire(8 downto 6);
+		end if;
+	end process;
+
+	-- ... -> clk_100 pulses (step, reset, clear)
+	process (clk_100)
+	begin
+		if rising_edge(clk_100) then
+			dds_tg_c1 <= dds_tg_ui; dds_tg_c2 <= dds_tg_c1; dds_tg_c3 <= dds_tg_c2;
+		end if;
+	end process;
+	dds_trig_step  <= dds_tg_c2(0) xor dds_tg_c3(0);
+	dds_trig_reset <= dds_tg_c2(1) xor dds_tg_c3(1);
+	dds_trig_clear <= dds_tg_c2(2) xor dds_tg_c3(2);
+
+	-- ... and bit 8 -> okClk (FIFO write-side reset)
+	process (okClk)
+	begin
+		if rising_edge(okClk) then
+			dds_tg_o1 <= dds_tg_ui(2); dds_tg_o2 <= dds_tg_o1; dds_tg_o3 <= dds_tg_o2;
+			-- XPM FIFO rst: held 32 okClk after configuration and after each clear
+			if dds_tg_o2 /= dds_tg_o3 then
+				dds_ok_rst_cnt <= 31;
+			elsif dds_ok_rst_cnt /= 0 then
+				dds_ok_rst_cnt <= dds_ok_rst_cnt - 1;
+			end if;
+			if dds_ok_rst_cnt /= 0 then dds_fifo_rst <= '1'; else dds_fifo_rst <= '0'; end if;
+			-- BTPipeIn 0x81 flow control: room for at least one more block
+			pipe81_ready <= not (dds_fifo_pfull or dds_fifo_wr_busy or dds_fifo_rst);
+		end if;
+	end process;
+	dds_fifo_wr_en <= pipe81_write and not dds_fifo_full and not dds_fifo_wr_busy;
+
+	-- serializer reset: power-up, clear trigger, and while the FIFO read side
+	-- is still coming out of its own reset
+	process (clk_100)
+	begin
+		if rising_edge(clk_100) then
+			if dds_trig_clear = '1' then
+				dds_tx_rst_cnt <= 63;
+			elsif dds_tx_rst_cnt /= 0 then
+				dds_tx_rst_cnt <= dds_tx_rst_cnt - 1;
+			end if;
+			if dds_tx_rst_cnt /= 0 or dds_fifo_rd_busy = '1' then dds_tx_rst <= '1'; else dds_tx_rst <= '0'; end if;
+		end if;
+	end process;
+
+	dds_fifo_inst : xpm_fifo_async
+		generic map (
+			CDC_SYNC_STAGES     => 2,
+			DOUT_RESET_VALUE    => "0",
+			ECC_MODE            => "no_ecc",
+			FIFO_MEMORY_TYPE    => "block",
+			FIFO_READ_LATENCY   => 0,
+			FIFO_WRITE_DEPTH    => 2048,
+			FULL_RESET_VALUE    => 0,
+			PROG_EMPTY_THRESH   => 10,
+			PROG_FULL_THRESH    => 1700,          -- leaves > 300 words for an in-flight block
+			RD_DATA_COUNT_WIDTH => 12,
+			READ_DATA_WIDTH     => 32,
+			READ_MODE           => "fwft",
+			RELATED_CLOCKS      => 0,
+			SIM_ASSERT_CHK      => 0,
+			USE_ADV_FEATURES    => "0002",        -- prog_full
+			WAKEUP_TIME         => 0,
+			WRITE_DATA_WIDTH    => 32,
+			WR_DATA_COUNT_WIDTH => 12
+		)
+		port map (
+			almost_empty => open, almost_full => open, data_valid => open, dbiterr => open,
+			dout => dds_fifo_dout, empty => dds_fifo_empty, full => dds_fifo_full,
+			overflow => open, prog_empty => open, prog_full => dds_fifo_pfull,
+			rd_data_count => open, rd_rst_busy => dds_fifo_rd_busy, sbiterr => open,
+			underflow => open, wr_ack => open, wr_data_count => open, wr_rst_busy => dds_fifo_wr_busy,
+			din => dds_fifo_din, injectdbiterr => '0', injectsbiterr => '0',
+			rd_clk => clk_100, rd_en => dds_fifo_rd_en, rst => dds_fifo_rst, sleep => '0',
+			wr_clk => okClk, wr_en => dds_fifo_wr_en
+		);
+
+	dds_tx : entity work.dds_bus_tx
+		generic map ( HALF => 2, GAP => 30, STRETCH => 12, LSB_FIRST => true )
+		port map (
+			clk => clk_100, rst => dds_tx_rst,
+			fifo_dout => dds_fifo_dout, fifo_empty => dds_fifo_empty, fifo_rd_en => dds_fifo_rd_en,
+			seq_step => master_logic(18), seq_reset => master_logic(19),
+			trig_step => dds_trig_step, trig_reset => dds_trig_reset,
+			bp_sck => dds_sck, bp_mosi => dds_mosi, bp_cs => dds_cs,
+			bp_step => dds_step, bp_reset => dds_reset,
+			frame_active => dds_frame, frames_sent => dds_frames_sent
+		);
+
+	dds_bp <= "000" & dds_reset & dds_step & dds_cs & dds_mosi & dds_sck;
+
+	-- carrier LEDs D4..D11 (active-high): D4 DDS frame sent, D5 STEPNEXT,
+	-- D6 RAMRESET (each stretched ~40 ms), D7 DDS frame FIFO not empty,
+	-- D8-D10 off, D11 clk_100 heartbeat (~0.7 Hz).
+	process (clk_100)
+	begin
+		if rising_edge(clk_100) then
+			hb100 <= hb100 + 1;
+			if dds_frame = '1' then dds_led_frame <= 4194303; elsif dds_led_frame /= 0 then dds_led_frame <= dds_led_frame - 1; end if;
+			if dds_step  = '1' then dds_led_step  <= 4194303; elsif dds_led_step  /= 0 then dds_led_step  <= dds_led_step - 1;  end if;
+			if dds_reset = '1' then dds_led_reset <= 4194303; elsif dds_led_reset /= 0 then dds_led_reset <= dds_led_reset - 1; end if;
+		end if;
+	end process;
+	board_led(0) <= '1' when dds_led_frame /= 0 else '0';
+	board_led(1) <= '1' when dds_led_step  /= 0 else '0';
+	board_led(2) <= '1' when dds_led_reset /= 0 else '0';
+	board_led(3) <= not dds_fifo_empty;
+	board_led(6 downto 4) <= "000";
+	board_led(7) <= hb100(26);
 
 end arch;

@@ -263,3 +263,29 @@ set_property PACKAGE_PIN R12 [get_ports {led[2]}]
 set_property PACKAGE_PIN L13 [get_ports {led[3]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {led[2]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {led[3]}]
+
+# Phase 4: DDS backplane bus (DDS_BUS_CONTRACT.md v0.2) + carrier status LEDs.
+# Carrier board (BRK7305 bank 15, VCCO 3.3 V). Balls from Opal Kelly XEM7305.csv,
+# hardware-verified with bp_test / bp_fast / bp_proto (2026-11-10..13).
+set_property -dict { PACKAGE_PIN G13  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[0]}]  ;# BACKPLANE_SCK       MC1B_31
+set_property -dict { PACKAGE_PIN K13  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[1]}]  ;# BACKPLANE_MOSI      MC1B_33
+set_property -dict { PACKAGE_PIN B13  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[2]}]  ;# BACKPLANE_CS        MC1B_34
+set_property -dict { PACKAGE_PIN A13  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[3]}]  ;# BACKPLANE_STEPNEXT  MC1B_36
+set_property -dict { PACKAGE_PIN D12  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[4]}]  ;# BACKPLANE_RAMRESET  MC1B_23
+set_property -dict { PACKAGE_PIN B16  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[5]}]  ;# BACKPLANE_AUX1      MC1B_26
+set_property -dict { PACKAGE_PIN F14  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[6]}]  ;# BACKPLANE_AUX2      MC1B_27
+set_property -dict { PACKAGE_PIN F15  IOSTANDARD LVCMOS33 } [get_ports {dds_bp[7]}]  ;# BACKPLANE_AUX3      MC1B_29
+set_property -dict { SLEW FAST DRIVE 8 } [get_ports {dds_bp[0] dds_bp[1] dds_bp[2] dds_bp[3] dds_bp[4]}]
+
+set_property -dict { PACKAGE_PIN H15  IOSTANDARD LVCMOS33 } [get_ports {board_led[0]}]  ;# D4  MC1A_23
+set_property -dict { PACKAGE_PIN G15  IOSTANDARD LVCMOS33 } [get_ports {board_led[1]}]  ;# D5  MC1A_25
+set_property -dict { PACKAGE_PIN G16  IOSTANDARD LVCMOS33 } [get_ports {board_led[2]}]  ;# D6  MC1A_27
+set_property -dict { PACKAGE_PIN G17  IOSTANDARD LVCMOS33 } [get_ports {board_led[3]}]  ;# D7  MC1A_29
+set_property -dict { PACKAGE_PIN F13  IOSTANDARD LVCMOS33 } [get_ports {board_led[4]}]  ;# D8  MC1A_31
+set_property -dict { PACKAGE_PIN E13  IOSTANDARD LVCMOS33 } [get_ports {board_led[5]}]  ;# D9  MC1A_33
+set_property -dict { PACKAGE_PIN D18  IOSTANDARD LVCMOS33 } [get_ports {board_led[6]}]  ;# D10 MC1A_35
+set_property -dict { PACKAGE_PIN C18  IOSTANDARD LVCMOS33 } [get_ports {board_led[7]}]  ;# D11 MC1A_37
+
+# The DDS bus pins are launched from registers in clk_100 and the far end is
+# asynchronous (the DDS board oversamples them), so no output-delay timing applies.
+set_false_path -to [get_ports {dds_bp[*] board_led[*]}]

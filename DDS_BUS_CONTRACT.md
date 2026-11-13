@@ -1,6 +1,7 @@
 # DDS Backplane Bus — Protocol Contract (Step 0)
 
-_v0.2, 2026-11-13 — all design decisions agreed (v0.1 was the draft). The shared
+_v0.3, 2026-11-13 — all design decisions agreed (v0.1 draft; v0.3 moves the DDS
+TriggerIn bits to 6/7/8, see §7). The shared
 spec both FPGA tracks build against (see `NEXT_PHASE.md` → "Step 0"):_
 
 - **Slave:** DDS ECP5 board — `VHDL_files/DDS_ECP5_2026_10_19/` (`bus_rx`, `dds_top`)
@@ -175,9 +176,19 @@ The **host** should reject sequences with DDS changes closer than 5 µs.
   itself (legacy: WireIn `0x04` channel select + `0x81` row data). Keeps the FPGA
   trivial and lets new commands land as host-only changes. WireIn `0x04` becomes
   unused.
-- `STEPNEXT` = sequencer channel 18 (`AdvanceDDS`) **OR** TriggerIn `0x40` bit 5.
-- `RAMRESET` = sequencer channel 19 (`ResetDDS`) **OR** TriggerIn `0x40` bit 4.
-  Trigger-generated pulses: ≥ 100 ns.
+- `STEPNEXT` = sequencer channel 18 (`AdvanceDDS`) **OR** TriggerIn `0x40` **bit 6**.
+- `RAMRESET` = sequencer channel 19 (`ResetDDS`) **OR** TriggerIn `0x40` **bit 7**.
+  Trigger-generated pulses: 120 ns.
+- TriggerIn `0x40` **bit 8** clears the `0x81` frame FIFO and the serializer (recovery
+  from a host write that stopped mid-record).
+- _v0.3 change:_ v0.2 named bits 5/4 after the legacy `api.py`, but in the current
+  `photon.vhd` bit 4 resets `readout_count_fifo` and bit 5 resets the DDR3 path, so the
+  DDS bits moved to the free 6/7/8. Bit 6 was the legacy `initializeDDS`, which the new
+  boards don't need (they self-initialise at power-up).
+- Byte order: the host writes the record stream as plain bytes; inside each 32-bit pipe
+  word byte 0 of the stream is bits 7:0 (FrontPanel USB 3 order, `LSB_FIRST = true` in
+  `dds_bus_tx`). Flow control: `0x81` `ep_ready` drops when the 2048-word FIFO has
+  < ~350 words free, so block sizes up to 1024 bytes are safe.
 - `AUX1-3` driven low.
 
 ---

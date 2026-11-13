@@ -28,21 +28,23 @@ SRCS="../src/ddr3_line_streamer.vhd ../src/pulse_sequencer.vhd ../src/pulse_cdc.
       line_fifo_128x64.vhd mig_read_model.vhd mig_prog_model.vhd mig_ramp_model.vhd \
       tb_line_streamer.vhd tb_streamer_throughput.vhd \
       tb_sequencer.vhd tb_sequencer_loop.vhd tb_sequencer_stall.vhd tb_sequencer_long.vhd \
-      tb_sequencer_nloop.vhd tb_pmt_counter.vhd tb_pmt_timetagger.vhd tb_pmt_diff_counter.vhd"
+      tb_sequencer_nloop.vhd tb_pmt_counter.vhd tb_pmt_timetagger.vhd tb_pmt_diff_counter.vhd \
+      ../src/dds_bus_tx.vhd ../../DDS_ECP5_2026_10_19/bus_rx.vhd tb_dds_bus_tx.vhd"
 
 # VHDL-93 lint of the synthesizable ../src modules (photon.vhd excluded -- it
 # uses unisim). Vivado compiles the project as VHDL-93, so this catches
 # 2008-only constructs (e.g. a conditional signal assignment inside a process)
 # that the --std=08 sim below would silently accept and Vivado would reject.
 SYNTH_SRCS="../src/ddr3_line_streamer.vhd ../src/pulse_sequencer.vhd ../src/pulse_cdc.vhd \
-      ../src/pmt_sim.vhd ../src/pmt_counter.vhd ../src/pmt_timetagger.vhd ../src/pmt_diff_counter.vhd"
+      ../src/pmt_sim.vhd ../src/pmt_counter.vhd ../src/pmt_timetagger.vhd ../src/pmt_diff_counter.vhd \
+      ../src/dds_bus_tx.vhd"
 echo "== VHDL-93 lint (synth modules, as Vivado compiles them) =="
 "$GHDL" -a --std=93 --work=lint93 $SYNTH_SRCS && echo "  [OK] synth modules clean under --std=93"
 
 echo "== analyze =="
 "$GHDL" -a --std=08 $SRCS
 
-for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop tb_sequencer_stall tb_sequencer_long tb_sequencer_nloop tb_pmt_counter tb_pmt_timetagger tb_pmt_diff_counter; do
+for tb in tb_line_streamer tb_streamer_throughput tb_sequencer tb_sequencer_loop tb_sequencer_stall tb_sequencer_long tb_sequencer_nloop tb_pmt_counter tb_pmt_timetagger tb_pmt_diff_counter tb_dds_bus_tx; do
   echo "== run $tb =="
   "$GHDL" --elab-run --std=08 "$tb" --stop-time=20ms
 done
