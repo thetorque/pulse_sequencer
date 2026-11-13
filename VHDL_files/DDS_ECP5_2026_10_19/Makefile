@@ -17,7 +17,7 @@ PROBE   ?= dirtyJtag
 
 # Per-design source lists (multi-file designs: leaf modules first, top last) and
 # constraint files. Anything not listed falls back to single-file + dds_leds.lpf.
-SRC_dds_top       := config_ram.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd sideband_spi.vhd dds_top.vhd
+SRC_dds_top       := config_ram_dc.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd dds_ctl.vhd sideband_spi.vhd dds_top.vhd
 SRC_dac_test      := dac_spi.vhd dac_test.vhd
 SRC_ad9912_test   := ad9912_cfg.vhd dac_spi.vhd ad9912_test.vhd
 SRC_ad9912_rb     := ad9912_rb.vhd
@@ -98,6 +98,7 @@ SIM_SRC_tb_config_ram   := config_ram.vhd tb_config_ram.vhd
 SIM_SRC_tb_ebr_test     := sim_oscg.vhd config_ram.vhd ebr_test.vhd tb_ebr_test.vhd
 SIM_SRC_tb_ad9912_spi   := ad9912_spi.vhd tb_ad9912_spi.vhd
 SIM_SRC_tb_bus_rx       := bus_rx.vhd tb_bus_rx.vhd
+SIM_SRC_tb_dds_top      := sim_oscg.vhd config_ram_dc.vhd bus_rx.vhd ad9912_spi.vhd dac_spi.vhd dds_ctl.vhd sideband_spi.vhd dds_top.vhd tb_dds_top.vhd
 SIM_SRC  := $(SIM_SRC_$(TB))
 SIMDIR   := /tmp/ghdl_$(TB)
 sim:

@@ -11,8 +11,9 @@ entity OSCG is
 end entity;
 
 architecture sim of OSCG is
-  -- ~310 MHz / DIV; model as a simple square wave (exact rate irrelevant for logic sim)
-  constant HALF : time := (161 ns * 128) / DIV;
+  -- ECP5 OSCG = ~310 MHz / DIV (DIV=2 -> ~155 MHz, DIV=128 -> ~2.42 MHz).
+  -- Half period = DIV / (2 * 310 MHz) = DIV * 1.613 ns.
+  constant HALF : time := 1613 ps * DIV;
 begin
   process
   begin

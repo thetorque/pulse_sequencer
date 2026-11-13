@@ -4,6 +4,8 @@
 # Port names = schematic net names (lowercased); match your HDL top-level ports to these.
 # Direction is the ECP5 perspective: O=output, I=input, IO=bidir, ?=TBD.
 # Clock: the ECP5 uses its INTERNAL oscillator (OSCG primitive) -- no external clock pin.
+# dds_top: OSCG DIV=2 (~155 MHz, constrained automatically) -> clk_f; clk_s = clk_f/2.
+FREQUENCY NET "clk_s" 80 MHz;
 #
 # NOT listed below (dedicated, handled by config/JTAG logic, do NOT add as fabric ports):
 #   Config: CCLK=N9, D0/MOSI=T8, D1/MISO=T7, SN/CSN=R8, PROGRAMN=R9, INITN=T9, DONE=P9

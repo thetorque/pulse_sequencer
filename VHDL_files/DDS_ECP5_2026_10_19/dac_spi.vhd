@@ -5,13 +5,17 @@
 --   bits11..0 = data.   VOUT = 2.048 * code/4096.
 -- SPI mode 0: data presented while SCK low, latched on SCK rising edge.
 -- VOUT updates on the LDAC falling edge (pulsed after CS deassert).
--- SCK ~= clk/2 (~1.2 MHz off the 2.4 MHz OSCG) -- well under MCP4821's 20 MHz.
+-- SCK = clk / (2*DIV). Default DIV=1 (~1.2 MHz off the 2.4 MHz OSCG). MCP4821 max is
+-- 20 MHz -> with the ~155 MHz (+-15 %) OSCG use DIV >= 5 (~15.5 MHz).
+-- AUTO_LDAC=false (dds_ctl): the write only loads the input register and LDAC stays
+-- high; the caller strobes LDAC itself (preload-then-strobe, DDS_BUS_CONTRACT §6).
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 entity dac_spi is
+  generic ( DIV : integer := 1; AUTO_LDAC : boolean := true );
   port (
     clk, rst : in  std_logic;
     start    : in  std_logic;
@@ -30,12 +34,13 @@ architecture rtl of dac_spi is
   signal sh     : std_logic_vector(15 downto 0) := (others => '0');
   signal cnt    : integer range 0 to 15 := 0;
   signal latcnt : integer range 0 to 7 := 0;
+  signal pre    : integer range 0 to DIV-1 := 0;
 begin
   process(clk)
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        st <= IDLE; sck <= '0'; sdi <= '0'; cs <= '1'; ldac <= '1'; busy <= '0';
+        st <= IDLE; sck <= '0'; sdi <= '0'; cs <= '1'; ldac <= '1'; busy <= '0'; pre <= 0;
       else
         case st is
           when IDLE =>
@@ -51,20 +56,26 @@ begin
           when BIT_LO =>                 -- present MSB while clock low
             sck <= '0';
             sdi <= sh(15);
-            st  <= BIT_HI;
+            if pre = DIV-1 then pre <= 0; st <= BIT_HI; else pre <= pre + 1; end if;
 
           when BIT_HI =>                 -- rising edge -> MCP4821 samples
             sck <= '1';
-            if cnt = 0 then
-              st <= DESEL;
+            if pre = DIV-1 then
+              pre <= 0;
+              if cnt = 0 then
+                st <= DESEL;
+              else
+                sh  <= sh(14 downto 0) & '0';
+                cnt <= cnt - 1;
+                st  <= BIT_LO;
+              end if;
             else
-              sh  <= sh(14 downto 0) & '0';
-              cnt <= cnt - 1;
-              st  <= BIT_LO;
+              pre <= pre + 1;
             end if;
 
-          when DESEL =>                  -- deassert CS, then strobe LDAC
-            sck <= '0'; cs <= '1'; latcnt <= 3; st <= LAT_LO;
+          when DESEL =>                  -- deassert CS, then strobe LDAC (if AUTO_LDAC)
+            sck <= '0'; cs <= '1'; latcnt <= 3;
+            if AUTO_LDAC then st <= LAT_LO; else busy <= '0'; st <= IDLE; end if;
 
           when LAT_LO =>                 -- LDAC low -> VOUT updates on this falling edge
             ldac <= '0';
