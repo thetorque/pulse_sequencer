@@ -45,6 +45,8 @@ WO_LOGIC      = 0x2B    # ep2Bwire: logic_out (== master_logic when override mux
 WO_SEQ        = 0x2C    # ep2Cwire: bit16 seq_done, bits[15:0] seq_count, bit17 drop/overflow
 WO_CALIB      = 0x2D    # ep2Dwire: bit0 MIG init_calib_complete
 WO_LINE_COUNT = 0x35    # ep35wire: 32-bit count of lines the sequencer popped this run
+WO_DDS_STATUS = 0x36    # ep36wire: bit0 = DDS bus idle (all queued frames sent),
+                        #           bits 31:16 = frames sent (wraps; read twice)
 
 SEQ_DONE_BIT   = 1 << 16
 SEQ_COUNT_MASK = 0xFFFF

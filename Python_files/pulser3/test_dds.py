@@ -116,9 +116,50 @@ def test_errors():
             pass
 
 
+class FakeXem:
+    """FrontPanel stand-in: frames go 'out on the bus' a few status polls after the
+    pipe write; the first status read after a write is torn (counter garbage)."""
+    def __init__(self, frames_sent=65534, lag=3, stuck=False):
+        self.sent, self.pending, self.lag, self.stuck = frames_sent, 0, lag, stuck
+        self.polls, self.torn = 0, True
+
+    def WriteToBlockPipeIn(self, ep, block, data):
+        assert ep == W.DDS_PIPE and len(data) % block == 0
+        self.pending += len(D.unpack(bytes(data)))
+        self.polls, self.torn = 0, True
+        return len(data)
+
+    def UpdateWireOuts(self):
+        self.polls += 1
+        self.torn = self.polls == 1
+        if self.pending and self.polls >= self.lag and not self.stuck:
+            self.sent = (self.sent + self.pending) & 0xFFFF
+            self.pending = 0
+
+    def GetWireOutValue(self, ep):
+        assert ep == W.WO_DDS_STATUS
+        idle = 0 if self.pending else 1
+        cnt = (self.sent ^ 0x5A5A) if self.torn else self.sent      # torn read
+        return (cnt << 16) | idle
+
+
+def test_send_waits_for_bus_idle():
+    x = FakeXem()                                     # counter wraps 65534 -> ...
+    frames = [D.write_rows(1, 0, [D.OFF] * 3), D.step()]    # odd gap -> + NOP filler
+    D.send(x, frames)
+    assert x.pending == 0 and x.sent == (65534 + 3) & 0xFFFF
+    try:
+        D.send(FakeXem(stuck=True), frames, timeout=0.05)
+        assert False, "expected a timeout"
+    except D.DDSError:
+        pass
+    assert D.send(FakeXem(stuck=True), frames, wait=False) % 16 == 0
+
+
 def test_wiremap_constants():
     assert W.DDS_PIPE == 0x81 and (W.TRIG_DDS_STEP_BIT, W.TRIG_DDS_RESET_BIT, W.TRIG_DDS_CLEAR_BIT) == (6, 7, 8)
     assert (W.DDS_ADVANCE_CHANNEL, W.DDS_RESET_CHANNEL) == (18, 19)
+    assert W.WO_DDS_STATUS == 0x36
 
 
 if __name__ == "__main__":

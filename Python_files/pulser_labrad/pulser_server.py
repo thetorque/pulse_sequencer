@@ -496,9 +496,9 @@ class Pulser(LabradServer):
     # board, so the new value appears at once.
 
     def _send_dds(self, frames):
-        """Blocking: queue frames on pipe 0x81 and wait until they are on the bus."""
+        """Blocking: send frames on pipe 0x81; returns once they are out on the bus
+        (the master reports idle on WireOut 0x36)."""
         self.driver.dds_send(frames)
-        time.sleep(DS.bus_seconds(frames))
 
     def _rewind_dds(self):
         """Before a run: put every board on row 0 with a RESET frame. The

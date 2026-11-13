@@ -17,6 +17,7 @@ Layers:
 Not here yet (M4 part 2): the sequence parser (legacy parseDDS port), the LabRAD
 server settings and the GUI.
 """
+import time
 from dataclasses import dataclass
 
 from . import wiremap as W
@@ -230,12 +231,49 @@ def row_dbm(freq_hz, dbm, phase_deg=0.0, cal=None, rf_on=True):
 # ---------------------------------------------------------------------------
 # hardware (needs an ok.FrontPanel opened on the Phase-4 bitstream)
 # ---------------------------------------------------------------------------
-def send(xem, frames, block=W.DDS_PIPE_BLOCK):
-    """Write frames to BTPipeIn 0x81. Returns the byte count written."""
+def bus_status(xem):
+    """(idle, frames_sent) from WireOut 0x36. frames_sent is a clk_100 counter read
+    across clock domains, so it is read until two reads agree."""
+    prev = None
+    for _ in range(20):
+        xem.UpdateWireOuts()
+        v = xem.GetWireOutValue(W.WO_DDS_STATUS)
+        if prev is not None and (v >> 16) == (prev >> 16):
+            break
+        prev = v
+    return bool(v & 1), (v >> 16) & 0xFFFF
+
+
+def send(xem, frames, block=W.DDS_PIPE_BLOCK, wait=True, timeout=None):
+    """Write frames to BTPipeIn 0x81. Returns the byte count written.
+
+    wait=True (default): return only once the master has clocked every frame out
+    on the backplane -- WireOut 0x36 reports idle AND its frame counter has
+    advanced by the number of frames in this stream (roadmap 3.5). Raises DDSError
+    after `timeout` s (default: generous, from the stream size), e.g. on a
+    bitstream that predates the status wire.
+    """
     data = bytearray(pack(frames, block))
+    if wait:
+        n_frames = len(unpack(bytes(data)))        # incl. a NOP filler, if pack() added one
+        _, f0 = bus_status(xem)
     n = xem.WriteToBlockPipeIn(W.DDS_PIPE, block, data)
     if n != len(data):
         raise DDSError(f"WriteToBlockPipeIn(0x81) returned {n}, expected {len(data)}")
+    if wait:
+        target = (f0 + n_frames) & 0xFFFF
+        if timeout is None:
+            timeout = 0.5 + 3 * (len(data) * 0.36e-6 + n_frames * 0.6e-6)
+        deadline = time.time() + timeout
+        while True:
+            idle, f = bus_status(xem)
+            if idle and f == target:
+                break
+            if time.time() > deadline:
+                raise DDSError(f"DDS bus not idle after {timeout:.2f} s (idle={idle}, frames "
+                               f"{f} vs {target}) -- old bitstream without WireOut 0x36, "
+                               "or the bus is stuck")
+            time.sleep(0.001)
     return n
 
 

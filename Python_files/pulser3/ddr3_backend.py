@@ -64,10 +64,9 @@ NOT_EMPTY_POLL_ATTEMPTS = 200
 NOT_EMPTY_POLL_INTERVAL = 0.01
 
 CMD_COUNT_WIRE = 0x31    # DIAGNOSTIC: dbg_cmd_count (bits 7:0) + dbg_retry_count (bits 15:8)
-DUP_WIRE = 0x34          # DIAGNOSTIC (restored): dbg_dup_addr_match (bit 0),
-                         # dbg_dup_count(14:0) (bits 15:1), dbg_dup_at_cmd (bits 31:16).
-                         # Counts MIG read responses whose 128-bit data equals the
-                         # immediately-preceding response -- a duplicate/extra beat.
+DUP_WIRE = 0x34          # REMOVED (roadmap 3.2 step B, 2026-11-13): was the duplicate-
+                         # response detector; reads 0 on current bitstreams. Kept so
+                         # older test scripts still import.
 READ_POLL_ATTEMPTS = 200
 READ_POLL_INTERVAL = 0.01
 READ_IDLE_POLL_ATTEMPTS = 200

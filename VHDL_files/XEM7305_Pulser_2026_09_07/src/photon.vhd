@@ -412,6 +412,20 @@ architecture arch of photon is
 	signal mig_app_wdf_wren      : STD_LOGIC := '0';
 	signal mig_app_rd_data       : STD_LOGIC_VECTOR(127 downto 0);
 	signal mig_app_rd_data_valid : STD_LOGIC;
+	-- Roadmap 3.2 (DDR3 read-path hardening): the MIG read RETURN (data + valid)
+	-- is registered once on ui_clk and EVERY consumer (legacy read-prefetch,
+	-- ddr3_line_streamer, diagnostics) uses these _q copies, so the raw MIG
+	-- nets fan out to exactly one register. Before this, the read path was
+	-- placement-marginal (it only passed with extra diagnostic loads that
+	-- happened to help; removed in 3.2 step B). Data and
+	-- valid move together (+1 ui_clk latency, far inside the 2047-cycle
+	-- lost-command timeouts); app_rdy / app_en stay combinational.
+	signal mig_rd_data_q  : STD_LOGIC_VECTOR(127 downto 0) := (others => '0');
+	signal mig_rd_valid_q : STD_LOGIC := '0';
+	attribute KEEP : string;
+	attribute DONT_TOUCH : string;
+	attribute KEEP of mig_rd_data_q, mig_rd_valid_q : signal is "TRUE";
+	attribute DONT_TOUCH of mig_rd_data_q, mig_rd_valid_q : signal is "TRUE";
 	signal mig_app_rdy           : STD_LOGIC;
 	signal mig_app_wdf_rdy       : STD_LOGIC;
 
@@ -489,20 +503,11 @@ architecture arch of photon is
 	-- 81 MHz) vs. a normal read latency well under 1 us.
 	signal rd_pf_wait_ctr   : INTEGER range 0 to 2047 := 0;
 
-	-- DIAGNOSTIC (temporary, WireOut 0x30): counts rising edges of
-	-- mig_app_rd_data_valid (not every cycle it's held high -- a first
-	-- version of this counter did that and got confusingly large
-	-- numbers, which turned out to be ambiguous between "many separate
-	-- pulses" and "few pulses each held for many cycles") regardless
-	-- of rd_pf_state, to test whether each MIG read command asserts it
-	-- once (as assumed) or more than once.
-	signal dbg_valid_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-	signal dbg_valid_prev  : STD_LOGIC := '0';
 
 	-- DIAGNOSTIC (temporary, WireOut 0x31): counts how many read
 	-- commands read-prefetch itself actually issues (accepted by MIG,
 	-- i.e. rd_pf_addr incrementing), to cross-check against
-	-- dbg_valid_count -- if they don't match, the mismatch is between
+	-- the read-response count -- if they don't match, the mismatch is between
 	-- issuing and MIG's response, not in how we process a response.
 	signal dbg_cmd_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
@@ -511,47 +516,8 @@ architecture arch of photon is
 	-- confirms the MIG app_rdy edge-timing issue was hit and recovered.
 	signal dbg_retry_count : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
-	-- DIAGNOSTIC (temporary, WireOut 0x32/0x33): the raw high-32 bits
-	-- mig_app_rd_data actually returns for the first two commands'
-	-- responses, latched directly in state 2 (see dbg_resp_count usage
-	-- there) -- ground truth to compare against what the readback
-	-- pipeline eventually presents, instead of inferring it indirectly.
-	signal dbg_resp_count : INTEGER range 0 to 7 := 0;
-	signal dbg_high0 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
-	signal dbg_high1 : STD_LOGIC_VECTOR(31 downto 0) := (others => '0');
 
-	-- DIAGNOSTIC (temporary, WireOut 0x34): a soak-test run intermittently
-	-- (not every run, same deterministic input data both times) showed
-	-- one MIG read command's response duplicating the *previous*
-	-- command's response -- ground truth to tell apart the two possible
-	-- causes: rd_pf_addr failing to advance (same address legitimately
-	-- re-read) vs. stale response data being pushed for a genuinely new
-	-- address (a real data-path race). dbg_cmd_addr/dbg_prev_addr latch
-	-- each command's own address (state 1) for comparison; dbg_prev_rd_data
-	-- latches each command's raw 128-bit response (state 2, internal
-	-- only, too wide to expose) for comparison against the *next*
-	-- command's response. dbg_dup_count counts how many times two
-	-- consecutive responses were bit-identical; dbg_dup_at_cmd latches
-	-- dbg_cmd_count at the most recent occurrence; dbg_dup_addr_match
-	-- records whether that pair's addresses also matched (an address
-	-- bug) or differed (a data-path bug).
-	signal dbg_cmd_addr       : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
-	signal dbg_prev_addr      : STD_LOGIC_VECTOR(28 downto 0) := (others => '0');
-	signal dbg_prev_rd_data   : STD_LOGIC_VECTOR(127 downto 0) := (others => '0');
-	signal dbg_dup_count      : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
-	signal dbg_dup_at_cmd     : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
-	signal dbg_dup_addr_match : STD_LOGIC := '0';
 
-	-- DIAGNOSTIC (temporary): after the read command double-issue fix,
-	-- an occasional stall appeared where read-prefetch issued a command
-	-- (dbg_cmd_count) that got one fewer valid response (dbg_valid_count
-	-- = cmd-1), leaving it stuck in the valid-wait state. dbg_valid_outside_s2
-	-- is a sticky flag set if mig_app_rd_data_valid was ever seen while
-	-- rd_pf_state /= 2 (the capture state) -- if set, read-prefetch
-	-- MISSED a valid (bug (b)); if clear at a stall, MIG never returned
-	-- a valid for a counted command (phantom accept, bug (a)). Exposed
-	-- alongside rd_pf_state itself on WireOut 0x2F.
-	signal dbg_valid_outside_s2 : STD_LOGIC := '0';
 
 	-- rd_pf_idle (WireOut 0x2F bit 16): the host MUST check this before
 	-- switching ep00wire(4) back to write mode. If read-prefetch is
@@ -579,15 +545,9 @@ architecture arch of photon is
 	signal ep2Ewire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep2Fwire : STD_LOGIC_VECTOR(31 downto 0);
 
-	-- WireOut endpoints (0x30/0x31/0x32/0x33) -- DIAGNOSTIC (temporary),
-	-- see dbg_valid_count/dbg_cmd_count/dbg_high0/dbg_high1 comments.
-	signal ep30wire : STD_LOGIC_VECTOR(31 downto 0);
+	-- WireOut endpoint (0x31): read-prefetch command / retry counters
+	-- (see dbg_cmd_count / dbg_retry_count).
 	signal ep31wire : STD_LOGIC_VECTOR(31 downto 0);
-	signal ep32wire : STD_LOGIC_VECTOR(31 downto 0);
-	signal ep33wire : STD_LOGIC_VECTOR(31 downto 0);
-	-- WireOut endpoint (0x34) -- DIAGNOSTIC (temporary), see
-	-- dbg_dup_count/dbg_dup_at_cmd/dbg_dup_addr_match comments.
-	signal ep34wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal ep35wire : STD_LOGIC_VECTOR(31 downto 0);   -- streamer/sequencer line-pop count
 
 	-- Phase 3 RAM/FIFO IP (see src/ip/pulse_fifo, pulser_ram, fifo_photon,
@@ -807,7 +767,7 @@ architecture arch of photon is
 	signal okClk      : STD_LOGIC;
 	signal okHE       : STD_LOGIC_VECTOR(112 downto 0);
 	signal okEH       : STD_LOGIC_VECTOR(64 downto 0);
-	signal okEHx      : STD_LOGIC_VECTOR(65*27-1 downto 0); -- 27 endpoints need an okEH slot
+	signal okEHx      : STD_LOGIC_VECTOR(65*24-1 downto 0); -- 24 endpoints need an okEH slot
 
 	-- WireIn endpoints (0x00-0x06) — same addresses/roles as the legacy design
 	signal ep00wire   : STD_LOGIC_VECTOR(31 downto 0); -- mode/config flags
@@ -878,6 +838,10 @@ architecture arch of photon is
 	signal dds_tx_rst_cnt : integer range 0 to 63 := 63;     -- clk_100
 	signal dds_sck, dds_mosi, dds_cs, dds_step, dds_reset, dds_frame : STD_LOGIC;
 	signal dds_frames_sent : STD_LOGIC_VECTOR(15 downto 0);
+	signal dds_idle, dds_idle_ok1, dds_idle_ok2 : STD_LOGIC := '0';
+	attribute ASYNC_REG of dds_idle_ok1 : signal is "TRUE";
+	attribute ASYNC_REG of dds_idle_ok2 : signal is "TRUE";
+	signal ep36wire : STD_LOGIC_VECTOR(31 downto 0);
 	signal dds_led_frame, dds_led_step, dds_led_reset : integer range 0 to 4194303 := 0;
 	signal hb100 : STD_LOGIC_VECTOR(26 downto 0) := (others => '0');
 begin
@@ -1131,7 +1095,7 @@ begin
 	ep2Ewire <= (31 downto 6 => '0') & wr_asm_idle & ddr3_write_rd_data_count;
 	-- WireOut 0x2F layout: bits 9:0 = ddr3_read_rd_data_count (read-side,
 	-- okClk-synchronized); bits 12:10 = rd_pf_state (0-2); bit 13 =
-	-- ddr3_read_empty; bit 14 = dbg_valid_outside_s2 (diagnostic);
+	-- ddr3_read_empty; bit 14 = reserved 0;
 	-- bit 16 = rd_pf_idle (host MUST check this before switching
 	-- ep00wire(4) back to write mode, see rd_pf_idle comment); bits
 	-- 25:18 = rd_pf_issued (how many read commands this batch has
@@ -1141,34 +1105,21 @@ begin
 	-- call has no software timeout, so reading before data has crossed
 	-- into okClk would hang).
 	ep2Fwire <= (31 downto 26 => '0') & CONV_STD_LOGIC_VECTOR(rd_pf_issued, 8) &
-	            '0' & rd_pf_idle & '0' & dbg_valid_outside_s2 & ddr3_read_empty &
+	            '0' & rd_pf_idle & '0' & '0' & ddr3_read_empty &
 	            CONV_STD_LOGIC_VECTOR(rd_pf_state, 3) & ddr3_read_rd_data_count;
 
-	------------------------------------------------------------------
-	-- DIAGNOSTIC (temporary, WireOut 0x30): see dbg_valid_count
-	-- declaration comment.
-	------------------------------------------------------------------
-	ep30wire <= (31 downto 8 => '0') & dbg_valid_count;
 	ep31wire <= (31 downto 16 => '0') & dbg_retry_count & dbg_cmd_count;
-	ep32wire <= dbg_high0;
-	ep33wire <= dbg_high1;
-	-- bits 31:16: dbg_dup_at_cmd. bits 15:1: dbg_dup_count. bit 0:
-	-- dbg_dup_addr_match. See dbg_dup_count declaration comment.
-	ep34wire <= dbg_dup_at_cmd & dbg_dup_count(14 downto 0) & dbg_dup_addr_match;
 	-- WireOut 0x35: lines the DDR3 sequencer popped this run (integrity check --
 	-- host compares to program length + 1; catches a dropped/duplicated line
 	-- from any cause, not just FIFO overflow). See pulse_sequencer line_count.
 	ep35wire <= str_line_count;
 
+	-- 3.2: the single register stage on the MIG read return (see declaration).
 	process (ui_clk)
 	begin
 		if rising_edge(ui_clk) then
-			dbg_valid_prev <= mig_app_rd_data_valid;
-			if ep40wire(5) = '1' then
-				dbg_valid_count <= (others => '0');
-			elsif mig_app_rd_data_valid = '1' and dbg_valid_prev = '0' then
-				dbg_valid_count <= dbg_valid_count + 1;
-			end if;
+			mig_rd_data_q  <= mig_app_rd_data;
+			mig_rd_valid_q <= mig_app_rd_data_valid;
 		end if;
 	end process;
 
@@ -1390,8 +1341,8 @@ begin
 		port map (ui_clk => ui_clk, ui_rst => streamer_ui_rst, seq_clk => clk_100,
 		          run => stream_active_ui, restart => str_restart_ui, primed => str_primed,
 		          app_addr => str_app_addr, app_cmd => str_app_cmd, app_en => str_app_en,
-		          app_rdy => mig_app_rdy, app_rd_data => mig_app_rd_data,
-		          app_rd_data_valid => mig_app_rd_data_valid,
+		          app_rdy => mig_app_rdy, app_rd_data => mig_rd_data_q,
+		          app_rd_data_valid => mig_rd_valid_q,
 		          line_rd_en => str_line_rd_en, line_dout => str_line_dout,
 		          line_empty => str_line_empty,
 		          dbg_retry_count => open, dbg_hb_count => open,
@@ -1436,8 +1387,7 @@ begin
 	-- (Sampling both halves on the same cycle as valid, and pushing
 	-- them a cycle apart, is confirmed correct -- both a one-cycle-
 	-- later sampling attempt and a settling-cycle-before-push attempt
-	-- were tested and ruled out; see dbg_high0/dbg_high1 for the
-	-- current, still-open diagnostic.)
+	-- were tested and ruled out.)
 	------------------------------------------------------------------
 	process (ui_clk)
 	begin
@@ -1459,30 +1409,16 @@ begin
 				rd_pf_target  <= CONV_INTEGER(UNSIGNED(ep07wire(15 downto 0)));
 			end if;
 
-			-- DIAGNOSTIC: sticky flag if a valid response ever arrives
-			-- while read-prefetch is NOT in its capture state (2). Runs
-			-- every cycle. See dbg_valid_outside_s2 declaration comment.
-			if mig_app_rd_data_valid = '1' and rd_pf_state /= 2 then
-				dbg_valid_outside_s2 <= '1';
-			end if;
-
 			if ep40wire(5) = '1' then
 				wr_asm_state  <= 0;
 				wr_asm_addr   <= (others => '0');
 				rd_pf_state   <= 0;
 				rd_pf_addr    <= (others => '0');
 				dbg_cmd_count  <= (others => '0');
-				dbg_resp_count <= 0;
 				rd_pf_issued   <= 0;
 				rd_pf_target   <= 0;
 				rd_pf_wait_ctr <= 0;
 				dbg_retry_count    <= (others => '0');
-				dbg_dup_count      <= (others => '0');
-				dbg_dup_at_cmd     <= (others => '0');
-				dbg_dup_addr_match <= '0';
-				dbg_prev_rd_data   <= (others => '0');
-				dbg_prev_addr      <= (others => '0');
-				dbg_valid_outside_s2 <= '0';
 			elsif ddr3_read_fifo_rst = '1' then
 				-- per-batch read-FIFO reset (see ddr3_read_fifo_rst
 				-- declaration comment): clean read-side state so each
@@ -1591,34 +1527,13 @@ begin
 						end if;
 					when others => -- 2: wait for the response (with a
 						-- lost-command timeout), push it whole, then commit.
-						if mig_app_rd_data_valid = '1' then
-							ddr3_read_din   <= mig_app_rd_data;
+						if mig_rd_valid_q = '1' then
+							ddr3_read_din   <= mig_rd_data_q;
 							ddr3_read_wr_en <= '1';
 							rd_pf_addr      <= rd_pf_addr + 8;
 							rd_pf_issued    <= rd_pf_issued + 1;
 							dbg_cmd_count   <= dbg_cmd_count + 1;
-							dbg_cmd_addr    <= rd_pf_addr;
 							rd_pf_state     <= 0;
-							-- DIAGNOSTIC: raw high-32 of the first two
-							-- responses (WireOut 0x32/0x33).
-							if dbg_resp_count = 0 then
-								dbg_high0 <= mig_app_rd_data(127 downto 96);
-							elsif dbg_resp_count = 1 then
-								dbg_high1 <= mig_app_rd_data(127 downto 96);
-							end if;
-							dbg_resp_count <= dbg_resp_count + 1;
-							-- DIAGNOSTIC: duplicate-response detector.
-							if mig_app_rd_data = dbg_prev_rd_data then
-								dbg_dup_count  <= dbg_dup_count + 1;
-								dbg_dup_at_cmd <= "00000000" & dbg_cmd_count;
-								if dbg_cmd_addr = dbg_prev_addr then
-									dbg_dup_addr_match <= '1';
-								else
-									dbg_dup_addr_match <= '0';
-								end if;
-							end if;
-							dbg_prev_rd_data <= mig_app_rd_data;
-							dbg_prev_addr    <= dbg_cmd_addr;
 						elsif rd_pf_wait_ctr = 2047 then
 							-- lost command: MIG counted app_rdy but never
 							-- returned a valid. Re-issue the SAME address
@@ -1747,7 +1662,7 @@ begin
 		okEH   => okEH
 	);
 
-	okWO : okWireOR generic map (N => 27) port map (okEH => okEH, okEHx => okEHx);
+	okWO : okWireOR generic map (N => 24) port map (okEH => okEH, okEHx => okEHx);
 
 	-- WireIn endpoints
 	wi00 : okWireIn port map (okHE => okHE, ep_addr => x"00", ep_dataout => ep00wire);
@@ -1830,14 +1745,15 @@ begin
 		ep_read => ddr3_read_rd_en, ep_blockstrobe => open, ep_datain => ddr3_read_dout, ep_ready => ddr3_read_pipe_ready
 	);
 
-	-- WireOut endpoint (0x30) -- DIAGNOSTIC (temporary), see
-	-- dbg_valid_count declaration comment.
-	wo30 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"30", ep_datain => ep30wire);
-	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"31", ep_datain => ep31wire);
-	wo32 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"32", ep_datain => ep32wire);
-	wo33 : okWireOut port map (okHE => okHE, okEH => okEHx(25*65-1 downto 24*65), ep_addr => x"33", ep_datain => ep33wire);
-	wo34 : okWireOut port map (okHE => okHE, okEH => okEHx(26*65-1 downto 25*65), ep_addr => x"34", ep_datain => ep34wire);
-	wo35 : okWireOut port map (okHE => okHE, okEH => okEHx(27*65-1 downto 26*65), ep_addr => x"35", ep_datain => ep35wire);
+	-- (WireOuts 0x30/0x32/0x33/0x34 -- the Phase 6b read-path diagnostics -- were
+	-- removed with roadmap 3.2 step B once the registered MIG return path was
+	-- proven; reads of them return 0.)
+	wo31 : okWireOut port map (okHE => okHE, okEH => okEHx(22*65-1 downto 21*65), ep_addr => x"31", ep_datain => ep31wire);
+	wo35 : okWireOut port map (okHE => okHE, okEH => okEHx(23*65-1 downto 22*65), ep_addr => x"35", ep_datain => ep35wire);
+	-- Roadmap 3.5: DDS bus status -- bit 0 = idle (everything queued on pipe 0x81
+	-- is out on the backplane; synchronised to okClk), bits 31:16 = frames sent
+	-- (clk_100 counter, read it twice and compare). See dds_bus_tx idle.
+	wo36 : okWireOut port map (okHE => okHE, okEH => okEHx(24*65-1 downto 23*65), ep_addr => x"36", ep_datain => ep36wire);
 
 	-- Phase 3 RAM/FIFO IP instantiations
 	pulse_fifo_inst : pulse_fifo port map (
@@ -2003,8 +1919,16 @@ begin
 			trig_step => dds_trig_step, trig_reset => dds_trig_reset,
 			bp_sck => dds_sck, bp_mosi => dds_mosi, bp_cs => dds_cs,
 			bp_step => dds_step, bp_reset => dds_reset,
-			frame_active => dds_frame, frames_sent => dds_frames_sent
+			frame_active => dds_frame, frames_sent => dds_frames_sent, idle => dds_idle
 		);
+
+	-- 3.5: DDS bus idle -> okClk (2-FF), for WireOut 0x36
+	process (okClk) begin
+		if rising_edge(okClk) then
+			dds_idle_ok1 <= dds_idle; dds_idle_ok2 <= dds_idle_ok1;
+		end if;
+	end process;
+	ep36wire <= dds_frames_sent & x"000" & "000" & dds_idle_ok2;
 
 	dds_bp <= "000" & dds_reset & dds_step & dds_cs & dds_mosi & dds_sck;
 

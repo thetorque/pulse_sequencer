@@ -31,6 +31,8 @@ architecture sim of tb_dds_bus_tx is
   signal seq_step, seq_reset, trig_step, trig_reset : std_logic := '0';
   signal sck, mosi, cs, stp, rrs, fact : std_logic;
   signal nsent : std_logic_vector(15 downto 0);
+  signal idle  : std_logic;
+  signal busy_seen : boolean := false;
 
   -- receiver side
   signal we, rows_written, cmd_reset, cmd_step, reg_we, frame_err : std_logic;
@@ -74,7 +76,10 @@ begin
                seq_step => seq_step, seq_reset => seq_reset,
                trig_step => trig_step, trig_reset => trig_reset,
                bp_sck => sck, bp_mosi => mosi, bp_cs => cs, bp_step => stp, bp_reset => rrs,
-               frame_active => fact, frames_sent => nsent );
+               frame_active => fact, frames_sent => nsent, idle => idle );
+  process(clk) begin
+    if rising_edge(clk) and rst = '0' and idle = '0' then busy_seen <= true; end if;
+  end process;
 
   rx : entity work.bus_rx
     generic map ( ADDR_W => 13, DATA_W => 88 )
@@ -148,6 +153,7 @@ begin
     end procedure;
   begin
     wait for 100 ns; rst <= '0'; wait for 100 ns;
+    check("T0 idle after reset with an empty FIFO", idle = '1' and not busy_seen);
 
     -- T1: WRITE_ROWS (2 rows, board 5) + padding record + RESET (broadcast)
     add_record(x"05" & x"01" & x"0010" & mkrow(1) & mkrow(2));
@@ -161,12 +167,14 @@ begin
     check("T1c RESET frame decoded", n_rst = 1);
     check("T1d no frame errors", n_err = 0);
     check("T1e frames_sent = 2", unsigned(nsent) = 2);
+    check("T1f idle went low while sending, high again after", busy_seen and idle = '1');
 
     -- T2: FIFO starves mid-frame: release words one at a time, 2 us apart
     gate <= rd_ptr;
     wait for 1 ns;
     add_record(x"05" & x"01" & x"0100" & mkrow(7) & mkrow(8) & mkrow(9));
     add_record(x"05" & x"03");                                  -- STEP
+    add_record(x"1F" & x"00" & x"00");    -- NOP filler: end on a record boundary, as pack() does
     flush_to_fifo;
     for i in 0 to 12 loop
       wait for 2 us; gate <= gate + 1;
@@ -177,6 +185,7 @@ begin
                                               log_d(3) = mkrow(8) and log_d(4) = mkrow(9));
     check("T2b STEP after starved frame", n_step = 1);
     check("T2c still no frame errors", n_err = 0);
+    check("T2d idle after the starved frame drained", idle = '1');
 
     -- T3: broadcast lines
     wait until rising_edge(clk); trig_step <= '1';

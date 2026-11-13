@@ -42,7 +42,8 @@ entity dds_bus_tx is
     bp_sck, bp_mosi, bp_cs, bp_step, bp_reset : out std_logic;
     -- status
     frame_active : out std_logic;
-    frames_sent  : out std_logic_vector(15 downto 0)
+    frames_sent  : out std_logic_vector(15 downto 0);
+    idle         : out std_logic    -- FIFO empty, no buffered bytes, no frame on the bus
   );
 end entity;
 
@@ -65,6 +66,9 @@ begin
   bp_step <= step_r; bp_reset <= reset_r;
   frame_active <= not cs_r;
   frames_sent  <= std_logic_vector(nsent);
+  -- everything the host queued is out on the backplane (roadmap 3.5): the host polls
+  -- this (WireOut 0x36) instead of waiting an estimated bus time
+  idle <= '1' when st = M_LENH and wcnt = 0 and fifo_empty = '1' and rst = '0' else '0';
 
   -- ---------------- frame serializer ----------------
   process(clk)

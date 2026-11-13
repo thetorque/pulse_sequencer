@@ -49,7 +49,9 @@ if {[file exists $PROJ_XPR]} {
 } else {
   puts "== no project found: creating it via create_project.tcl =="
   source ./create_project.tcl
-  open_project $PROJ_XPR
+  # create_project.tcl leaves the new project open; re-opening it errors out
+  # ("Project ... is already open") on some runs, so only open if none is.
+  if {[catch {current_project}]} { open_project $PROJ_XPR }
 }
 
 if {$do_clean} {

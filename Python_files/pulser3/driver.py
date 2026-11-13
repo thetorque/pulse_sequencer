@@ -99,8 +99,8 @@ class Driver:
 
     # ---- DDS (backplane bus via BTPipeIn 0x81) -------------------------------
     def dds_send(self, frames):
-        """Queue DDS bus frames (dds.write_rows/reset/...) on pipe 0x81. Returns
-        once USB is done; the master then clocks them out (see dds_sequence.bus_seconds)."""
+        """Send DDS bus frames (dds.write_rows/reset/...) over pipe 0x81. Returns once
+        the master has clocked them all out on the backplane (WireOut 0x36)."""
         self._check()
         return D.send(self.xem, frames)
 
@@ -130,9 +130,7 @@ class Driver:
         lines, prog = DS.compile_sequence(seq, dds_channels or {})
         self.load_program(lines, verify=verify)
         if prog is not None:
-            frames = prog.frames()
-            self.dds_send(frames)
-            time.sleep(DS.bus_seconds(frames))
+            self.dds_send(prog.frames())          # waits until the tables are on the bus
         return prog
 
     # ---- run control -------------------------------------------------------

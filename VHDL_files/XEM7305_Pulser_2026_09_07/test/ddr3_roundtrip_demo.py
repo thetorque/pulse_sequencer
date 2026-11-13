@@ -405,19 +405,10 @@ def run_memtest(xem, mib, chunk_words, seed, sacrifice_beats=0):
     xem.UpdateWireOuts()
     retry8 = (xem.GetWireOutValue(CMD_COUNT_WIRE) >> 8) & 0xFF
     print(f"  lost-command retry counter (0x31 bits15:8) = {retry8} "
-          f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow responses re-issued -- BENIGN when duplicate count below is 0 and memtest passes (the retry recovered)'})")
-    # Duplicate-response detector (WireOut 0x34, restored diagnostic). A nonzero
-    # count means MIG returned back-to-back responses with identical 128-bit data
-    # -- the extra/duplicate beat that shifts the readback stream. addr_match=1
-    # means the two carried the SAME command address (a genuine duplicate of one
-    # read); addr_match=0 means different addresses happened to hold equal data.
-    dup34 = xem.GetWireOutValue(DUP_WIRE)
-    dup_count = (dup34 >> 1) & 0x7FFF
-    dup_addr_match = dup34 & 0x1
-    dup_at_cmd = (dup34 >> 16) & 0xFFFF
-    print(f"  duplicate-response detector (0x34) = count {dup_count}, "
-          f"addr_match {dup_addr_match}, last_at_cmd {dup_at_cmd} "
-          f"({'NO duplicates' if dup_count == 0 else 'MIG DUPLICATE RESPONSES seen -- this is the extra beat'})")
+          f"({'no read timeouts fired' if retry8 == 0 else 'MIG slow responses re-issued -- BENIGN when the memtest passes (the retry recovered)'})")
+    # The duplicate-response detector (WireOut 0x34) was removed in roadmap 3.2
+    # step B (2026-11-13, registered MIG read return); the data check above is
+    # the integrity verdict.
     if not fails1 and not fails2:
         extra = (f" (sacrificed first {sacrifice_beats} beat(s)/chunk as "
                  f"cold-read dummies)" if sacrifice_beats else "")
