@@ -76,12 +76,26 @@ which the test scripts under `VHDL_files/.../test/` already validated.
   builds the gating program, runs it on the DDR3 sequencer with the synthetic
   source, and checks per-window counts + status. Requires an m4d bitstream.
 
-## Deferred (M4) -- DDS
+## DDS (M4) -- Phase 4 backplane bus
 
-Still not ported: **DDS** (waits on hardware -- `servers/pulser/dds.py` +
-BTPipeIn 0x81) and the readout counter (`getReadoutCounts` / BTPipeOut 0xa2,
-also unused so far). When they land, port them against the then-current wire
-map. Tracked so it isn't forgotten.
+- **Encoding + transport (done, hardware-verified 2026-11-13):** `dds.py`
+  implements DDS_BUS_CONTRACT.md v0.3 (rows FTW48|POW16|VGA12|CTRL8, frames
+  WRITE_ROWS/RESET/STEP/WRITE_REG, LEN16 records on BTPipeIn 0x81, TriggerIn
+  0x40 bits 6/7/8 = STEPNEXT/RAMRESET/clear). `dds_demo.py --trigger` /
+  `--sequence` stepped board 8 correctly from the host and from AdvanceDDS
+  (TTL 18). Tests: `python -m pulser3.test_dds`.
+- **DDS pulses in sequences (parseDDS port):** `dds_sequence.py` --
+  `DDSChannel` (board address, manual state, limits, VgaCal), `add_dds_pulse`
+  (legacy server addDDSPulses, dBm/MHz/deg), `compile_sequence` (legacy
+  parseDDS: per-board row tables + AdvanceDDS/ResetDDS TTL pulses, plus the
+  2026 checks: >= 5 us between changes, 8192 rows, no ramps). Channel config
+  is `hwconfig.DDS_CHANNELS`. `Driver.load_sequence(seq, DDS_CHANNELS)` loads
+  TTL + DDS together. Tests (incl. a random comparison against a transliterated
+  legacy parseDDS): `python -m pulser3.test_dds_sequence`. Bench:
+  `dds_demo.py --parsed`.
+- **Still to do:** the LabRAD server DDS settings (roadmap 4.3), the GUI
+  (4.4), per-frequency calibration files (1.6). The readout counter
+  (`getReadoutCounts` / BTPipeOut 0xa2) is also not ported (unused so far).
 
 ## Requirements
 

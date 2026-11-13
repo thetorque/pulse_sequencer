@@ -12,8 +12,10 @@ legacy version this:
     (40 ns), the first line's channel is the initial state, and the sequence
     ends with an all-zero terminator.
 
-DDS programming (parseDDS/addToProgram) is NOT ported here -- that is M4,
-deferred until the 2026 DDS hardware is ready.
+DDS: like the legacy class, a Sequence also STORES DDS entries (add_dds, the
+legacy addDDS); compiling them into per-board row tables plus the AdvanceDDS /
+ResetDDS TTL pulses is dds_sequence.compile_sequence (the parseDDS port). This
+module stays DDS-agnostic: an entry's row is an opaque object.
 """
 from decimal import Decimal
 
@@ -45,6 +47,8 @@ class Sequence:
         # timestep -> list of per-channel deltas in {-1, 0, +1}
         self.switching_times = {0: [0] * channel_total}
         self.switches = 1          # number of distinct switching times used
+        # DDS entries (legacy ddsSettingList): (name, timestep, row, 'start'|'stop')
+        self.dds_entries = []
 
     def _resolve(self, channel):
         """Map a channel name (if a channel_map was given) to its int index."""
@@ -78,6 +82,17 @@ class Sequence:
             raise SequenceError("duration shorter than one tick (40 ns)")
         self._add_switch(start, channel, 1)
         self._add_switch(start + duration, channel, -1)
+
+    def add_dds(self, name, start_s, row, typ):
+        """Store one DDS setting change (legacy addDDS): channel `name` takes
+        `row` at start_s. typ is 'start' (pulse begins) or 'stop' (pulse ends).
+        Use dds_sequence.add_dds_pulse for the human-unit pulse API."""
+        if typ not in ('start', 'stop'):
+            raise SequenceError(f"DDS entry type must be 'start' or 'stop', not {typ!r}")
+        self.dds_entries.append((name, self.sec_to_step(start_s), row, typ))
+
+    def has_dds(self):
+        return bool(self.dds_entries)
 
     def extend_length(self, time_s):
         """Extend the total sequence length to at least time_s (no-op switch)."""

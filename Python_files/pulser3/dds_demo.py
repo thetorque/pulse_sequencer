@@ -7,6 +7,7 @@ broadcast, so the boards' address straps don't matter.
 
     python -m pulser3.dds_demo <photon.bit> --trigger          # 3.3: host-stepped
     python -m pulser3.dds_demo <photon.bit> --sequence         # 3.4: TTL-18-stepped
+    python -m pulser3.dds_demo <photon.bit> --parsed           # 4.2: DDS pulses in a sequence
     python -m pulser3.dds_demo --dump                          # print the frames, no HW
 
 Table (both modes, --freqs to change): 60 / 110 / 160 / 210 MHz at VGA 0xB40 (~0 dBm @ 50 MHz on board 8),
@@ -22,6 +23,14 @@ can't be leftover state from the old test sender.
             AdvanceDDS (ch 18) pulse every --dwell seconds, 5 per loop, plus a
             marker pulse on 'ttl_0' at each step (scope ttl_0 vs the RF output to
             see the step latency). Ctrl-C stops.
+--parsed  : the parseDDS port end to end (dds_sequence + Driver.load_sequence). A
+            pulse sequence on hwconfig.DDS_CHANNELS['DDS_bench'] at 0 dBm:
+              0-5 s off (row 0 = manual state, RF off) | 5-10 s F1 | 10-15 s F2
+              (back-to-back) | 15-20 s off | 20-25 s F3 | then off
+            (--freqs, 3 values; default 65,115,165) plus a 'ttl_0' marker at every
+            change. Runs single-shot in a loop with a RESET frame between runs:
+            the sequence's own ResetDDS needs the RAMRESET line (c17/c18), which
+            the bench coupler doesn't have yet.
 """
 import argparse
 import sys
@@ -107,20 +116,56 @@ def run_sequence(drv, dwell):
         print("\nstopped")
 
 
+def run_parsed(drv, dwell, freqs):
+    from . import hwconfig
+    from . import dds_sequence as DS
+    if len(freqs) != 3:
+        raise SystemExit("--parsed needs exactly 3 --freqs")
+    ch = hwconfig.DDS_CHANNELS['DDS_bench']
+    seq = hwconfig.new_sequence()
+    plan = [(1, 1, freqs[0]), (2, 1, freqs[1]), (4, 1, freqs[2])]     # (start, length) in dwells
+    for k, n, f in plan:
+        DS.add_dds_pulse(seq, ch, k * dwell, n * dwell, f, 0.0)
+    for t in sorted({k for k, _, _ in plan} | {k + n for k, n, _ in plan}):
+        seq.add_pulse('ttl_0', t * dwell, 1e-6)                        # scope marker
+    prog = drv.load_sequence(seq, hwconfig.DDS_CHANNELS)
+    print(f"{prog.n_rows} rows per board, ResetDDS at {prog.reset_tick * 40e-9:.6f} s:")
+    for t, rows in prog.describe():
+        r = rows['DDS_bench']
+        when = "row 0 (manual)" if t is None else f"t = {t:9.6f} s"
+        print(f"   {when}: {r.freq_hz / 1e6:g} MHz VGA {r.vga:#05x} RF {'ON' if r.rf_on else 'off'}")
+    try:
+        run = 0
+        while True:
+            run += 1
+            print(f"run {run}")
+            drv.start_single()
+            if not drv.wait_done(timeout=10 * dwell):
+                raise SystemExit("sequence did not finish")
+            drv.dds_send([D.reset()])        # stands in for the unwired RAMRESET line
+    except KeyboardInterrupt:
+        drv.stop()
+        print("\nstopped")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Phase-4 DDS bus demo")
     ap.add_argument("bit", nargs="?", help="Phase-4 photon .bit")
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--trigger", action="store_true")
     g.add_argument("--sequence", action="store_true")
+    g.add_argument("--parsed", action="store_true")
     g.add_argument("--dump", action="store_true")
     ap.add_argument("--dwell", type=float, default=5.0, help="seconds per row (default 5)")
-    ap.add_argument("--freqs", default=",".join(f"{f:g}" for f in DEFAULT_FREQS_MHZ),
-                    help="comma-separated MHz, RF on; the last is repeated with RF off "
-                         "(default %(default)s)")
+    ap.add_argument("--freqs", default=None,
+                    help="comma-separated MHz. --trigger/--sequence: RF on, the last "
+                         "repeated with RF off (default 60,110,160,210); --parsed: the "
+                         "3 pulse tones (default 65,115,165)")
     a = ap.parse_args(argv)
-    set_table([float(f) for f in a.freqs.split(",")])
-    print("table:", " -> ".join(LABELS))
+    freqs = [float(f) for f in a.freqs.split(",")] if a.freqs else None
+    if not a.parsed:
+        set_table(freqs or DEFAULT_FREQS_MHZ)
+        print("table:", " -> ".join(LABELS))
     if a.dump:
         dump()
         return 0
@@ -130,7 +175,10 @@ def main(argv=None):
     drv = Driver()
     print(f"configuring {a.bit} ...")
     drv.connect(a.bit)
-    (run_trigger if a.trigger else run_sequence)(drv, a.dwell)
+    if a.parsed:
+        run_parsed(drv, a.dwell, freqs or [65.0, 115.0, 165.0])
+    else:
+        (run_trigger if a.trigger else run_sequence)(drv, a.dwell)
     return 0
 
 

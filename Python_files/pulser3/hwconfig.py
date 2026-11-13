@@ -4,13 +4,15 @@ servers/pulser/hardwareConfiguration.py).
 
 Just the facts the headless TTL driver needs: the channel name->number map (the
 experiment's actual wiring) and the timing constants. The legacy class also
-carried DDS board definitions and LabRAD/collection-mode state -- those belong
-to M4 (DDS) and the server layer, and are intentionally omitted.
+carried LabRAD/collection-mode state -- that belongs to the server layer.
+DDS_CHANNELS (below) is the 2026 counterpart of the legacy ddsDict.
 
 Edit CHANNELS to match your wiring; nothing here talks to hardware.
 """
 from .wiremap import TIME_RESOLUTION_S
 from .sequence import Sequence
+from .dds_sequence import DDSChannel
+from .dds import BROADCAST
 
 CHANNEL_TOTAL = 32
 MAX_SWITCHES = 1022
@@ -53,3 +55,13 @@ def new_sequence():
                     time_resolution_s=TIME_RESOLUTION_S,
                     max_switches=MAX_SWITCHES,
                     channel_map=CHANNELS)
+
+
+# DDS outputs: name -> DDSChannel(board address, manual state, limits, calibration).
+# Bench (2026-11-13): ONE board (ID 8) on the backplane, addressed by broadcast so
+# its slot straps don't matter. With a crate, give each channel its board's slot
+# address (0..30; shown on the DDS board's green LEDs g1-g5) and a per-board VgaCal.
+DDS_CHANNELS = {
+    'DDS_bench': DDSChannel('DDS_bench', addr=BROADCAST,
+                            frequency_mhz=100.0, amplitude_dbm=0.0, on=False),
+}

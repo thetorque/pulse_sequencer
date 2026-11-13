@@ -12,6 +12,10 @@ Legacy -> 2026 highlights (see wiremap.py for the full table):
   * reset is TriggerIn 0x40 bit0 (was bit1 "resetRam")
   * status: seq_done = WireOut 0x2C bit16, seq_count = bits[15:0], line_count = 0x35
 
+DDS (Phase 4 bus, DDS_BUS_CONTRACT.md v0.3) IS ported: dds_send/dds_step/dds_reset/
+dds_clear, and load_sequence() compiles a Sequence with DDS pulses (dds_sequence,
+the parseDDS port) into the TTL program + per-board DDS tables and loads both.
+
 Normal-mode PMT photon counting IS ported (the datapath exists in the 2026
 bitstream, Phase 5 m2, fed by an on-FPGA synthetic source for bring-up). DDS,
 Differential (sequence-gated) counting, and time-resolved timetagging are not
@@ -22,6 +26,8 @@ import time
 
 from . import wiremap as W
 from . import _ddr3
+from . import dds as D
+from . import dds_sequence as DS
 
 
 class PulserError(Exception):
@@ -89,6 +95,44 @@ class Driver:
                 raise PulserError(
                     f"DDR3 write-verify mismatch at line {bad}: "
                     f"wrote {prog[bad]:#018x}, read {got[bad]:#018x}")
+        return prog
+
+    # ---- DDS (backplane bus via BTPipeIn 0x81) -------------------------------
+    def dds_send(self, frames):
+        """Queue DDS bus frames (dds.write_rows/reset/...) on pipe 0x81. Returns
+        once USB is done; the master then clocks them out (see dds_sequence.bus_seconds)."""
+        self._check()
+        return D.send(self.xem, frames)
+
+    def dds_step(self):
+        """One STEPNEXT pulse to all boards (as an AdvanceDDS pulse would)."""
+        self._check()
+        D.trigger_step(self.xem)
+
+    def dds_reset(self):
+        """One RAMRESET pulse to all boards (needs the RAMRESET line wired;
+        dds_send([dds.reset()]) does the same over the bus)."""
+        self._check()
+        D.trigger_reset(self.xem)
+
+    def dds_clear(self):
+        """Flush the 0x81 FIFO + serializer (drops anything not yet on the bus)."""
+        self._check()
+        D.clear_pipe(self.xem)
+
+    def load_sequence(self, seq, dds_channels=None, verify=True):
+        """Compile + load a Sequence: the TTL program to DDR3 and, if it has DDS
+        pulses, every channel's row table over the bus followed by a broadcast
+        RESET (boards on row 0 = manual state). Waits until the tables are on the
+        bus, so a start right after is safe. Returns the DDSProgram (or None).
+        Legacy equivalent: Program Sequence (programBoard + _programDDSSequence)."""
+        self._check()
+        lines, prog = DS.compile_sequence(seq, dds_channels or {})
+        self.load_program(lines, verify=verify)
+        if prog is not None:
+            frames = prog.frames()
+            self.dds_send(frames)
+            time.sleep(DS.bus_seconds(frames))
         return prog
 
     # ---- run control -------------------------------------------------------
