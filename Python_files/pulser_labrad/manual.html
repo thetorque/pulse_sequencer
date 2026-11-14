@@ -457,7 +457,6 @@ p.stop_sequence()             <span class="c"># releases the DDS lock</span></co
   <h3>Bench caveats (2026-11)</h3>
   <ul>
     <li><b>One board, broadcast address.</b> The bench channel <code>DDS_bench</code> uses address 31 (broadcast), which only works with a single board. In a crate, give each channel its board's address (read it from the boot LEDs).</li>
-    <li><b>RAMRESET not wired</b> on the bench coupler (c17/c18). The server sends a RESET before every start, so single and numbered runs begin correctly, but <b>infinite loops with DDS pulses</b> don't rewind between iterations until the line is wired.</li>
     <li><b>Amplitude calibration is provisional:</b> dBm is accurate near 50 MHz on board 8; at 100–200 MHz the output is ~2 dB higher. Per-board, per-frequency calibration comes later.</li>
   </ul>
 
@@ -758,6 +757,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
   <ul>
     <li><b>Done (2026-11-13, hardware-verified on board 8):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–94), the <b>DDS Control</b> GUI, board firmware v0.4 (front-panel LEDs, AD9912 health check, identify, 100 MHz / −10 dBm default tone).</li>
     <li><b>Done (2026-11-14):</b> <b>2-hour stepping soak</b> (<code>python -m pulser3.dds_soak</code>) — 1,441,770,000 AdvanceDDS steps at 5 µs spacing, no lost or extra step (counter on the predicted 52.576 MHz), no red D3/D4; <b>DAC full-scale current register write</b> from the host (FSC tracks the output level; it is a static per-board setting, not used for sequence amplitude — the VGA is); <b>master FPGA</b>: DDR3 read-path fix, the "DDS FIFO drained" status wire (WireOut 0x36), rebuilt from the repo.</li>
+    <li><b>Done (2026-11-14):</b> bench coupler <b>c11–c18 wired</b> (RAMRESET + AUX1–3, all four walk correctly with <code>bp_test</code>/<code>bp_rx</code>); <b>RAMRESET by line</b> — host-triggered (<code>dds_demo --trigger --line-reset</code>) and a DDS pulse sequence in an <b>infinite loop</b> rewound only by its own ResetDDS (TTL19) pulse (<code>dds_demo --parsed --line-reset</code>), no RESET frames. The server still sends a RESET frame before every start (harmless).</li>
     <li><span style="color:#b45309">Next:</span> see the test list below.</li>
   </ul>
   <table>
@@ -765,7 +765,6 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><td>RF switch isolation (output with RF off)</td><td>spectrum analyzer</td></tr>
     <tr><td>Step timing: STEPNEXT → RF change, 5 µs minimum spacing</td><td>scope</td></tr>
     <tr><td>Per-frequency amplitude calibration file (+ load it per board, with the per-board FSC)</td><td>spectrum analyzer / power meter</td></tr>
-    <tr><td>Wire coupler c11–c18 → RAMRESET by line → infinite loops with DDS pulses</td><td>soldering</td></tr>
     <tr><td>ScriptScanner end to end with <code>addDDS</code></td><td>bench</td></tr>
     <tr><td>The other 9 boards (Pico config → AD9912 first light → 5 V current → counter → address → bus)</td><td>boards</td></tr>
     <tr><td>Crate: board-to-board step skew, phase offsets, crosstalk, power/thermal</td><td>2+ boards</td></tr>

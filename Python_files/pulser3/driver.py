@@ -110,8 +110,8 @@ class Driver:
         D.trigger_step(self.xem)
 
     def dds_reset(self):
-        """One RAMRESET pulse to all boards (needs the RAMRESET line wired;
-        dds_send([dds.reset()]) does the same over the bus)."""
+        """One RAMRESET pulse to all boards over the RAMRESET line
+        (dds_send([dds.reset()]) does the same over the bus)."""
         self._check()
         D.trigger_reset(self.xem)
 

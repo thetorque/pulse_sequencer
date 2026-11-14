@@ -129,7 +129,8 @@ byte 2..   : payload (CMD-specific)
 - `START16`, `REG16`: big-endian.
 - **✅ AGREED — `RESET` / `STEP` as frames too.** They give the host a soft
   reset/step without the TTL lines (the host's `resetAllDDS` / `advanceAllDDS`),
-  and a fallback while `RAMRESET` isn't wired on the bench coupler (c17/c18).
+  and served as the fallback while `RAMRESET` wasn't wired on the bench coupler
+  (c17/c18; wired and verified 2026-11-14).
   Bus-command latency is a frame (~1 µs), so sequences still use the lines.
 - Table depth: **8192 rows** (`ADDR_W = 13`; 8192 × 88 bits fits the LFE5U-25 EBR,
   ~40 of 56 blocks). START + N beyond the table wraps.

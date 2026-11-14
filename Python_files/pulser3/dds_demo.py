@@ -15,22 +15,26 @@ then 210 MHz with RF OFF. Deliberately NOT bp_proto's 50/100/150/200, so a pass
 can't be leftover state from the old test sender.
 
 --trigger : writes the 5 rows, RESET via TriggerIn 0x40 bit 7 (RAMRESET line) AND a
-            RESET frame (works even if RAMRESET isn't wired), then a STEP trigger
+            RESET frame (belt and braces; see --line-reset), then a STEP trigger
             (bit 6, STEPNEXT line) every --dwell seconds, cycling forever.
 --sequence: fills all 8192 rows with the 5-row pattern repeated, so the table cycles
-            without needing RAMRESET (c17/c18 not yet wired on the bench coupler),
+            without needing RAMRESET (written before c17/c18 were wired),
             RESET frame once, then runs a TTL sequence in an infinite loop: an
             AdvanceDDS (ch 18) pulse every --dwell seconds, 5 per loop, plus a
             marker pulse on 'ttl_0' at each step (scope ttl_0 vs the RF output to
             see the step latency). Ctrl-C stops.
 --parsed  : the parseDDS port end to end (dds_sequence + Driver.load_sequence). A
             pulse sequence on hwconfig.DDS_CHANNELS['DDS_bench'] at 0 dBm:
-              0-5 s off (row 0 = manual state, RF off) | 5-10 s F1 | 10-15 s F2
+              0-5 s row 0 = manual state (100 MHz on) | 5-10 s F1 | 10-15 s F2
               (back-to-back) | 15-20 s off | 20-25 s F3 | then off
             (--freqs, 3 values; default 65,115,165) plus a 'ttl_0' marker at every
-            change. Runs single-shot in a loop with a RESET frame between runs:
-            the sequence's own ResetDDS needs the RAMRESET line (c17/c18), which
-            the bench coupler doesn't have yet.
+            change. Runs single-shot in a loop with a RESET frame between runs.
+--line-reset (with --trigger or --parsed; roadmap 2.2): reset the boards ONLY through
+            the RAMRESET line (c17/c18), never a RESET frame, so a dead line shows
+            as a wrong frequency. --trigger: the cycle back to row 0 is TriggerIn
+            0x40 bit 7 alone. --parsed: the sequence runs in an INFINITE loop and
+            its own ResetDDS (TTL19) pulse is the only thing returning the board to
+            row 0 each loop.
 """
 import argparse
 import sys
@@ -61,25 +65,28 @@ def dump():
             print("   ", s[i:i + 16].hex(" "))
 
 
-def run_trigger(drv, dwell):
+def run_trigger(drv, dwell, line_only=False):
     x = drv.xem
     D.clear_pipe(x)
-    D.send(x, [D.write_rows(D.BROADCAST, 0, PATTERN)])
+    D.send(x, [D.clear_status(), D.write_rows(D.BROADCAST, 0, PATTERN)])
     D.trigger_reset(x)
-    D.send(x, [D.reset()])
+    if not line_only:
+        D.send(x, [D.reset()])
     k = 0
     print(f"row 0: {LABELS[0]}")
     try:
         while True:
             time.sleep(dwell)
             if k == len(PATTERN) - 1:
-                D.trigger_reset(x)               # RAMRESET line (if wired) ...
-                D.send(x, [D.reset()])           # ... and the frame, which always works
+                D.trigger_reset(x)               # RAMRESET line ...
+                if not line_only:
+                    D.send(x, [D.reset()])       # ... and the frame, which always works
                 k = 0
             else:
                 D.trigger_step(x)
                 k += 1
-            print(f"row {k}: {LABELS[k]}")
+            print(f"row {k}: {LABELS[k]}" + ("   <- RAMRESET line only" if k == 0 and line_only else ""),
+                  flush=True)
     except KeyboardInterrupt:
         print("\nstopped")
 
@@ -116,7 +123,7 @@ def run_sequence(drv, dwell):
         print("\nstopped")
 
 
-def run_parsed(drv, dwell, freqs):
+def run_parsed(drv, dwell, freqs, line_only=False):
     from . import hwconfig
     from . import dds_sequence as DS
     if len(freqs) != 3:
@@ -134,6 +141,21 @@ def run_parsed(drv, dwell, freqs):
         r = rows['DDS_bench']
         when = "row 0 (manual)" if t is None else f"t = {t:9.6f} s"
         print(f"   {when}: {r.freq_hz / 1e6:g} MHz VGA {r.vga:#05x} RF {'ON' if r.rf_on else 'off'}")
+    if line_only:
+        drv.start_infinite()
+        print("infinite loop; ResetDDS (TTL19 -> RAMRESET line) is the only reset", flush=True)
+        try:
+            last = -1
+            while True:
+                c = drv.seq_count()
+                if c != last:
+                    print(f"  loop {c}", flush=True)
+                    last = c
+                time.sleep(0.2)
+        except KeyboardInterrupt:
+            drv.stop()
+            print("\nstopped")
+        return
     try:
         run = 0
         while True:
@@ -142,7 +164,7 @@ def run_parsed(drv, dwell, freqs):
             drv.start_single()
             if not drv.wait_done(timeout=10 * dwell):
                 raise SystemExit("sequence did not finish")
-            drv.dds_send([D.reset()])        # stands in for the unwired RAMRESET line
+            drv.dds_send([D.reset()])        # bus RESET between runs (--line-reset: the line)
     except KeyboardInterrupt:
         drv.stop()
         print("\nstopped")
@@ -156,6 +178,8 @@ def main(argv=None):
     g.add_argument("--sequence", action="store_true")
     g.add_argument("--parsed", action="store_true")
     g.add_argument("--dump", action="store_true")
+    ap.add_argument("--line-reset", action="store_true",
+                    help="--trigger/--parsed: reset via the RAMRESET line only (no RESET frame)")
     ap.add_argument("--dwell", type=float, default=5.0, help="seconds per row (default 5)")
     ap.add_argument("--freqs", default=None,
                     help="comma-separated MHz. --trigger/--sequence: RF on, the last "
@@ -171,14 +195,18 @@ def main(argv=None):
         return 0
     if not a.bit:
         ap.error("bit path required")
+    if a.line_reset and not (a.trigger or a.parsed):
+        ap.error("--line-reset goes with --trigger or --parsed")
     from . import Driver
     drv = Driver()
     print(f"configuring {a.bit} ...")
     drv.connect(a.bit)
     if a.parsed:
-        run_parsed(drv, a.dwell, freqs or [65.0, 115.0, 165.0])
+        run_parsed(drv, a.dwell, freqs or [65.0, 115.0, 165.0], a.line_reset)
+    elif a.trigger:
+        run_trigger(drv, a.dwell, a.line_reset)
     else:
-        (run_trigger if a.trigger else run_sequence)(drv, a.dwell)
+        run_sequence(drv, a.dwell)
     return 0
 
 
