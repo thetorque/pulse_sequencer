@@ -169,6 +169,17 @@ class ScriptScanner(Signals):
         scan_script = self.script_parameters[scan_script_name]
         measure_script = self.script_parameters[measure_script_name]
         parameter = (collection, parameter_name)
+        # An experiment that declares its parameters (required parameters, or a
+        # `scan_parameter` it reads itself) can only be scanned over one of them:
+        # scanning anything else silently replays the same run at every point.
+        cls = scan_script.cls
+        declared = {tuple(p) for p in cls.all_required_parameters()}
+        if getattr(cls, 'scan_parameter', None):
+            declared.add(tuple(cls.scan_parameter))
+        if declared and parameter not in declared:
+            raise Exception("{0} does not use {1}.{2}; scan one of: {3}".format(
+                scan_script_name, collection, parameter_name,
+                ", ".join(sorted("{0}.{1}".format(*p) for p in declared))))
         if scan_script == measure_script:
             scan_launch = scan_methods.scan_experiment_1D(scan_script.cls, parameter, minim, maxim, steps, units)
         else:

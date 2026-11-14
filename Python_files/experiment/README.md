@@ -45,9 +45,13 @@ class MySequence(pulse_sequence):
 `addSequence(...)`; `all_required_parameters()` then gathers everything the whole
 tree needs.
 
-> **DDS is hardware-deferred.** `addDDS(...)` exists and stores DDS pulses, but the
-> current Pulser has no DDS datapath, so `programSequence` raises a clear message
-> if a sequence actually defines DDS pulses. Use TTL-only sequences for now.
+**DDS pulses:** `addDDS(channel, start, duration, frequency, amplitude[, phase,
+ramp_rate, amp_ramp_rate])` with a channel from `pulser3.hwconfig.DDS_CHANNELS`
+(bench: `DDS_bench`). `programSequence` sends them with Pulser 'Add DDS Pulses';
+the Pulser compiles the row tables, loads them over the DDS backplane bus and adds
+the AdvanceDDS / ResetDDS (TTL 18/19) pulses. Rules: changes on DDS channels >= 5 us
+apart, no ramps, frequency 0 = off. Example: `pulser_sequences/dds_tone_seq.py` +
+`experiment_scripts/dds_tone_experiment.py` ("DDS Tone (from ParameterVault)").
 
 ## Writing an experiment
 
@@ -100,6 +104,18 @@ The LEDs blink in two alternating banks. The ON time is whatever
 speed by editing `LedBlink.on_time` -- most easily in the **Parameter Editor**
 (`pulser_gui/parameter_editor.py`, or the Parameters tab of the Workbench) -- then
 run again. That's the ParameterVault-driven pattern.
+
+## The DDS example: DDS Tone (from ParameterVault)
+
+- `pulser_sequences/dds_tone_seq.py` -- `DdsToneSequence`: 0.5 s on the channel's
+  manual state, then one DDS pulse on `DDS_bench` at `DDSTone.frequency` (MHz) /
+  `DDSTone.amplitude` (dBm) for `DDSTone.duration` (s), with a `ttl_0` marker over
+  the pulse; the ResetDDS pulse at the end returns the board to row 0.
+- `experiment_scripts/dds_tone_experiment.py` -- `DdsToneFromVault`: seeds the
+  three parameters the first time (90 MHz, -10 dBm, 4 s), plays the pulse once per
+  run and returns the programmed frequency (MHz), so **scanning
+  `DDSTone.frequency`** writes a frequency staircase into the Data Vault that a
+  frequency counter on the DDS output should match point by point.
 
 ## Status / next
 

@@ -544,7 +544,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><th>Way to launch</th><th>What it does</th><th>Setting</th></tr>
     <tr><td><b>Run once</b></td><td>Run the selected experiment a single time.</td><td><code>new_experiment</code></td></tr>
     <tr><td><b>Repeat</b> N × (+ save)</td><td>Run N times, reloading parameters each time; optionally save each result to the Data Vault.</td><td><code>new_script_repeat</code></td></tr>
-    <tr><td><b>Scan</b> a parameter</td><td>Sweep one <code>(collection, parameter)</code> from min→max in N steps (given units), saving result vs value. Choose “measure with” to scan one experiment while measuring another.</td><td><code>new_script_scan</code></td></tr>
+    <tr><td><b>Scan</b> a parameter</td><td>Sweep one <code>(collection, parameter)</code> from min→max in N steps (given units), saving result vs value. Choose “measure with” to scan one experiment while measuring another. The parameter must be one the experiment uses (its required parameters); anything else is refused, since it would replay the same run at every point.</td><td><code>new_script_scan</code></td></tr>
     <tr><td><b>Schedule</b> every T s</td><td>Re-queue the experiment every T seconds at a chosen priority.</td><td><code>new_script_schedule</code></td></tr>
   </table>
   <div class="box tip"><b class="tag">Try it with no hardware</b>
@@ -758,6 +758,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <li><b>Done (2026-11-13, hardware-verified on board 8):</b> DDS bus in the FPGA (pipe 0x81), <code>pulser3.dds</code> + <code>dds_sequence</code> (parseDDS port), <b>DDS server settings</b> (41–49, 11, 90–94), the <b>DDS Control</b> GUI, board firmware v0.4 (front-panel LEDs, AD9912 health check, identify, 100 MHz / −10 dBm default tone).</li>
     <li><b>Done (2026-11-14):</b> <b>2-hour stepping soak</b> (<code>python -m pulser3.dds_soak</code>) — 1,441,770,000 AdvanceDDS steps at 5 µs spacing, no lost or extra step (counter on the predicted 52.576 MHz), no red D3/D4; <b>DAC full-scale current register write</b> from the host (FSC tracks the output level; it is a static per-board setting, not used for sequence amplitude — the VGA is); <b>master FPGA</b>: DDR3 read-path fix, the "DDS FIFO drained" status wire (WireOut 0x36), rebuilt from the repo.</li>
     <li><b>Done (2026-11-14):</b> bench coupler <b>c11–c18 wired</b> (RAMRESET + AUX1–3, all four walk correctly with <code>bp_test</code>/<code>bp_rx</code>); <b>RAMRESET by line</b> — host-triggered (<code>dds_demo --trigger --line-reset</code>) and a DDS pulse sequence in an <b>infinite loop</b> rewound only by its own ResetDDS (TTL19) pulse (<code>dds_demo --parsed --line-reset</code>), no RESET frames. The server still sends a RESET frame before every start (harmless).</li>
+    <li><b>Done (2026-11-14):</b> <b>ScriptScanner end to end with <code>addDDS</code></b> — the example experiment <em>DDS Tone (from ParameterVault)</em> (<code>experiment/pulser_sequences/dds_tone_seq.py</code> + <code>experiment_scripts/dds_tone_experiment.py</code>; parameters <code>DDSTone.frequency / amplitude / duration</code>) runs single, repeat and as a frequency scan from the Script Scanner GUI; every point reprograms the board and the counter matched the Data Vault staircase (72/102/132/162 MHz). ScriptScanner now refuses a scan over a parameter the experiment doesn't use.</li>
     <li><span style="color:#b45309">Next:</span> see the test list below.</li>
   </ul>
   <table>
@@ -765,7 +766,6 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><td>RF switch isolation (output with RF off)</td><td>spectrum analyzer</td></tr>
     <tr><td>Step timing: STEPNEXT → RF change, 5 µs minimum spacing</td><td>scope</td></tr>
     <tr><td>Per-frequency amplitude calibration file (+ load it per board, with the per-board FSC)</td><td>spectrum analyzer / power meter</td></tr>
-    <tr><td>ScriptScanner end to end with <code>addDDS</code></td><td>bench</td></tr>
     <tr><td>The other 9 boards (Pico config → AD9912 first light → 5 V current → counter → address → bus)</td><td>boards</td></tr>
     <tr><td>Crate: board-to-board step skew, phase offsets, crosstalk, power/thermal</td><td>2+ boards</td></tr>
   </table>

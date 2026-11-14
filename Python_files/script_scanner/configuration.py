@@ -26,6 +26,8 @@ class config(object):
         # experiment-layer example: sequence in experiment/pulser_sequences/,
         # parameters from the ParameterVault (seed with experiment/seed_parameters.py)
         ('experiment.experiment_scripts.led_blink_experiment', 'LedBlinkFromVault'),
+        # DDS example (roadmap 4.5): a DDS pulse on DDS_bench from the vault's DDSTone.*
+        ('experiment.experiment_scripts.dds_tone_experiment', 'DdsToneFromVault'),
     ]
 
     allowed_concurrent = {
