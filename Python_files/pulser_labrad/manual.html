@@ -460,6 +460,32 @@ p.stop_sequence()             <span class="c"># releases the DDS lock</span></co
     <li><b>Amplitude calibration is provisional:</b> dBm is accurate near 50 MHz on board 8; at 100–200 MHz the output is ~2 dB higher. Per-board, per-frequency calibration comes later.</li>
   </ul>
 
+  <h3>Board bring-up status (2026-11-15)</h3>
+  <p><b>All 10 boards pass.</b> Each board was checked standalone (no backplane) with one shared bring-up Pico moved from board to board, whose <code>main.py</code> boots the self-test <code>ad9912_verify</code>. The test bitstreams are scratch builds from the <code>DDS_ECP5_2026_10_19</code> sources. All levels were read on a spectrum analyzer at the board's RF OUT.</p>
+  <ol>
+    <li><b>Self-test</b> (<code>ad9912_verify</code>, runs at power-up): AD9912 register write + readback over a slow (~1 MHz) SPI clock. Pass = every LED lit except R4, with R6 blinking (heartbeat). Only R6 blinking = the AD9912 doesn't answer.</li>
+    <li><b>100 MHz level</b>: <code>dds_top</code> with its default row changed to 100 MHz, VGA 0xB40, DAC FSC 0x200, RF on. A healthy board reads <b>+2.0 to +2.7 dBm</b>.</li>
+    <li><b>RF switch</b>: same tone, switch toggled every ~10 s. On ≈ the level above; off at the analyzer's −65 dBm floor (isolation ≥ 57–68 dB, floor-limited).</li>
+    <li><b>VGA step</b>: same tone, VGA code 0xFFF / 0x800 / 0x000 every ~10 s. A healthy board reads <b>≈ +20 / −11 / −40 dBm</b>.</li>
+  </ol>
+  <table>
+    <tr><th>Board</th><th>100 MHz (VGA 0xB40)</th><th>VGA max / mid / min</th><th>Notes</th></tr>
+    <tr><td>1</td><td>+2.23 dBm</td><td>+19.73 / −11.6 / −40 dBm</td><td>Once showed D1 red under <code>dds_top</code> (part-ID readback at the full ~39 MHz SPI clock failed) while the slow self-test passed and the output was correct. If it recurs, inspect the AD9912 SPI joints (pins 61, 63, 64).</td></tr>
+    <tr><td>2</td><td>+2.4 dBm</td><td>+19.8 / −11.4 / −40 dBm</td><td></td></tr>
+    <tr><td>3</td><td>+2.54 dBm</td><td>+19.88 / −11.2 / −40 dBm</td><td></td></tr>
+    <tr><td>4</td><td>+2.66 dBm</td><td>+19.93 / −11.14 / −40 dBm</td><td></td></tr>
+    <tr><td>5</td><td>—</td><td>+19.85 / −11.11 / −40 dBm</td><td>Was ~30 dB low (−14 / −45 / below floor), falling ~6 dB/octave, with no signal on the DAC pads at 1 MHz. <b>Fixed</b> by reworking the AD9912 DAC_OUT/OUTB joint (pins 50/51).</td></tr>
+    <tr><td>6</td><td>+2.0 dBm</td><td>+20 / −11 / −40 dBm</td><td>50 MHz: −0.4 dBm.</td></tr>
+    <tr><td>7</td><td>+2.39 dBm</td><td>+19.8 / −11.3 / −40 dBm</td><td></td></tr>
+    <tr><td>8</td><td>≈ +2 dBm</td><td>—</td><td>First-light board, fully tested on the bench (counter, 2 h soak, bus, sequences). <b>The only board with the 100 Ω bus terminator: it must sit in the LAST backplane slot.</b></td></tr>
+    <tr><td>10</td><td>+2.7 dBm</td><td>+19.85 / −11.11 / −40 dBm</td><td></td></tr>
+    <tr><td>11</td><td>+2.6 dBm</td><td>—</td><td>At first the AD9912 gave no SPI reply; later it worked (cause unknown, so watch for intermittency). 50 MHz: 0 dBm. RF switch isolation ≥ 67.6 dB. DAC reference: 0.5 V DC, 1 Vpp at 1 MHz on each R46 pad.</td></tr>
+  </table>
+  <div class="box warn"><b class="tag">Before the crate</b>
+    <p>Every board's own Pico must have <code>main.py</code> booting <code>dds_top_c.bit</code>, not the self-test. Only board 8 is terminated, so it goes in the last slot, and no other board may be terminated.</p>
+  </div>
+  <p><b>Quick diagnosis:</b> if R6 is blinking under <code>dds_top</code>, the Pico restarted and reloaded the self-test (check its USB cable and power). The DAC go/no-go is 0.5 V DC / 1 Vpp at 1 MHz on each R46 pad; a board reading ~0 V there has its DAC outputs disconnected (board 5's fault).</p>
+
   <h3>Updating the DDS firmware</h3>
   <pre><code><span class="c"># on the Mac (oss-cad-suite on PATH), in VHDL_files/DDS_ECP5_2026_10_19</span>
 make TOP=dds_top compress                       <span class="c"># -> dds_top_c.bit</span>
@@ -759,6 +785,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <li><b>Done (2026-11-14):</b> <b>2-hour stepping soak</b> (<code>python -m pulser3.dds_soak</code>) — 1,441,770,000 AdvanceDDS steps at 5 µs spacing, no lost or extra step (counter on the predicted 52.576 MHz), no red D3/D4; <b>DAC full-scale current register write</b> from the host (FSC tracks the output level; it is a static per-board setting, not used for sequence amplitude — the VGA is); <b>master FPGA</b>: DDR3 read-path fix, the "DDS FIFO drained" status wire (WireOut 0x36), rebuilt from the repo.</li>
     <li><b>Done (2026-11-14):</b> bench coupler <b>c11–c18 wired</b> (RAMRESET + AUX1–3, all four walk correctly with <code>bp_test</code>/<code>bp_rx</code>); <b>RAMRESET by line</b> — host-triggered (<code>dds_demo --trigger --line-reset</code>) and a DDS pulse sequence in an <b>infinite loop</b> rewound only by its own ResetDDS (TTL19) pulse (<code>dds_demo --parsed --line-reset</code>), no RESET frames. The server still sends a RESET frame before every start (harmless).</li>
     <li><b>Done (2026-11-14):</b> <b>ScriptScanner end to end with <code>addDDS</code></b> — the example experiment <em>DDS Tone (from ParameterVault)</em> (<code>experiment/pulser_sequences/dds_tone_seq.py</code> + <code>experiment_scripts/dds_tone_experiment.py</code>; parameters <code>DDSTone.frequency / amplitude / duration</code>) runs single, repeat and as a frequency scan from the Script Scanner GUI; every point reprograms the board and the counter matched the Data Vault staircase (72/102/132/162 MHz). ScriptScanner now refuses a scan over a parameter the experiment doesn't use.</li>
+    <li><b>Done (2026-11-15):</b> <b>all 10 DDS boards pass bring-up</b> (1–8, 10, 11): self-test, 100 MHz level, RF switch, VGA step. Board 5 was fixed by reworking its AD9912 DAC pins. See <a href="#dds">Board bring-up status</a>.</li>
     <li><span style="color:#b45309">Next:</span> see the test list below.</li>
   </ul>
   <table>
@@ -767,7 +794,7 @@ python pulser_gui/script_scanner_gui.py           <span class="c"># the operator
     <tr><td>Step timing: STEPNEXT → RF change, 5 µs minimum spacing</td><td>scope</td></tr>
     <tr><td>Phase switching: rows at the same frequency with different phase words (e.g. 0° → 90° → 180°) — the step shows the expected jump, phase is repeatable run to run, and a frequency change keeps phase continuity</td><td>scope</td></tr>
     <tr><td>Per-frequency amplitude calibration file (+ load it per board, with the per-board FSC)</td><td>spectrum analyzer / power meter</td></tr>
-    <tr><td>The other 9 boards (Pico config → AD9912 first light → 5 V current → counter → address → bus)</td><td>boards</td></tr>
+    <tr><td>The other 9 boards, remaining checks (each Pico's <code>main.py</code> → <code>dds_top</code>, 5 V current, counter, address straps, bus)</td><td>boards</td></tr>
     <tr><td>Crate: board-to-board step skew, phase offsets, crosstalk, power/thermal</td><td>2+ boards</td></tr>
   </table>
 
