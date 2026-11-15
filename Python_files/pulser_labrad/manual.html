@@ -486,6 +486,23 @@ p.stop_sequence()             <span class="c"># releases the DDS lock</span></co
   </div>
   <p><b>Quick diagnosis:</b> if R6 is blinking under <code>dds_top</code>, the Pico restarted and reloaded the self-test (check its USB cable and power). The DAC go/no-go is 0.5 V DC / 1 Vpp at 1 MHz on each R46 pad; a board reading ~0 V there has its DAC outputs disconnected (board 5's fault).</p>
 
+  <h3>Soldering the AD9912</h3>
+  <p>The AD9912 is a 64-lead LFCSP with an exposed centre pad (epad). This hand-soldering method got all 10 boards working:</p>
+  <ol>
+    <li>Warm the board on a hot plate set to <b>100 °C</b>.</li>
+    <li>Put solder on the PCB pads.</li>
+    <li>Put solder on the AD9912's pads. <b>Keep the solder on the epad thin.</b></li>
+    <li>Place the AD9912 and align it on the PCB.</li>
+    <li>Raise the hot plate to <b>195 °C</b> and watch for the solder to start melting.</li>
+    <li>Press the chip straight down with a cotton swab. While pressing, heat the chip with the hot-air blower.</li>
+    <li>Press hard. Sometimes solder gets squeezed out.</li>
+    <li>Clean up the excess solder with a soldering iron.</li>
+    <li>Test the board (self-test → 100 MHz level → RF switch → VGA step, above). Touch up the joints around the chip if needed.</li>
+  </ol>
+  <div class="box warn"><b class="tag">Why thin epad + pressing</b>
+    <p>Too much solder on the epad lets the chip float, so the perimeter pins don't wet. Board 5 had exactly this: DAC_OUT/OUTB (pins 50/51) open, output ~30 dB low. After soldering, check the DAC pins on the R46 pads: <b>0.5 V DC, 1 Vpp at 1 MHz</b> on each.</p>
+  </div>
+
   <h3>Updating the DDS firmware</h3>
   <pre><code><span class="c"># on the Mac (oss-cad-suite on PATH), in VHDL_files/DDS_ECP5_2026_10_19</span>
 make TOP=dds_top compress                       <span class="c"># -> dds_top_c.bit</span>
